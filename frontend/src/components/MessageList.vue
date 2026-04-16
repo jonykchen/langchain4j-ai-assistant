@@ -7,6 +7,10 @@ const props = defineProps<{
   messages: Message[]
 }>()
 
+const emit = defineEmits<{
+  (e: 'regenerate'): void
+}>()
+
 const listRef = ref<HTMLElement | null>(null)
 
 watch(
@@ -25,9 +29,10 @@ watch(
   <div ref="listRef" class="message-list">
     <TransitionGroup name="message">
       <MessageItem
-        v-for="message in messages"
+        v-for="(message, index) in messages"
         :key="message.id"
         :message="message"
+        @regenerate="emit('regenerate')"
       />
     </TransitionGroup>
     <div v-if="messages.length === 0" class="empty-state">

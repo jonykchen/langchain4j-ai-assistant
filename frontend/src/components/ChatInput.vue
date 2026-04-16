@@ -2,6 +2,10 @@
 import { ref } from 'vue'
 import { ElButton, ElInput } from 'element-plus'
 
+const props = defineProps<{
+  disabled?: boolean
+}>()
+
 const emit = defineEmits<{
   send: [message: string]
 }>()
@@ -42,6 +46,7 @@ function handleCompositionEnd() {
         :rows="1"
         :autosize="{ minRows: 1, maxRows: 4 }"
         placeholder="输入消息，按 Enter 发送..."
+        :disabled="disabled"
         resize="none"
         @keydown="handleKeydown"
         @compositionstart="handleCompositionStart"
@@ -49,7 +54,7 @@ function handleCompositionEnd() {
       />
       <ElButton
         type="primary"
-        :disabled="!inputText.trim()"
+        :disabled="!inputText.trim() || disabled"
         @click="handleSend"
       >
         发送
