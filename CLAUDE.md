@@ -206,3 +206,20 @@ A: 检查后端连接是否超时，确保 `Flux` 正确完成并释放资源。
 
 ### Q: 对话记忆丢失？
 A: 检查 `MessageWindowChatMemory` 配置，确保消息窗口大小足够（默认 10 条）。
+
+## 扩展指南
+
+项目提供更详细的指南文件，帮助高效开发：
+
+| 文件 | 内容 |
+|------|------|
+| [.claude/guide.md](./.claude/guide.md) | Claude Code 使用方法、协作最佳实践 |
+| [.claude/patterns.md](./.claude/patterns.md) | 项目特有代码模式和模板 |
+| [.claude/debugging.md](./.claude/debugging.md) | 常见问题诊断与解决方案 |
+
+## 学习路径
+
+1. **入门** - 阅读本文档了解项目结构
+2. **进阶** - 学习 [.claude/guide.md](./.claude/guide.md) 掌握 Claude 协作技巧
+3. **实践** - 参考 [.claude/patterns.md](./.claude/patterns.md) 使用代码模板
+4. **排错** - 遇到问题查阅 [.claude/debugging.md](./.claude/debugging.md)
