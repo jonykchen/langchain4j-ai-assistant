@@ -29,7 +29,7 @@ watch(
   <div ref="listRef" class="message-list">
     <TransitionGroup name="message">
       <MessageItem
-        v-for="(message, index) in messages"
+        v-for="message in messages"
         :key="message.id"
         :message="message"
         @regenerate="emit('regenerate')"
