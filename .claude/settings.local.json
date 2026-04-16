@@ -31,7 +31,10 @@
       "Bash(python3 -m json.tool)",
       "Bash(docker context:*)",
       "Bash(pkill -9 -f \"Docker Desktop\")",
-      "Bash(pkill -9 -f \"com.docker\")"
+      "Bash(pkill -9 -f \"com.docker\")",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(git:*)"
     ]
   }
 }
