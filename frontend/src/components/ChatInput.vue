@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { ElButton, ElInput } from 'element-plus'
 
-const props = defineProps<{
+defineProps<{
   disabled?: boolean
 }>()
 
@@ -21,8 +21,9 @@ function handleSend() {
   }
 }
 
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey && !isComposing.value) {
+function handleKeydown(e: Event | KeyboardEvent) {
+  const keyEvent = e as KeyboardEvent
+  if (keyEvent.key === 'Enter' && !keyEvent.shiftKey && !isComposing.value) {
     e.preventDefault()
     handleSend()
   }

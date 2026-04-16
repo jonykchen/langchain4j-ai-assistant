@@ -19,7 +19,19 @@
       "Bash(tasklist)",
       "Bash(npx eslint:*)",
       "Bash(ls -la \"C:\\\\IdeaProjects\\\\langchain4j-demo\"/*.md)",
-      "Bash(dir /b \"C:\\\\IdeaProjects\\\\langchain4j-demo\\\\*.md\")"
+      "Bash(dir /b \"C:\\\\IdeaProjects\\\\langchain4j-demo\\\\*.md\")",
+      "Bash(docker --version)",
+      "Bash(docker compose:*)",
+      "Bash(docker-compose --version)",
+      "Bash(osascript -e 'quit app \"\"Docker\"\"')",
+      "Bash(open -a Docker)",
+      "Bash(docker info:*)",
+      "Bash(docker system:*)",
+      "Bash(docker version:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(docker context:*)",
+      "Bash(pkill -9 -f \"Docker Desktop\")",
+      "Bash(pkill -9 -f \"com.docker\")"
     ]
   }
 }
