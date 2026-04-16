@@ -36,7 +36,8 @@ src/main/java/com/jonychen/
 ├── controller/
 │   └── ChatController.java      # REST 接口：POST /api/chat, POST /api/chat/stream
 ├── model/
-│   └── ChatRequest.java         # 请求 DTO（record 类型）
+│   ├── ChatRequest.java         # 请求 DTO（record 类型）
+│   └── ChatResponse.java        # 响应 DTO（record 类型）
 └── service/
     └── AiService.java           # 服务层，封装 ChatAssistant
 ```
@@ -47,15 +48,21 @@ src/main/java/com/jonychen/
 - 使用 `MessageWindowChatMemory` 实现 10 条消息的滑动窗口记忆
 - 通过 WebFlux SSE 实现 `Flux<String>` 流式响应
 
+**思考过程输出：**
+- 系统提示词要求 AI 用 `<thinking></thinking>` 标签包裹思考过程
+- 思考过程在回答内容之前输出
+- 前端解析标签并显示为可折叠区域
+
 ### 前端结构
 ```
 frontend/src/
 ├── api/chat.ts                  # API 调用：sendMessage(), streamMessage()
 ├── stores/chat.ts               # Pinia 状态管理，支持 localStorage 持久化
 ├── types/index.ts               # TypeScript 类型定义
+├── main.ts                      # 入口文件，注册 Element Plus 和图标
 ├── components/
 │   ├── ChatInput.vue            # 消息输入组件，处理中文输入法组合事件
-│   ├── MessageItem.vue          # 消息渲染组件，支持 Markdown 和 highlight.js 代码高亮
+│   ├── MessageItem.vue          # 消息渲染组件，支持 Markdown、代码高亮、思考过程折叠
 │   ├── MessageList.vue          # 消息列表容器，自动滚动到底部
 │   └── Sidebar.vue              # 侧边栏，显示对话历史列表
 └── views/ChatView.vue           # 主页面布局
@@ -65,6 +72,12 @@ frontend/src/
 - Vite 代理将 `/api/*` 请求转发到 `localhost:8082`
 - `streamMessage()` 使用 async generator 解析 SSE 响应
 - 对话历史自动持久化到 localStorage
+- `currentMessages` ref 用于实时更新消息列表（解决 Vue 响应式问题）
+
+**思考过程解析（MessageItem.vue）：**
+- 解析 `<thinking>` 标签，提取思考内容
+- 未完成时显示「思考中...」加载动画
+- 点击可展开/折叠思考过程区域
 
 ## API 接口
 
@@ -77,6 +90,7 @@ frontend/src/
 
 **后端配置：** `src/main/resources/application.properties`
 - `langchain4j.open-ai.chat-model.*` - DashScope OpenAI 兼容 API 配置（qwen-plus 模型）
+- `langchain4j.open-ai.streaming-chat-model.*` - 流式模型配置
 - `server.port=8082` - 服务端口
 
 **前端配置：** `frontend/vite.config.ts`
@@ -88,6 +102,16 @@ frontend/src/
 | 层级 | 技术 |
 |------|------|
 | 后端 | Java 17, Spring Boot 3.4.1, LangChain4j 1.13.0 |
-| 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript |
+| 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript, markdown-it, highlight.js |
 | AI 模型 | 阿里云 DashScope（qwen-plus）通过 OpenAI 兼容 API |
 | 流式传输 | WebFlux + SSE |
+
+## 注意事项
+
+1. **Vue 响应式更新**：由于 computed 对嵌套属性变化不敏感，使用独立的 `currentMessages` ref 追踪消息列表，每次更新时创建新数组触发响应。
+
+2. **日期解析**：从 localStorage 加载的数据需要将日期字符串转换为 Date 对象。
+
+3. **SSE 解析**：不要使用 trim() 处理 data 内容，会丢失空白字符。
+
+4. **Element Plus 图标**：需要在 main.ts 中注册 `@element-plus/icons-vue` 图标组件。
