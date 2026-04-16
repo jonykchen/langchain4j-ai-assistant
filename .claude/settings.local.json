@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//mnt/c/IdeaProjects/**)",
+      "Bash(mvn compile:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(mvn spring-boot:run)",
+      "Bash(curl -s http://localhost:8082/actuator/health)",
+      "Bash(curl:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8082)",
+      "Bash(taskkill:*)",
+      "Bash(kill -9 34992)"
+    ]
+  }
+}

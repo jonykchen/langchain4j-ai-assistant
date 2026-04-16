@@ -1,6 +1,7 @@
 package com.jonychen.assistant;
 
 import dev.langchain4j.service.SystemMessage;
+import reactor.core.publisher.Flux;
 
 /**
  * AI 对话助手接口
@@ -19,4 +20,10 @@ public interface ChatAssistant {
             如果不确定答案，请诚实告知。
             """)
     String chat(String userMessage);
+
+    /**
+     * 流式响应方法 (响应式)
+     * 返回 Flux<String> 配合 WebFlux 使用
+     */
+    Flux<String> chatFlux(String userMessage);
 }

@@ -2,6 +2,7 @@ package com.jonychen.config;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import com.jonychen.assistant.ChatAssistant;
 import org.springframework.context.annotation.Bean;
@@ -24,9 +25,11 @@ public class AiConfig {
      * 通过 application.properties 中的配置连接阿里云百炼
      */
     @Bean
-    public ChatAssistant chatAssistant(ChatModel chatModel) {
+    public ChatAssistant chatAssistant(ChatModel chatModel,
+                                        StreamingChatModel streamingChatModel) {
         return AiServices.builder(ChatAssistant.class)
                 .chatModel(chatModel)
+                .streamingChatModel(streamingChatModel)
                 // 添加对话记忆，保留最近 10 条消息
                 .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
                 .build();
