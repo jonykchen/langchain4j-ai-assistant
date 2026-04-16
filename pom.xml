@@ -4,6 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.1</version>
+        <relativePath/>
+    </parent>
+
     <groupId>com.jonychen</groupId>
     <artifactId>langchain4j</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -19,7 +26,7 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-bom</artifactId>
-                <version>1.12.1</version>
+                <version>1.13.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -34,7 +41,7 @@
             <artifactId>langchain4j-spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- LangChain4j OpenAI Spring Boot 启动器：提供与 OpenAI API 的集成，支持 GPT 系列模型调用 -->
+        <!-- LangChain4j OpenAI Spring Boot 启动器：通过 OpenAI 兼容接口连接阿里云百炼 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
