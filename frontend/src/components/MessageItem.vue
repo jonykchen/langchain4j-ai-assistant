@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
@@ -22,8 +22,59 @@ const md = new MarkdownIt({
   },
 })
 
-const renderedContent = computed(() => {
-  return md.render(props.message.content)
+// 思考过程折叠状态
+const thinkingExpanded = ref(false)
+
+// 解析内容，提取思考过程和回答内容
+const parsedContent = computed(() => {
+  const content = props.message.content
+
+  // 查找 <thinking> 标签
+  const thinkingStart = content.indexOf('<thinking>')
+  const thinkingEnd = content.indexOf('</thinking>')
+
+  if (thinkingStart !== -1 && thinkingEnd !== -1 && thinkingEnd > thinkingStart) {
+    // 有完整的思考过程
+    const thinkingContent = content.slice(thinkingStart + 10, thinkingEnd).trim()
+    const answerContent = content.slice(thinkingEnd + 11).trim()
+    return {
+      hasThinking: true,
+      thinkingComplete: true,
+      thinkingContent,
+      answerContent
+    }
+  } else if (thinkingStart !== -1 && thinkingEnd === -1) {
+    // 思考过程正在输出（流式响应时）
+    const thinkingContent = content.slice(thinkingStart + 10).trim()
+    return {
+      hasThinking: true,
+      thinkingComplete: false,
+      thinkingContent,
+      answerContent: ''
+    }
+  }
+
+  // 没有思考过程
+  return {
+    hasThinking: false,
+    thinkingComplete: false,
+    thinkingContent: '',
+    answerContent: content
+  }
+})
+
+const thinkingRendered = computed(() => {
+  if (parsedContent.value.thinkingContent) {
+    return md.render(parsedContent.value.thinkingContent)
+  }
+  return ''
+})
+
+const answerRendered = computed(() => {
+  if (parsedContent.value.answerContent) {
+    return md.render(parsedContent.value.answerContent)
+  }
+  return ''
 })
 
 const isUser = computed(() => props.message.role === 'user')
@@ -36,13 +87,38 @@ const isUser = computed(() => props.message.role === 'user')
       <div v-else class="avatar-ai">AI</div>
     </div>
     <div class="message-content">
-      <div
-        v-if="!isUser"
-        class="markdown-body"
-        v-html="renderedContent"
-      />
+      <!-- 思考过程区域 -->
+      <div v-if="!isUser && parsedContent.hasThinking" class="thinking-section">
+        <div class="thinking-header" @click="thinkingExpanded = !thinkingExpanded">
+          <span class="thinking-icon">
+            <svg v-if="thinkingExpanded" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
+          <span class="thinking-label">
+            {{ parsedContent.thinkingComplete ? '思考过程' : '思考中...' }}
+          </span>
+          <span v-if="!parsedContent.thinkingComplete" class="thinking-loading">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </span>
+        </div>
+        <div v-show="thinkingExpanded" class="thinking-body">
+          <div class="markdown-body thinking-content" v-html="thinkingRendered"></div>
+        </div>
+      </div>
+
+      <!-- 回答内容 -->
+      <div v-if="!isUser">
+        <div v-if="answerRendered" class="markdown-body" v-html="answerRendered"></div>
+        <span v-if="message.isStreaming && !parsedContent.hasThinking" class="typing-cursor"></span>
+      </div>
       <div v-else class="user-text">{{ message.content }}</div>
-      <span v-if="message.isStreaming" class="typing-cursor"></span>
+      <span v-if="message.isStreaming && isUser" class="typing-cursor"></span>
     </div>
   </div>
 </template>
@@ -111,5 +187,83 @@ const isUser = computed(() => props.message.role === 'user')
   padding: 12px 16px;
   border-radius: 12px;
   margin-right: 48px;
+}
+
+/* 思考过程样式 */
+.thinking-section {
+  margin-bottom: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.thinking-header:hover {
+  background: #f5f5f5;
+}
+
+.thinking-header:last-child {
+  border-bottom: none;
+}
+
+.thinking-icon {
+  color: #909399;
+}
+
+.thinking-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.thinking-loading {
+  display: flex;
+  gap: 4px;
+}
+
+.thinking-loading .dot {
+  width: 6px;
+  height: 6px;
+  background: #909399;
+  border-radius: 50%;
+  animation: dotPulse 1.4s infinite ease-in-out both;
+}
+
+.thinking-loading .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.thinking-loading .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.thinking-body {
+  padding: 12px;
+  background: #fafafa;
+}
+
+.thinking-content {
+  font-size: 13px;
+  color: #606266;
+  opacity: 0.9;
 }
 </style>
