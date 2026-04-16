@@ -10,7 +10,9 @@
       "Bash(netstat -ano)",
       "Bash(findstr :8082)",
       "Bash(taskkill:*)",
-      "Bash(kill -9 34992)"
+      "Bash(kill -9 34992)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

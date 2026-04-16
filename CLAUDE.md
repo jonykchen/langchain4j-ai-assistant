@@ -1,57 +1,93 @@
 # CLAUDE.md
 
-本文件为 Claude Code (claude.ai/code) 在此仓库中工作时提供指导。
+本文件为 Claude Code (claude.ai/code) 提供代码仓库的工作指导。
 
-## 构建和运行命令
+## 常用命令
 
+### 后端 (Java/Spring Boot)
 ```bash
-# 构建项目
-mvn clean package
-
-# 运行应用
-mvn spring-boot:run
-
-# 运行测试
-mvn test
-
-# 运行单个测试类
-mvn test -Dtest=ClassName
-
-# 运行单个测试方法
-mvn test -Dtest=ClassName#methodName
+mvn spring-boot:run          # 启动后端服务，默认端口 8082
+mvn clean package            # 构建项目
+mvn test                     # 运行所有测试
+mvn test -Dtest=ClassName    # 运行单个测试类
 ```
 
-## 环境配置
+### 前端 (Vue 3/Vite)
+```bash
+cd frontend
+npm install                  # 安装依赖
+npm run dev                  # 启动开发服务器，默认端口 3000
+npm run build                # 生产环境构建
+```
 
-运行前需要设置 `OPENAI_API_KEY` 环境变量。
+## 架构说明
 
-## 架构概述
+本项目是一个基于 LangChain4j 的 AI 聊天应用，前端采用 Vue 3 框架。后端通过 OpenAI 兼容 API 连接阿里云 DashScope（通义千问模型）。
 
-这是一个基于 LangChain4j 的 Spring Boot 应用，用于构建 AI 服务。
+### 后端结构
+```
+src/main/java/com/jonychen/
+├── AiApplication.java           # Spring Boot 启动类
+├── assistant/
+│   └── ChatAssistant.java       # LangChain4j AI 接口（由 AiServices 自动实现）
+├── config/
+│   ├── AiConfig.java            # 构建 ChatAssistant Bean，配置对话记忆
+│   └── CorsConfig.java          # CORS 跨域过滤器，处理 /api/**
+├── controller/
+│   └── ChatController.java      # REST 接口：POST /api/chat, POST /api/chat/stream
+├── model/
+│   └── ChatRequest.java         # 请求 DTO（record 类型）
+└── service/
+    └── AiService.java           # 服务层，封装 ChatAssistant
+```
 
-### 技术栈
-- Java 17
-- Spring Boot 3.3.6
-- LangChain4j 1.13.0（集成 OpenAI）
+**核心流程：**
+- `ChatController` → `AiService` → `ChatAssistant`（LangChain4j AiServices）
+- `ChatAssistant` 接口由 LangChain4j 的 `AiServices.builder()` 自动实现
+- 使用 `MessageWindowChatMemory` 实现 10 条消息的滑动窗口记忆
+- 通过 WebFlux SSE 实现 `Flux<String>` 流式响应
 
-### 核心依赖
+### 前端结构
+```
+frontend/src/
+├── api/chat.ts                  # API 调用：sendMessage(), streamMessage()
+├── stores/chat.ts               # Pinia 状态管理，支持 localStorage 持久化
+├── types/index.ts               # TypeScript 类型定义
+├── components/
+│   ├── ChatInput.vue            # 消息输入组件，处理中文输入法组合事件
+│   ├── MessageItem.vue          # 消息渲染组件，支持 Markdown 和 highlight.js 代码高亮
+│   ├── MessageList.vue          # 消息列表容器，自动滚动到底部
+│   └── Sidebar.vue              # 侧边栏，显示对话历史列表
+└── views/ChatView.vue           # 主页面布局
+```
 
-| 依赖 | 用途 |
+**关键特性：**
+- Vite 代理将 `/api/*` 请求转发到 `localhost:8082`
+- `streamMessage()` 使用 async generator 解析 SSE 响应
+- 对话历史自动持久化到 localStorage
+
+## API 接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/chat | 同步聊天，返回 `{ reply: string }` |
+| POST | /api/chat/stream | SSE 流式响应，逐字输出，最后发送 `[DONE]` |
+
+## 配置说明
+
+**后端配置：** `src/main/resources/application.properties`
+- `langchain4j.open-ai.chat-model.*` - DashScope OpenAI 兼容 API 配置（qwen-plus 模型）
+- `server.port=8082` - 服务端口
+
+**前端配置：** `frontend/vite.config.ts`
+- 开发服务器端口 3000
+- 代理 `/api` 请求到后端
+
+## 技术栈
+
+| 层级 | 技术 |
 |------|------|
-| `langchain4j-spring-boot-starter` | LangChain4j 核心自动配置 |
-| `langchain4j-open-ai-spring-boot-starter` | OpenAI API 集成（GPT 模型） |
-| `langchain4j-reactor` | 响应式支持，用于 AI 流式响应（SSE） |
-| `spring-boot-starter-webflux` | 响应式 Web 框架，支持非阻塞流式响应 |
-| `spring-boot-starter-actuator` | 健康检查和指标端点 |
-| `micrometer-tracing-bridge-otel` + `opentelemetry-exporter-zipkin` | 分布式链路追踪 |
-
-### 配置说明
-
-- 服务端口：8082
-- 模型：gpt-4o-mini（通过 `application.properties` 配置）
-- 已启用 `dev.langchain4j` 包的 DEBUG 日志
-- Actuator 端点暴露于 `/actuator/*`
-
-### 流式响应支持
-
-项目同时配置了同步（`chat-model`）和流式（`streaming-chat-model`）两种 OpenAI 客户端。结合 `langchain4j-reactor` 与 WebFlux 端点可实现 Server-Sent Events (SSE) 实时 AI 流式响应。
+| 后端 | Java 17, Spring Boot 3.4.1, LangChain4j 1.13.0 |
+| 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript |
+| AI 模型 | 阿里云 DashScope（qwen-plus）通过 OpenAI 兼容 API |
+| 流式传输 | WebFlux + SSE |
