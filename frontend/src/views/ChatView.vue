@@ -33,17 +33,22 @@ function handleRegenerate() {
     chatStore.sendUserMessage(lastUserMsg.content)
   }
 }
+
+function handleRename(id: string, title: string) {
+  chatStore.renameConversation(id, title)
+}
 </script>
 
 <template>
   <div class="chat-container">
-    <Sidebar
-      :conversations="conversations"
-      :current-id="currentConversationId"
-      @new-chat="handleNewChat"
-      @select="handleSelect"
-      @delete="handleDelete"
-    />
+      <Sidebar
+        :conversations="conversations"
+        :current-id="currentConversationId"
+        @new-chat="handleNewChat"
+        @select="handleSelect"
+        @delete="handleDelete"
+        @rename="handleRename"
+      />
     <main class="chat-main">
       <div class="chat-header">
         <h1 class="chat-title">{{ currentConversation?.title || 'AI Chat' }}</h1>

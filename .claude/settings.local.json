@@ -16,7 +16,8 @@
       "Bash(npx vue-tsc:*)",
       "Bash(npx vite:*)",
       "Bash(npm ls:*)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

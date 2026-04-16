@@ -90,6 +90,15 @@ export const useChatStore = defineStore('chat', () => {
     syncCurrentMessages()
   }
 
+  function renameConversation(id: string, title: string) {
+    const convIndex = conversations.value.findIndex(c => c.id === id)
+    if (convIndex !== -1) {
+      conversations.value[convIndex].title = title
+      conversations.value[convIndex].updatedAt = new Date()
+      saveToStorage(conversations.value)
+    }
+  }
+
   async function sendUserMessage(content: string, useStream: boolean = true) {
     // 确保有当前对话
     if (!currentConversationId.value) {
@@ -180,6 +189,7 @@ export const useChatStore = defineStore('chat', () => {
     createConversation,
     deleteConversation,
     selectConversation,
+    renameConversation,
     sendUserMessage,
   }
 })

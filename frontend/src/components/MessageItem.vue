@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
@@ -14,29 +14,37 @@ const emit = defineEmits<{
   (e: 'regenerate'): void
 }>()
 
+// HTML 转义函数（避免循环引用）
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 const md = new MarkdownIt({
   html: false,
   breaks: true,
   linkify: true,
   typographer: true,
-  highlight: (str: string, lang: string) => {
-    let highlighted: string
+  highlight: (str: string, lang: string): string => {
     const language = lang || ''
+    let highlighted: string
 
     if (language && hljs.getLanguage(language)) {
       try {
         highlighted = hljs.highlight(str, { language, ignoreIllegals: true }).value
       } catch {
-        highlighted = md.utils.escapeHtml(str)
+        highlighted = escapeHtml(str)
       }
     } else {
-      highlighted = md.utils.escapeHtml(str)
+      highlighted = escapeHtml(str)
     }
 
     const langLabel = language || 'text'
-    // 顶部栏按钮：复制、编辑、深色模式、折叠
-    // 保存原始代码到 data-raw 属性，供编辑时读取
-    const rawData = md.utils.escapeHtml(str).replace(/"/g, '&quot;')
+    const rawData = escapeHtml(str)
     return `<pre class="code-block-wrapper" data-lang="${langLabel}" data-raw="${rawData}"><div class="code-block-header"><span class="code-lang">${langLabel}</span><div class="code-actions"><button class="code-action-btn" data-action="copy" title="复制代码"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>复制</button><button class="code-action-btn" data-action="edit" title="编辑代码"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>编辑</button><button class="code-action-btn" data-action="theme" title="切换浅色/深色模式"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>浅色</button><button class="code-action-btn" data-action="fold" title="折叠/展开代码"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>折叠</button></div></div><pre class="hljs code-content"><code class="hljs ${language ? `language-${language}` : ''}">${highlighted}</code></pre></pre>`
   },
 })
@@ -68,15 +76,15 @@ function saveEditedCode() {
     try {
       highlighted = hljs.highlight(editCodeContent.value, { language: lang, ignoreIllegals: true }).value
     } catch {
-      highlighted = md.utils.escapeHtml(editCodeContent.value)
+      highlighted = escapeHtml(editCodeContent.value)
     }
   } else {
-    highlighted = md.utils.escapeHtml(editCodeContent.value)
+    highlighted = escapeHtml(editCodeContent.value)
   }
 
   codeEl.innerHTML = highlighted
   // 更新 data-raw
-  wrapper.dataset.raw = md.utils.escapeHtml(editCodeContent.value).replace(/"/g, '&quot;')
+  wrapper.dataset.raw = escapeHtml(editCodeContent.value)
   editDialogVisible.value = false
   ElMessage.success('代码已更新')
 }
@@ -89,12 +97,12 @@ function decodeHTMLEntities(text: string): string {
 
 // ===== 代码块交互事件代理 =====
 function handleCodeAction(event: Event) {
-  const target = (event.target as HTMLElement)?.closest('.code-action-btn')
+  const target = (event.target as HTMLElement)?.closest('.code-action-btn') as HTMLElement | null
   if (!target) return
 
   const action = target.dataset.action
-  const wrapper = target.closest('.code-block-wrapper') as HTMLElement
-  if (!wrapper) return
+  const wrapper = target.closest('.code-block-wrapper') as HTMLElement | null
+  if (!wrapper || !action) return
 
   switch (action) {
     case 'copy':
@@ -168,7 +176,7 @@ function handleFeedback(type: 'like' | 'dislike') {
   feedback.value = feedback.value === type ? null : type
 }
 
-// 思考过程折叠状态
+// 思考过程折叠状态（流式时自动展开，结束后折叠）
 const thinkingExpanded = ref(false)
 
 // 解析内容，提取思考过程和回答内容
@@ -206,16 +214,56 @@ const parsedContent = computed(() => {
   }
 })
 
+// 当思考过程开始时自动展开
+watch(() => parsedContent.value.hasThinking, (val) => {
+  if (val && props.message.isStreaming) {
+    thinkingExpanded.value = true
+  }
+})
+
 const thinkingRendered = computed(() => {
   if (parsedContent.value.thinkingContent) {
-    return md.render(parsedContent.value.thinkingContent)
+    const content = preprocessStreamingMarkdown(parsedContent.value.thinkingContent)
+    return md.render(content)
   }
   return ''
 })
 
+/**
+ * 流式内容渲染预处理：
+ * 1. 当 # 标记出现在行首但后面没有空格时，补上空格让 markdown-it 能识别为标题
+ *    覆盖两种情况：
+ *    - ###标题（#后紧跟非空格字符）→ ### 标题
+ *    - ###（#后直接是行尾）→ ### （补空格，防止被当做普通文本）
+ * 2. 修复末尾可能不完整的行内格式（如 ** 加粗未闭合）
+ */
+function preprocessStreamingMarkdown(content: string): string {
+  if (!props.message.isStreaming) return content
+
+  // 修复行首 # 标记后缺空格的情况
+  // 匹配行首1-6个#，后面没有空格（包括紧跟非空格字符或直接行尾）
+  content = content.replace(/^(#{1,6})(\S.*)?$/gm, (_match, hashes, rest) => {
+    if (rest) {
+      // ###标题 → ### 标题
+      return hashes + ' ' + rest
+    }
+    // ### → ### （行尾补空格，markdown-it 需要空格才能识别标题）
+    return hashes + ' '
+  })
+
+  // 修复末尾未闭合的加粗/斜体：如果 ** 出现奇数次，补上闭合
+  const doubleStarCount = (content.match(/\*\*/g) || []).length
+  if (doubleStarCount % 2 !== 0) {
+    content += '**'
+  }
+
+  return content
+}
+
 const answerRendered = computed(() => {
   if (parsedContent.value.answerContent) {
-    return md.render(parsedContent.value.answerContent)
+    const content = preprocessStreamingMarkdown(parsedContent.value.answerContent)
+    return md.render(content)
   }
   return ''
 })
