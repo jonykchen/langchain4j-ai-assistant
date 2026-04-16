@@ -19,6 +19,8 @@
 | 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript |
 | AI 模型 | 阿里云 DashScope（qwen-plus） |
 | 流式传输 | WebFlux + SSE |
+| 部署 | Docker, Docker Compose, Nginx |
+| 可观测性 | Zipkin（分布式链路追踪） |
 
 ## 项目结构
 
@@ -38,18 +40,56 @@ langchain4j-demo/
 │       ├── stores/                # Pinia 状态管理
 │       ├── types/                 # TypeScript 类型
 │       └── views/                 # 页面视图
+├── docker-compose.yml             # Docker Compose 编排
+├── backend.Dockerfile             # 后端镜像构建
+├── frontend.Dockerfile            # 前端镜像构建
 └── pom.xml                        # Maven 配置
 ```
 
 ## 快速开始
 
-### 环境要求
+### 方式一：Docker 部署（推荐）
+
+#### 环境要求
+
+- Docker & Docker Compose
+
+#### 启动服务
+
+```bash
+# 启动所有服务（后端、前端、Zipkin 追踪）
+docker compose up -d
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 重新构建并启动
+docker compose up -d --build
+```
+
+#### 服务地址
+
+| 服务 | 地址 |
+|------|------|
+| 前端应用 | http://localhost:3000 |
+| 后端 API | http://localhost:8082 |
+| Zipkin 追踪 | http://localhost:9411 |
+
+### 方式二：本地开发
+
+#### 环境要求
 
 - JDK 17+
 - Node.js 18+
 - Maven 3.6+
 
-### 配置
+#### 配置
 
 1. 在 `src/main/resources/application.properties` 中配置 DashScope API Key：
 
@@ -57,7 +97,7 @@ langchain4j-demo/
 langchain4j.open-ai.chat-model.api-key=your-api-key-here
 ```
 
-### 启动后端
+#### 启动后端
 
 ```bash
 mvn spring-boot:run
@@ -65,7 +105,7 @@ mvn spring-boot:run
 
 后端服务将在 http://localhost:8082 启动。
 
-### 启动前端
+#### 启动前端
 
 ```bash
 cd frontend
@@ -102,6 +142,14 @@ AI 在回答问题前会先展示思考过程（用 `<thinking>` 标签包裹）
 ### 本地持久化
 
 对话历史自动保存到浏览器 localStorage，刷新页面不会丢失。
+
+### 分布式链路追踪
+
+项目集成了 Zipkin 用于链路追踪，可观测请求的完整调用链路：
+
+- 访问 http://localhost:9411 打开 Zipkin UI
+- 查看每个请求的耗时、调用关系等信息
+- 用于排查性能问题和调试
 
 ## API 接口
 

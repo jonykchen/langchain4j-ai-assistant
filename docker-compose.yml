@@ -1,0 +1,56 @@
+services:
+  # 后端服务 - Spring Boot 应用
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    container_name: langchain4j-backend
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_APPLICATION_NAME=LangChain4j-Docker
+      - SERVER_PORT=8082
+      # API Key 建议通过环境变量注入，不要硬编码
+      - LANGCHAIN4J_OPEN_AI_CHAT_MODEL_API_KEY=${DASHSCOPE_API_KEY:-sk-7a5a4473f7794045ab763962402e608e}
+      - LANGCHAIN4J_OPEN_AI_CHAT_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+      - LANGCHAIN4J_OPEN_AI_CHAT_MODEL_MODEL_NAME=qwen-plus
+      - LANGCHAIN4J_OPEN_AI_STREAMING_CHAT_MODEL_API_KEY=${DASHSCOPE_API_KEY:-sk-7a5a4473f7794045ab763962402e608e}
+      - LANGCHAIN4J_OPEN_AI_STREAMING_CHAT_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+      - LANGCHAIN4J_OPEN_AI_STREAMING_CHAT_MODEL_MODEL_NAME=qwen-plus
+      # Zipkin 追踪配置
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      zipkin:
+        condition: service_started
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+  # 前端服务 - Vue 应用
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: langchain4j-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+  # Zipkin 链路追踪服务
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: langchain4j-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+networks:
+  langchain4j-network:
+    driver: bridge
