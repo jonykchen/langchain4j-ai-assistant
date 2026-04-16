@@ -23,6 +23,16 @@ function handleDelete(id: string) {
 function handleSend(message: string) {
   chatStore.sendUserMessage(message)
 }
+
+function handleRegenerate() {
+  // 获取最后一条用户消息，重新发送
+  const messages = currentMessages.value
+  if (messages.length < 2) return
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
+  if (lastUserMsg?.content) {
+    chatStore.sendUserMessage(lastUserMsg.content)
+  }
+}
 </script>
 
 <template>
@@ -41,8 +51,10 @@ function handleSend(message: string) {
       <MessageList
         v-if="currentConversation"
         :messages="currentMessages"
+        @regenerate="handleRegenerate"
       />
       <ChatInput
+        :disabled="isLoading"
         @send="handleSend"
       />
     </main>

@@ -14,7 +14,7 @@ public interface ChatAssistant {
     /**
      * 系统提示词，定义 AI 的角色和行为
      */
-    @SystemMessage("""
+    String SYSTEM_PROMPT = """
             你是一个友好的 AI 助手。
 
             在回答问题之前，请先用 <thinking></thinking> 标签展示你的思考过程。
@@ -28,12 +28,15 @@ public interface ChatAssistant {
             </thinking>
 
             你的回答内容...
-            """)
+            """;
+
+    @SystemMessage(SYSTEM_PROMPT)
     String chat(String userMessage);
 
     /**
      * 流式响应方法 (响应式)
      * 返回 Flux<String> 配合 WebFlux 使用
      */
+    @SystemMessage(SYSTEM_PROMPT)
     Flux<String> chatFlux(String userMessage);
 }
