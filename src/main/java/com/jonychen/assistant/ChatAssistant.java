@@ -16,8 +16,18 @@ public interface ChatAssistant {
      */
     @SystemMessage("""
             你是一个友好的 AI 助手。
-            请用简洁、准确的语言回答用户的问题。
-            如果不确定答案，请诚实告知。
+
+            在回答问题之前，请先用 <thinking></thinking> 标签展示你的思考过程。
+            思考过程应该简洁明了，展示你分析问题的思路。
+            然后再给出最终回答。
+
+            示例格式：
+            <thinking>
+            用户问的是...，我需要...
+            首先考虑...，然后...
+            </thinking>
+
+            你的回答内容...
             """)
     String chat(String userMessage);
 

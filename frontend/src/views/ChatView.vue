@@ -6,7 +6,7 @@ import { useChatStore } from '@/stores/chat'
 import { storeToRefs } from 'pinia'
 
 const chatStore = useChatStore()
-const { conversations, currentConversation, currentConversationId, isLoading } = storeToRefs(chatStore)
+const { conversations, currentConversation, currentConversationId, currentMessages, isLoading } = storeToRefs(chatStore)
 
 function handleNewChat() {
   chatStore.createConversation()
@@ -40,7 +40,7 @@ function handleSend(message: string) {
       </div>
       <MessageList
         v-if="currentConversation"
-        :messages="currentConversation.messages"
+        :messages="currentMessages"
       />
       <ChatInput
         @send="handleSend"
