@@ -17,7 +17,9 @@
       "Bash(npx vite:*)",
       "Bash(npm ls:*)",
       "Bash(tasklist)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(ls -la \"C:\\\\IdeaProjects\\\\langchain4j-demo\"/*.md)",
+      "Bash(dir /b \"C:\\\\IdeaProjects\\\\langchain4j-demo\\\\*.md\")"
     ]
   }
 }
