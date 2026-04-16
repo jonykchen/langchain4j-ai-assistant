@@ -40,24 +40,29 @@ export async function* streamMessage(message: string): AsyncGenerator<string> {
   const decoder = new TextDecoder()
   let buffer = ''
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
 
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
 
-    for (const line of lines) {
-      if (line.startsWith('event:')) {
-        continue
-      }
-      if (line.startsWith('data:')) {
-        const data = line.slice(5).trim()
-        if (data && data !== '[DONE]') {
-          yield data
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          continue
+        }
+        if (line.startsWith('data:')) {
+          // 保留空格，只去除 data: 前缀
+          const data = line.slice(5)
+          if (data && data !== '[DONE]') {
+            yield data
+          }
         }
       }
     }
+  } finally {
+    reader.releaseLock()
   }
 }
