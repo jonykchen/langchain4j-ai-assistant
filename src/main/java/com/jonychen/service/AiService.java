@@ -2,6 +2,7 @@ package com.jonychen.service;
 
 import com.jonychen.assistant.ChatAssistant;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 /**
  * AI 服务层
@@ -23,5 +24,12 @@ public class AiService {
      */
     public String chat(String message) {
         return chatAssistant.chat(message);
+    }
+
+    /**
+     * 流式对话
+     */
+    public Flux<String> chatFlux(String message) {
+        return chatAssistant.chatFlux(message);
     }
 }
