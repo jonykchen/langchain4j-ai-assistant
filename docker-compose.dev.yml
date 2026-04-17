@@ -1,7 +1,10 @@
-# ==================== 本地开发环境配置 ====================
+# ==================== 生产级 Agent 工程开发环境 ====================
 #
-# 用途：搭建开发所需的依赖服务（Redis、Nacos 等）
-# 前后端代码由开发者自己启动，不打包为镜像
+# 特性：
+# - 一键启动所有依赖服务
+# - 数据持久化到 ./data 目录，跨机器无缝迁移
+# - 完整的监控、链路追踪、配置中心
+# - 支持本地 AI 模型（Ollama）
 #
 # 启动方式：
 #   docker compose -f docker-compose.dev.yml up -d
@@ -10,18 +13,52 @@
 #   docker compose -f docker-compose.dev.yml down
 #
 # 查看日志：
-#   docker compose -f docker-compose.dev.yml logs -f
+#   docker compose -f docker-compose.dev.yml logs -f [服务名]
+#
+# 重置环境（清除所有数据）：
+#   docker compose -f docker-compose.dev.yml down -v
+#   rm -rf ./data
 
 services:
-  # ==================== Redis - 分布式限流与缓存 ====================
+  # ==================== 基础设施 ====================
+
+  # PostgreSQL - 主数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: langchain4j-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: langchain4j
+      POSTGRES_USER: ${POSTGRES_USER:-langchain4j}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-REDACTED_DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-langchain4j} -d langchain4j"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+  # Redis - 分布式限流与缓存
   redis:
     image: redis:7-alpine
     container_name: langchain4j-redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
     volumes:
-      - redis_data:/data
+      - ./data/redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -31,88 +68,351 @@ services:
       - langchain4j-network
     restart: unless-stopped
 
-  # ==================== Nacos 配置中心 ====================
+  # ==================== 配置与注册中心 ====================
+
+  # Nacos - 配置中心
   nacos:
     image: nacos/nacos-server:v2.3.1
     container_name: langchain4j-nacos
     ports:
       - "8848:8848"
       - "9848:9848"
+      - "9849:9849"
     environment:
       - MODE=standalone
       - PREFER_HOST_MODE=hostname
       - JVM_XMS=256m
       - JVM_XMX=512m
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=nacos-db
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_DB_NAME=nacos
+      - MYSQL_SERVICE_USER=${NACOS_DB_USER:-nacos}
+      - MYSQL_SERVICE_PASSWORD=${NACOS_DB_PASSWORD:-REDACTED_NACOS_PASSWORD}
     volumes:
-      - nacos_logs:/home/nacos/logs
+      - ./data/nacos/logs:/home/nacos/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
       interval: 15s
       timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      nacos-db:
+        condition: service_healthy
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+  # Nacos 数据库
+  nacos-db:
+    image: mysql:8.0
+    container_name: langchain4j-nacos-db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-REDACTED_ROOT_PASSWORD}
+      MYSQL_DATABASE: nacos
+      MYSQL_USER: ${NACOS_DB_USER:-nacos}
+      MYSQL_PASSWORD: ${NACOS_DB_PASSWORD:-REDACTED_NACOS_PASSWORD}
+    volumes:
+      - ./data/nacos-db:/var/lib/mysql
+      - ./infra/nacos/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-REDACTED_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
       retries: 5
       start_period: 30s
     networks:
       - langchain4j-network
     restart: unless-stopped
 
-  # ==================== Zipkin 链路追踪 ====================
+  # ==================== 可观测性 ====================
+
+  # Zipkin - 链路追踪
   zipkin:
     image: openzipkin/zipkin:latest
     container_name: langchain4j-zipkin
     ports:
       - "9411:9411"
+    environment:
+      - STORAGE_TYPE=mem
+      - JAVA_OPTS=-Xms128m -Xmx256m
     networks:
       - langchain4j-network
     restart: unless-stopped
 
-  # ==================== Prometheus - 指标收集 ====================
+  # Prometheus - 指标收集
   prometheus:
     image: prom/prometheus:v2.48.0
     container_name: langchain4j-prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ./data/prometheus:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=15d'
       - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
     networks:
       - langchain4j-network
     restart: unless-stopped
 
-  # ==================== Grafana - 可视化面板 ====================
+  # Grafana - 可视化面板
   grafana:
     image: grafana/grafana:10.2.0
     container_name: langchain4j-grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=REDACTED_ADMIN_PASSWORD
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-REDACTED_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_INSTALL_PLUGINS=redis-datasource
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./data/grafana:/var/lib/grafana
+      - ./infra/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:
       - langchain4j-network
     restart: unless-stopped
 
-# ==================== 数据卷 ====================
-volumes:
-  redis_data:
-  nacos_logs:
-  prometheus_data:
-  grafana_data:
+  # Redis Exporter - Redis 指标导出
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0
+    container_name: langchain4j-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+  # Postgres Exporter - PostgreSQL 指标导出
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.12.1
+    container_name: langchain4j-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-langchain4j}:${POSTGRES_PASSWORD:-REDACTED_DB_PASSWORD}@postgres:5432/langchain4j?sslmode=disable
+    depends_on:
+      - postgres
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+  # ==================== 本地 AI 模型（可选） ====================
+
+  # Ollama - 本地大模型
+  ollama:
+    image: ollama/ollama:latest
+    container_name: langchain4j-ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_ORIGINS=*
+    volumes:
+      - ./data/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+    profiles:
+      - gpu
+
+  # Ollama CPU 版本（无 GPU 时的备选）
+  ollama-cpu:
+    image: ollama/ollama:latest
+    container_name: langchain4j-ollama-cpu
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_ORIGINS=*
+    volumes:
+      - ./data/ollama:/root/.ollama
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+    profiles:
+      - cpu
+
+  # ==================== 向量数据库（可选） ====================
+
+  # Qdrant - 高性能向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: langchain4j-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+    profiles:
+      - vector
+
+  # Milvus - 分布式向量数据库
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: langchain4j-etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ./data/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+    profiles:
+      - milvus
+
+  minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: langchain4j-minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9100:9000"
+      - "9101:9001"
+    volumes:
+      - ./data/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+    profiles:
+      - milvus
+
+  milvus:
+    image: milvusdb/milvus:v2.3.3
+    container_name: langchain4j-milvus
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - ./data/milvus:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - etcd
+      - minio
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+    profiles:
+      - milvus
+
+  # ==================== 消息队列（可选） ====================
+
+  # RabbitMQ - 消息队列
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: langchain4j-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-REDACTED_ADMIN_PASSWORD}
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+    profiles:
+      - mq
+
+  # ==================== 开发工具 ====================
+
+  # Adminer - 数据库管理工具
+  adminer:
+    image: adminer:latest
+    container_name: langchain4j-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DESIGN=pepa-linha-dark
+    depends_on:
+      - postgres
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
+  # Redis Commander - Redis 管理工具
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: langchain4j-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
 
 # ==================== 网络 ====================
 networks:
   langchain4j-network:
     driver: bridge
+    name: langchain4j-network

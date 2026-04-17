@@ -92,3 +92,14 @@ Desktop.ini
 **/spotbugsXml.xml
 **/checkstyle-result.xml
 **/pmd.xml
+
+### Docker 数据卷（本地开发） ###
+#data/
+
+### Claude Code ###
+#.claude/settings.local.json
+
+### 敏感配置 ###
+#.env
+#.env.local
+#.env.*.local

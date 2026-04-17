@@ -1,0 +1,17 @@
+# ==================== Grafana 仪表板配置 ====================
+#
+# 自动加载预定义的仪表板
+
+apiVersion: 1
+
+providers:
+  - name: 'LangChain4j Agent Dashboards'
+    orgId: 1
+    folder: 'LangChain4j'
+    folderUid: 'langchain4j'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

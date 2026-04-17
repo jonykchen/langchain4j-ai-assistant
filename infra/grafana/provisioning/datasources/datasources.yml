@@ -1,0 +1,54 @@
+# ==================== Grafana 数据源配置 ====================
+#
+# 自动配置 Prometheus 和其他数据源
+
+apiVersion: 1
+
+datasources:
+  # Prometheus - 主数据源
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: "POST"
+      manageAlerts: true
+      prometheusType: "Prometheus"
+
+  # Redis - Redis 数据源
+  - name: Redis
+    type: redis-datasource
+    access: proxy
+    url: redis://redis:6379
+    editable: false
+    jsonData:
+      client: "standalone"
+      poolSize: 5
+
+  # Zipkin - 链路追踪
+  - name: Zipkin
+    type: zipkin
+    access: proxy
+    url: http://zipkin:9411
+    editable: false
+    jsonData:
+      httpMethod: "GET"
+
+  # PostgreSQL - 数据库监控（可选）
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    user: ${POSTGRES_USER}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      database: langchain4j
+      sslmode: "disable"
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+      postgresVersion: 1600
+      timescaledb: false

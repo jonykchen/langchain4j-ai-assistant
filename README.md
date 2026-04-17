@@ -1,129 +1,118 @@
-# LangChain4j AI 聊天应用
+# LangChain4j Agent 工程
 
-一个基于 LangChain4j 和 Vue 3 构建的 AI 聊天应用，专为 Java 开发者学习 AI Agent 开发设计。后端连接阿里云 DashScope（通义千问模型），支持流式响应和思考过程展示。
+一个生产级 AI Agent 开发工程，基于 LangChain4j + Spring Boot + Vue 3 构建。支持多模型负载均衡、故障自动转移、完整可观测性链路。
 
-## 功能特性
+> 📖 **[快速开始指南](./docs/QUICK_START.md)** - 完整的启动文档和服务访问地址
 
-- AI 对话，具备上下文记忆能力（滑动窗口 10 条）
-- 流式响应，实时逐字显示 AI 回复
-- **思考过程展示** - AI 推理过程可视化，支持折叠展开
-- **代码块增强** - 语法高亮、复制、编辑、深色/浅色主题切换、折叠
-- Markdown 渲染（标题、列表、表格、引用、代码块）
-- 对话历史本地持久化（localStorage）
-- 多对话管理（创建、切换、重命名、删除）
-- 消息操作（点赞/点踩、复制、重新生成）
-- Docker 容器化部署
-- 分布式链路追踪（Zipkin）
+## 核心特性
+
+### AI 能力
+- **多模型负载均衡** - 权重分配 + 故障转移
+- **流式响应** - SSE 实时输出
+- **思考过程展示** - AI 推理可视化
+- **上下文记忆** - 滑动窗口策略
+
+### Agent 工程
+- **工具调用** - Function Calling + 审计日志
+- **RAG 检索** - 文档分块 + 向量检索
+- **Planning Agent** - ReAct / Plan-Execute 模式
+
+### 工程化
+- **高可用架构** - 熔断 + 限流 + 重试
+- **分布式限流** - Redis + Lua 脚本
+- **完整可观测性** - Prometheus + Grafana + Zipkin
+- **配置中心** - Nacos 动态配置
+- **一键启动** - Docker Compose 编排
 
 ## 技术栈
 
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| 后端 | Java, Spring Boot, LangChain4j, WebFlux | 17, 3.4.1, 1.13.0 |
-| 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript | - |
-| Markdown | markdown-it, highlight.js | - |
-| 样式 | Tailwind CSS（preflight 禁用） | - |
-| AI 模型 | 阿里云 DashScope（qwen-plus） | OpenAI 兼容 API |
-| 流式传输 | Server-Sent Events (SSE) | WebFlux |
-| 部署 | Docker, Docker Compose, Nginx | - |
-| 可观测性 | Zipkin（分布式链路追踪） | - |
+| 层级 | 技术 |
+|------|------|
+| 后端 | Java 17, Spring Boot 3.4, LangChain4j 1.13, WebFlux |
+| 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript |
+| AI 模型 | DashScope, 智谱, DeepSeek, 硅基流动, Ollama |
+| 数据库 | PostgreSQL, Redis |
+| 可观测性 | Prometheus, Grafana, Zipkin |
+| 配置中心 | Nacos |
+| 容错 | Resilience4j（熔断、限流、重试） |
+| 部署 | Docker, Docker Compose |
 
 ## 项目结构
 
 ```
 langchain4j-demo/
 ├── src/main/java/com/jonychen/    # 后端代码
-│   ├── AiApplication.java         # Spring Boot 启动类
-│   ├── assistant/
-│   │   └── ChatAssistant.java     # LangChain4j AI 接口（动态代理实现）
-│   ├── config/
-│   │   ├── AiConfig.java          # AI 配置（ChatMemory、AiServices）
-│   │   └── CorsConfig.java        # CORS 跨域配置
-│   ├── controller/
-│   │   └── ChatController.java    # REST 接口（同步/流式）
-│   ├── model/
-│   │   ├── ChatRequest.java       # 请求 DTO（record）
-│   │   └── ChatResponse.java      # 响应 DTO（record）
-│   └── service/
-│       └── AiService.java         # 服务层封装
-├── frontend/                      # 前端代码
-│   └── src/
-│       ├── api/chat.ts            # API 调用（SSE 解析）
-│       ├── components/
-│       │   ├── ChatInput.vue      # 消息输入（中文输入法处理）
-│       │   ├── MessageItem.vue    # 消息渲染（Markdown、代码块）
-│       │   ├── MessageList.vue    # 消息列表（自动滚动）
-│       │   └── Sidebar.vue        # 对话历史侧边栏
-│       ├── stores/chat.ts         # Pinia 状态管理
-│       ├── types/index.ts         # TypeScript 类型定义
-│       └── views/ChatView.vue     # 主页面
-├── docker-compose.yml             # Docker Compose 编排
-├── backend.Dockerfile             # 后端镜像
-├── frontend.Dockerfile            # 前端镜像
-├── CLAUDE.md                      # 开发指南
-└── README.md                      # 项目说明
+│   ├── assistant/                 # AI 助手接口
+│   ├── config/                    # 配置类
+│   ├── controller/                # REST 控制器
+│   ├── model/                     # 数据模型
+│   ├── service/                   # 业务服务
+│   ├── planning/                  # Agent 规划模块
+│   ├── rag/                       # RAG 检索增强
+│   ├── tool/                      # 工具调用
+│   └── ratelimit/                 # 分布式限流
+├── frontend/                      # Vue 3 前端
+├── docs/                          # 文档
+│   └── QUICK_START.md             # 快速开始指南
+├── infra/                         # 基础设施配置
+│   ├── postgres/init/             # 数据库初始化
+│   ├── nacos/init/                # Nacos 初始化
+│   ├── prometheus/                # Prometheus 配置
+│   └── grafana/                   # Grafana 配置
+├── data/                          # 本地数据（gitignore）
+├── docker-compose.dev.yml         # 开发环境编排
+├── dev.sh                         # 快速启动脚本
+├── Makefile                       # 便捷命令
+├── .env.example                   # 环境变量模板
+└── CLAUDE.md                      # 开发指南
 ```
 
 ## 快速开始
 
-### 方式一：Docker 部署（推荐）
+> 详细文档请查看 **[快速开始指南](./docs/QUICK_START.md)**
 
-#### 环境要求
-- Docker & Docker Compose
+### 1. 环境准备
 
-#### 启动服务
 ```bash
-# 启动所有服务（后端、前端、Zipkin）
-docker compose up -d
+# 克隆项目
+git clone <repository-url>
+cd langchain4j-demo
 
-# 查看服务状态
-docker compose ps
-
-# 查看日志
-docker compose logs -f
-
-# 停止服务
-docker compose down
-
-# 重新构建并启动
-docker compose up -d --build
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 填入 DASHSCOPE_API_KEY
 ```
 
-#### 服务地址
-| 服务 | 地址 |
-|------|------|
-| 前端应用 | http://localhost:3000 |
-| 后端 API | http://localhost:8082 |
-| Zipkin 追踪 | http://localhost:9411 |
+### 2. 启动基础设施
 
-### 方式二：本地开发
+```bash
+# 一键启动
+./dev.sh start
 
-#### 环境要求
-- JDK 17+
-- Node.js 18+
-- Maven 3.6+
-
-#### 配置 API Key
-在 `src/main/resources/application.properties` 中配置：
-```properties
-langchain4j.open-ai.chat-model.api-key=your-api-key-here
+# 或使用 Makefile
+make dev-docker
 ```
 
-获取方式：阿里云控制台 → 模型服务灵积 → API-KEY 管理
+### 3. 启动应用
 
-#### 启动后端
 ```bash
+# 启动后端
 mvn spring-boot:run
-```
-服务地址：http://localhost:8082
 
-#### 启动前端
-```bash
-cd frontend
-npm install
-npm run dev
+# 启动前端（可选）
+cd frontend && npm run dev
 ```
-服务地址：http://localhost:3000
+
+### 服务访问
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| 前端应用 | http://localhost:3000 | Vue 3 前端 |
+| 后端 API | http://localhost:8082 | Spring Boot |
+| Grafana | http://localhost:3001 | 监控面板 |
+| Nacos | http://localhost:8848/nacos | 配置中心 |
+| Zipkin | http://localhost:9411 | 链路追踪 |
+| Adminer | http://localhost:8080 | 数据库管理 |
 
 ## 功能详解
 
@@ -184,7 +173,7 @@ data: [DONE]
 
 ## 开发指南
 
-详细的技术文档请参考：
+- **[快速开始指南](./docs/QUICK_START.md)** - 环境搭建、服务地址、配置说明
 - **[CLAUDE.md](./CLAUDE.md)** - 架构说明、关键技术点、常见问题
 
 ### 核心技术要点
