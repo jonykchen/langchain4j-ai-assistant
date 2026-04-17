@@ -1,6 +1,8 @@
 package com.jonychen.rag;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +27,7 @@ public class RAGPipeline {
     private final TextSplitter textSplitter;
     private final EmbeddingService embeddingService;
     private final VectorStore vectorStore;
-    private final ChatLanguageModel chatModel;
+    private final ChatModel chatModel;
 
     /**
      * 文档入库流程
@@ -126,7 +128,9 @@ public class RAGPipeline {
         String prompt = buildRAGPrompt(query, contextText);
 
         // 4. 生成回答
-        return chatModel.generate(prompt);
+        return chatModel.chat(ChatRequest.builder()
+                .messages(UserMessage.from(prompt))
+                .build()).aiMessage().text();
     }
 
     /**
@@ -152,7 +156,9 @@ public class RAGPipeline {
                 .collect(Collectors.joining("\n\n---\n\n"));
 
         String prompt = buildRAGPrompt(query, contextText);
-        String answer = chatModel.generate(prompt);
+        String answer = chatModel.chat(ChatRequest.builder()
+                .messages(UserMessage.from(prompt))
+                .build()).aiMessage().text();
 
         List<SourceReference> sources = searchResults.stream()
                 .map(result -> new SourceReference(

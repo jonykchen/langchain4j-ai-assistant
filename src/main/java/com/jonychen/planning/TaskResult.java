@@ -50,7 +50,7 @@ public record TaskResult(
      * 获取成功的步骤数
      */
     public int getSuccessCount() {
-        return (int) stepResults.stream().filter(StepResult::success).count();
+        return (int) stepResults.stream().filter(r -> r.success()).count();
     }
 
     /**

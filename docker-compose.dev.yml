@@ -15,7 +15,7 @@
 services:
   # ==================== Redis - 分布式限流与缓存 ====================
   redis:
-    image: docker.1ms.run/redis:7-alpine
+    image: redis:7-alpine
     container_name: langchain4j-redis
     ports:
       - "6379:6379"
@@ -33,7 +33,7 @@ services:
 
   # ==================== Nacos 配置中心 ====================
   nacos:
-    image: docker.1ms.run/nacos/nacos-server:v2.3.1
+    image: nacos/nacos-server:v2.3.1
     container_name: langchain4j-nacos
     ports:
       - "8848:8848"
@@ -57,7 +57,7 @@ services:
 
   # ==================== Zipkin 链路追踪 ====================
   zipkin:
-    image: docker.1ms.run/openzipkin/zipkin:latest
+    image: openzipkin/zipkin:latest
     container_name: langchain4j-zipkin
     ports:
       - "9411:9411"
@@ -67,7 +67,7 @@ services:
 
   # ==================== Prometheus - 指标收集 ====================
   prometheus:
-    image: docker.1ms.run/prom/prometheus:v2.48.0
+    image: prom/prometheus:v2.48.0
     container_name: langchain4j-prometheus
     ports:
       - "9090:9090"
@@ -85,7 +85,7 @@ services:
 
   # ==================== Grafana - 可视化面板 ====================
   grafana:
-    image: docker.1ms.run/grafana/grafana:10.2.0
+    image: grafana/grafana:10.2.0
     container_name: langchain4j-grafana
     ports:
       - "3000:3000"

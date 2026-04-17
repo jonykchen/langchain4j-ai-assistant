@@ -1,7 +1,9 @@
 package com.jonychen.tool.structured;
 
 import com.jonychen.tool.structured.model.UserIntent;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StructuredOutputService {
 
-    private final ChatLanguageModel chatModel;
+    private final ChatModel chatModel;
     private final StructuredOutputParser parser;
 
     /**
@@ -47,6 +49,12 @@ public class StructuredOutputService {
             List.of("intent", "confidence", "requiresTool")
     );
 
+    private String generate(String prompt) {
+        return chatModel.chat(ChatRequest.builder()
+                .messages(UserMessage.from(prompt))
+                .build()).aiMessage().text();
+    }
+
     /**
      * 解析用户意图
      *
@@ -56,7 +64,7 @@ public class StructuredOutputService {
     public UserIntent parseUserIntent(String userInput) {
         String prompt = buildIntentPrompt(userInput);
 
-        String response = chatModel.generate(prompt);
+        String response = generate(prompt);
 
         StructuredOutputConfig config = StructuredOutputConfig.lenient(USER_INTENT_SCHEMA);
         Map<String, Object> data = parser.parse(response, config);
@@ -73,7 +81,7 @@ public class StructuredOutputService {
      * @return 解析结果
      */
     public <T> T parse(String prompt, OutputSchema schema, Class<T> type) {
-        String response = chatModel.generate(prompt);
+        String response = generate(prompt);
         StructuredOutputConfig config = StructuredOutputConfig.defaultConfig(schema);
         return parser.parse(response, config, type);
     }
@@ -86,7 +94,7 @@ public class StructuredOutputService {
      * @return 解析结果
      */
     public Map<String, Object> parseToMap(String prompt, OutputSchema schema) {
-        String response = chatModel.generate(prompt);
+        String response = generate(prompt);
         StructuredOutputConfig config = StructuredOutputConfig.defaultConfig(schema);
         return parser.parse(response, config);
     }

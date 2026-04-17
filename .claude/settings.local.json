@@ -43,7 +43,15 @@
       "Bash(mvn spring-boot:run -q)",
       "Bash(docker run:*)",
       "Bash(docker exec:*)",
-      "Bash(./mvnw compile:*)"
+      "Bash(./mvnw compile:*)",
+      "Bash(ls -la mvnw*)",
+      "Bash(./mvnw spring-boot:run)",
+      "Bash(java -version)",
+      "Bash(/opt/homebrew/bin/mvn compile:*)",
+      "Bash(echo $JAVA_HOME)",
+      "Read(//Library/Java/JavaVirtualMachines/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(export JAVA_HOME=/usr/local/opt/openjdk@17)"
     ]
   }
 }
