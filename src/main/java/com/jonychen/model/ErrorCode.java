@@ -51,7 +51,9 @@ public enum ErrorCode {
     AI_MODEL_NOT_AVAILABLE(50202, "AI 模型暂不可用"),
     AI_REQUEST_TIMEOUT(50203, "AI 请求超时"),
     AI_RESPONSE_ERROR(50204, "AI 响应解析失败"),
-    AI_QUOTA_EXCEEDED(50205, "API 调用额度已用尽");
+    AI_QUOTA_EXCEEDED(50205, "API 调用额度已用尽"),
+    ALL_MODELS_UNAVAILABLE(50206, "所有 AI 模型均不可用"),
+    MODEL_FAILOVER(50207, "模型切换中，请稍后重试");
 
     private final int code;
     private final String message;

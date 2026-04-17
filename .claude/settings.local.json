@@ -36,7 +36,13 @@
       "WebFetch(domain:github.com)",
       "Bash(git:*)",
       "Bash(mvn clean:*)",
-      "Bash(mvn test:*)"
+      "Bash(mvn test:*)",
+      "Bash(mvn dependency:tree -q)",
+      "WebFetch(domain:docs.langchain4j.dev)",
+      "Bash(cat target/surefire-reports/*.txt)",
+      "Bash(mvn spring-boot:run -q)",
+      "Bash(docker run:*)",
+      "Bash(docker exec:*)"
     ]
   }
 }
