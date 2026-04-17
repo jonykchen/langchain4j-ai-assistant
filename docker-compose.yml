@@ -1,4 +1,28 @@
 services:
+  # ==================== 数据库服务 ====================
+
+  # PostgreSQL with pgvector - 主数据库
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: langchain4j-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-langchain4j}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - langchain4j-network
+    restart: unless-stopped
+
   # ==================== 应用服务 ====================
 
   # 后端服务 - Spring Boot 应用
@@ -13,8 +37,16 @@ services:
       - SPRING_APPLICATION_NAME=LangChain4j-Chat
       - SERVER_PORT=8082
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      # 数据库配置
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-langchain4j}
+      - DATABASE_USERNAME=${POSTGRES_USER:-postgres}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       # API Key
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY is required}
+      # OAuth 配置
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
       # Redis 配置
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -24,6 +56,8 @@ services:
       - NACOS_GROUP=DEFAULT_GROUP
       - NACOS_DATA_ID=langchain4j-chat.properties
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       nacos:
@@ -156,6 +190,7 @@ services:
 
 # ==================== 数据卷 ====================
 volumes:
+  postgres_data:
   redis_data:
   nacos_logs:
   prometheus_data:

@@ -18,6 +18,9 @@
 8. [结构化输出](#8-结构化输出)
 9. [成本控制](#9-成本控制)
 10. [工程化增强](#10-工程化增强)
+11. [前端认证与用户系统](#11-前端认证与用户系统)
+12. [管理员后台](#12-管理员后台)
+13. [部署与运维](#13-部署与运维)
 
 ---
 
@@ -5459,8 +5462,12 @@ spec:
 | Phase 3 | 任务规划 | 4 天 | 工具系统 | ReAct、Plan-Execute |
 | Phase 4 | 多 Agent 协作 | 5 天 | 任务规划、工具系统 | Agent 团队、工作流 |
 | Phase 4 | 工程化增强 | 3 天 | 所有模块 | 测试、监控、部署 |
+| Phase 5 | **前端认证系统** | 3 天 | 用户认证后端 | 登录页面、OAuth回调、Token管理 |
+| Phase 5 | **前端会话与用户UI** | 2 天 | 前端认证系统 | 会话列表、用户信息、使用统计 |
+| Phase 6 | **管理员后台** | 3 天 | 所有后端模块 | 仪表盘、用户管理、成本监控、配置 |
+| Phase 6 | **部署与运维** | 1 天 | 所有模块 | 环境配置、初始化脚本、运维脚本 |
 
-**总计：约 32 个工作日**
+**总计：约 41 个工作日**
 
 > **注意**：新增的治理策略和安全保障机制是工程级 Agent 的核心要求，不可省略。
 
@@ -5583,6 +5590,2894 @@ spec:
 
 ---
 
+---
+
+## 11. 前端认证与用户系统
+
+> **核心目标**：实现完整的前端认证流程，包括登录页面、Token 管理、路由守卫、用户信息展示
+
+### 11.1 架构设计
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    前端认证架构                              │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │  LoginView      │    │  OAuthCallback  │                │
+│  │  (登录页面)     │    │  (OAuth回调)    │                │
+│  └─────────────────┘    └─────────────────┘                │
+│           │                     │                          │
+│           └──────────┬──────────┘                          │
+│                      ▼                                     │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │              AuthStore (Pinia)                       │  │
+│  │  - token / refreshToken / user / isAuthenticated    │  │
+│  │  - login() / logout() / refresh() / fetchUser()     │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                      │                                     │
+│           ┌──────────┼──────────┐                          │
+│           ▼          ▼          ▼                          │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐             │
+│  │ Token存储  │ │ 路由守卫   │ │ 请求拦截器 │             │
+│  │ localStorage│ │ beforeEach │ │ axios拦截 │             │
+│  └────────────┘ └────────────┘ └────────────┘             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 11.2 登录页面设计
+
+#### 11.2.1 页面布局
+
+```vue
+<!-- frontend/src/views/LoginView.vue -->
+<template>
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Logo 和标题 -->
+      <div class="login-header">
+        <img src="@/assets/logo.svg" alt="Logo" class="logo" />
+        <h1>AI Agent 平台</h1>
+        <p class="subtitle">智能助手，随时为您服务</p>
+      </div>
+
+      <!-- 第三方登录 -->
+      <div class="oauth-section">
+        <el-button
+          class="oauth-btn github"
+          @click="handleOAuthLogin('github')"
+          :loading="loading === 'github'"
+        >
+          <svg-icon name="github" />
+          <span>使用 GitHub 登录</span>
+        </el-button>
+
+        <el-button
+          class="oauth-btn gitlab"
+          @click="handleOAuthLogin('gitlab')"
+          :loading="loading === 'gitlab'"
+        >
+          <svg-icon name="gitlab" />
+          <span>使用 GitLab 登录</span>
+        </el-button>
+      </div>
+
+      <!-- 分隔线 -->
+      <el-divider>
+        <span class="divider-text">或</span>
+      </el-divider>
+
+      <!-- 用户名密码登录（可选） -->
+      <el-form
+        v-if="enablePasswordLogin"
+        ref="loginFormRef"
+        :model="loginForm"
+        :rules="loginRules"
+        class="login-form"
+      >
+        <el-form-item prop="username">
+          <el-input
+            v-model="loginForm.username"
+            placeholder="用户名"
+            prefix-icon="User"
+          />
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            v-model="loginForm.password"
+            type="password"
+            placeholder="密码"
+            prefix-icon="Lock"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            type="primary"
+            class="login-submit"
+            @click="handlePasswordLogin"
+            :loading="loading === 'password'"
+          >
+            登录
+          </el-button>
+        </el-form-item>
+      </el-form>
+
+      <!-- 底部链接 -->
+      <div class="login-footer">
+        <a href="#" @click.prevent="showPrivacy = true">隐私政策</a>
+        <span class="separator">|</span>
+        <a href="#" @click.prevent="showTerms = true">服务条款</a>
+      </div>
+    </div>
+
+    <!-- 背景装饰 -->
+    <div class="login-bg">
+      <div class="bg-gradient"></div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { ElMessage } from 'element-plus'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const loading = ref<string | null>(null)
+const enablePasswordLogin = ref(false) // 是否启用密码登录
+
+const loginForm = reactive({
+  username: '',
+  password: ''
+})
+
+const loginRules = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
+
+/**
+ * 处理 OAuth 登录
+ */
+const handleOAuthLogin = (provider: 'github' | 'gitlab') => {
+  loading.value = provider
+
+  // 生成 state 参数防止 CSRF
+  const state = generateRandomState()
+  sessionStorage.setItem('oauth_state', state)
+  sessionStorage.setItem('oauth_provider', provider)
+
+  // 获取授权 URL 并跳转
+  const redirectUri = `${window.location.origin}/auth/${provider}/callback`
+  const authUrl = authStore.getOAuthUrl(provider, redirectUri, state)
+
+  window.location.href = authUrl
+}
+
+/**
+ * 处理密码登录
+ */
+const handlePasswordLogin = async () => {
+  loading.value = 'password'
+  try {
+    await authStore.login(loginForm.username, loginForm.password)
+    router.push('/')
+  } catch (error: any) {
+    ElMessage.error(error.message || '登录失败')
+  } finally {
+    loading.value = null
+  }
+}
+
+/**
+ * 生成随机 state
+ */
+const generateRandomState = () => {
+  return Math.random().toString(36).substring(2, 15) +
+         Math.random().toString(36).substring(2, 15)
+}
+</script>
+
+<style scoped>
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.login-card {
+  width: 400px;
+  padding: 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+}
+
+.oauth-btn {
+  width: 100%;
+  height: 44px;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.oauth-btn.github {
+  background: #24292e;
+  color: white;
+  border: none;
+}
+
+.oauth-btn.gitlab {
+  background: #fc6d26;
+  color: white;
+  border: none;
+}
+
+.login-submit {
+  width: 100%;
+  height: 44px;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.login-footer a {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.login-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>
+```
+
+### 11.3 OAuth 回调页面
+
+```vue
+<!-- frontend/src/views/OAuthCallbackView.vue -->
+<template>
+  <div class="callback-container">
+    <div class="callback-content">
+      <el-icon class="loading-icon" :size="48">
+        <Loading />
+      </el-icon>
+      <h2>{{ statusText }}</h2>
+      <p v-if="error" class="error-message">{{ error }}</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { ElMessage } from 'element-plus'
+
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+
+const statusText = ref('正在处理登录...')
+const error = ref<string | null>(null)
+
+onMounted(async () => {
+  const provider = route.params.provider as string
+  const code = route.query.code as string
+  const state = route.query.state as string
+
+  // 验证 state 防止 CSRF
+  const savedState = sessionStorage.getItem('oauth_state')
+  if (state !== savedState) {
+    error.value = '安全验证失败，请重新登录'
+    statusText.value = '登录失败'
+    setTimeout(() => router.push('/login'), 2000)
+    return
+  }
+
+  try {
+    statusText.value = '正在获取用户信息...'
+
+    // 调用后端回调接口
+    await authStore.handleOAuthCallback(provider, code, state)
+
+    statusText.value = '登录成功！'
+    ElMessage.success('登录成功')
+
+    // 清理临时数据
+    sessionStorage.removeItem('oauth_state')
+    sessionStorage.removeItem('oauth_provider')
+
+    // 跳转到首页或之前访问的页面
+    const redirect = route.query.redirect as string || '/'
+    router.push(redirect)
+
+  } catch (err: any) {
+    error.value = err.message || '登录失败，请重试'
+    statusText.value = '登录失败'
+    setTimeout(() => router.push('/login'), 2000)
+  }
+})
+</script>
+
+<style scoped>
+.callback-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.callback-content {
+  text-align: center;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+  color: #409eff;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  color: #f56c6c;
+  margin-top: 16px;
+}
+</style>
+```
+
+### 11.4 Pinia Auth Store
+
+```typescript
+// frontend/src/stores/auth.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import type { UserInfo } from '@/types/auth'
+import { authApi } from '@/api/auth'
+import router from '@/router'
+
+export const useAuthStore = defineStore('auth', () => {
+  // State
+  const token = ref<string | null>(null)
+  const refreshToken = ref<string | null>(null)
+  const tokenExpiry = ref<number | null>(null)
+  const user = ref<UserInfo | null>(null)
+
+  // Getters
+  const isAuthenticated = computed(() => !!token.value && !isTokenExpired())
+  const isAdmin = computed(() => user.value?.role === 'ADMIN')
+
+  /**
+   * 检查 Token 是否过期
+   */
+  const isTokenExpired = () => {
+    if (!tokenExpiry.value) return true
+    // 提前 5 分钟认为过期，留出刷新时间
+    return Date.now() >= tokenExpiry.value - 5 * 60 * 1000
+  }
+
+  /**
+   * 初始化认证状态（从 localStorage 恢复）
+   */
+  const initAuth = () => {
+    const storedToken = localStorage.getItem('access_token')
+    const storedRefreshToken = localStorage.getItem('refresh_token')
+    const storedExpiry = localStorage.getItem('token_expiry')
+    const storedUser = localStorage.getItem('user_info')
+
+    if (storedToken && storedExpiry) {
+      token.value = storedToken
+      refreshToken.value = storedRefreshToken
+      tokenExpiry.value = parseInt(storedExpiry)
+
+      if (storedUser) {
+        user.value = JSON.parse(storedUser)
+      }
+
+      // 如果 Token 快过期，尝试刷新
+      if (isTokenExpired() && storedRefreshToken) {
+        refreshAccessToken()
+      }
+    }
+  }
+
+  /**
+   * 保存认证信息到 localStorage
+   */
+  const saveAuth = (tokenResponse: TokenResponse, userInfo: UserInfo) => {
+    token.value = tokenResponse.accessToken
+    refreshToken.value = tokenResponse.refreshToken
+    tokenExpiry.value = Date.now() + tokenResponse.expiresIn * 1000
+    user.value = userInfo
+
+    // 持久化存储
+    localStorage.setItem('access_token', tokenResponse.accessToken)
+    localStorage.setItem('refresh_token', tokenResponse.refreshToken)
+    localStorage.setItem('token_expiry', String(tokenExpiry.value))
+    localStorage.setItem('user_info', JSON.stringify(userInfo))
+  }
+
+  /**
+   * 获取 OAuth 授权 URL
+   */
+  const getOAuthUrl = (provider: string, redirectUri: string, state: string) => {
+    const configs: Record<string, { authorizeUrl: string; clientId: string }> = {
+      github: {
+        authorizeUrl: 'https://github.com/login/oauth/authorize',
+        clientId: import.meta.env.VITE_GITHUB_CLIENT_ID
+      },
+      gitlab: {
+        authorizeUrl: `${import.meta.env.VITE_GITLAB_URL}/oauth/authorize`,
+        clientId: import.meta.env.VITE_GITLAB_CLIENT_ID
+      }
+    }
+
+    const config = configs[provider]
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: redirectUri,
+      scope: 'read:user user:email',
+      state: state,
+      response_type: 'code'
+    })
+
+    return `${config.authorizeUrl}?${params.toString()}`
+  }
+
+  /**
+   * 处理 OAuth 回调
+   */
+  const handleOAuthCallback = async (provider: string, code: string, state: string) => {
+    const response = await authApi.oauthCallback(provider, { code, state })
+    saveAuth(response.token, response.user)
+  }
+
+  /**
+   * 用户名密码登录
+   */
+  const login = async (username: string, password: string) => {
+    const response = await authApi.login({ username, password })
+    saveAuth(response.token, response.user)
+  }
+
+  /**
+   * 登出
+   */
+  const logout = async () => {
+    try {
+      await authApi.logout()
+    } catch (e) {
+      // 忽略登出接口错误
+    } finally {
+      // 清理本地状态
+      token.value = null
+      refreshToken.value = null
+      tokenExpiry.value = null
+      user.value = null
+
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('token_expiry')
+      localStorage.removeItem('user_info')
+
+      router.push('/login')
+    }
+  }
+
+  /**
+   * 刷新 Access Token
+   */
+  const refreshAccessToken = async () => {
+    if (!refreshToken.value) {
+      logout()
+      return false
+    }
+
+    try {
+      const response = await authApi.refreshToken(refreshToken.value)
+      token.value = response.accessToken
+      tokenExpiry.value = Date.now() + response.expiresIn * 1000
+
+      localStorage.setItem('access_token', response.accessToken)
+      localStorage.setItem('token_expiry', String(tokenExpiry.value))
+
+      return true
+    } catch (e) {
+      logout()
+      return false
+    }
+  }
+
+  /**
+   * 获取当前用户信息
+   */
+  const fetchUser = async () => {
+    const userInfo = await authApi.getCurrentUser()
+    user.value = userInfo
+    localStorage.setItem('user_info', JSON.stringify(userInfo))
+  }
+
+  return {
+    // State
+    token,
+    refreshToken,
+    user,
+    // Getters
+    isAuthenticated,
+    isAdmin,
+    // Actions
+    initAuth,
+    getOAuthUrl,
+    handleOAuthCallback,
+    login,
+    logout,
+    refreshAccessToken,
+    fetchUser
+  }
+})
+
+// 类型定义
+interface TokenResponse {
+  accessToken: string
+  refreshToken: string
+  expiresIn: number
+  tokenType: string
+}
+
+interface UserInfo {
+  id: string
+  username: string
+  email: string
+  nickname: string
+  avatar: string
+  role: 'USER' | 'ADMIN'
+  createdAt: string
+}
+```
+
+### 11.5 路由守卫
+
+```typescript
+// frontend/src/router/guards.ts
+import type { Router } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+/**
+ * 设置路由守卫
+ */
+export function setupRouterGuards(router: Router) {
+  router.beforeEach(async (to, from, next) => {
+    const authStore = useAuthStore()
+
+    // 需要认证的页面
+    const requiresAuth = to.meta.requiresAuth !== false
+
+    // 管理员页面
+    const requiresAdmin = to.meta.requiresAdmin === true
+
+    // 公开页面（登录、回调等）
+    const publicPages = ['/login', '/auth/callback', '/auth/github/callback', '/auth/gitlab/callback']
+    const isPublicPage = publicPages.includes(to.path)
+
+    // 如果是公开页面，直接放行
+    if (isPublicPage) {
+      next()
+      return
+    }
+
+    // 检查认证状态
+    if (!authStore.isAuthenticated) {
+      // 未登录，跳转到登录页
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
+
+    // 检查管理员权限
+    if (requiresAdmin && !authStore.isAdmin) {
+      next({ path: '/403' })
+      return
+    }
+
+    // 已认证，放行
+    next()
+  })
+
+  // 全局后置守卫：设置页面标题
+  router.afterEach((to) => {
+    const title = to.meta.title as string
+    document.title = title ? `${title} - AI Agent` : 'AI Agent'
+  })
+}
+```
+
+### 11.6 Axios 请求拦截器
+
+```typescript
+// frontend/src/utils/http.ts
+import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
+import router from '@/router'
+import { ElMessage } from 'element-plus'
+
+const http = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: 30000
+})
+
+/**
+ * 请求拦截器：自动添加 Token
+ */
+http.interceptors.request.use(
+  (config) => {
+    const authStore = useAuthStore()
+
+    if (authStore.token) {
+      config.headers.Authorization = `Bearer ${authStore.token}`
+    }
+
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+/**
+ * 响应拦截器：处理 Token 过期
+ */
+http.interceptors.response.use(
+  (response) => response.data,
+  async (error) => {
+    const { response, config } = error
+    const authStore = useAuthStore()
+
+    // 401 未授权
+    if (response?.status === 401) {
+      // 尝试刷新 Token
+      const refreshed = await authStore.refreshAccessToken()
+
+      if (refreshed) {
+        // 重试原请求
+        config.headers.Authorization = `Bearer ${authStore.token}`
+        return http(config)
+      }
+
+      // 刷新失败，跳转登录
+      ElMessage.error('登录已过期，请重新登录')
+      router.push('/login')
+      return Promise.reject(error)
+    }
+
+    // 403 无权限
+    if (response?.status === 403) {
+      ElMessage.error('您没有权限执行此操作')
+      return Promise.reject(error)
+    }
+
+    // 429 限流
+    if (response?.status === 429) {
+      ElMessage.warning('请求过于频繁，请稍后再试')
+      return Promise.reject(error)
+    }
+
+    // 其他错误
+    const message = response?.data?.message || '请求失败'
+    ElMessage.error(message)
+    return Promise.reject(error)
+  }
+)
+
+export default http
+```
+
+### 11.7 用户信息组件
+
+```vue
+<!-- frontend/src/components/UserInfo.vue -->
+<template>
+  <el-dropdown trigger="click" @command="handleCommand">
+    <div class="user-info">
+      <el-avatar :size="36" :src="user?.avatar" class="avatar">
+        {{ user?.username?.charAt(0).toUpperCase() }}
+      </el-avatar>
+      <span class="username">{{ user?.nickname || user?.username }}</span>
+      <el-icon class="arrow"><ArrowDown /></el-icon>
+    </div>
+
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item command="profile">
+          <el-icon><User /></el-icon>
+          个人中心
+        </el-dropdown-item>
+        <el-dropdown-item command="usage">
+          <el-icon><DataLine /></el-icon>
+          使用统计
+        </el-dropdown-item>
+        <el-dropdown-item command="settings">
+          <el-icon><Setting /></el-icon>
+          设置
+        </el-dropdown-item>
+        <el-dropdown-item divided command="logout">
+          <el-icon><SwitchButton /></el-icon>
+          退出登录
+        </el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { ElMessageBox } from 'element-plus'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const user = computed(() => authStore.user)
+
+const handleCommand = async (command: string) => {
+  switch (command) {
+    case 'profile':
+      router.push('/profile')
+      break
+    case 'usage':
+      router.push('/usage')
+      break
+    case 'settings':
+      router.push('/settings')
+      break
+    case 'logout':
+      await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      authStore.logout()
+      break
+  }
+}
+</script>
+
+<style scoped>
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-info:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.username {
+  font-size: 14px;
+  color: #333;
+}
+
+.arrow {
+  font-size: 12px;
+  color: #999;
+}
+</style>
+```
+
+### 11.8 会话列表 UI
+
+```vue
+<!-- frontend/src/components/SessionList.vue -->
+<template>
+  <div class="session-list">
+    <!-- 新建会话按钮 -->
+    <div class="session-header">
+      <el-button type="primary" @click="createSession" class="new-session-btn">
+        <el-icon><Plus /></el-icon>
+        新对话
+      </el-button>
+    </div>
+
+    <!-- 搜索框 -->
+    <el-input
+      v-model="searchQuery"
+      placeholder="搜索对话..."
+      prefix-icon="Search"
+      clearable
+      class="search-input"
+    />
+
+    <!-- 会话列表 -->
+    <el-scrollbar class="session-scroll">
+      <div class="sessions">
+        <div
+          v-for="group in groupedSessions"
+          :key="group.date"
+          class="session-group"
+        >
+          <div class="group-title">{{ group.label }}</div>
+          <div
+            v-for="session in group.sessions"
+            :key="session.id"
+            class="session-item"
+            :class="{ active: session.id === currentSessionId }"
+            @click="selectSession(session.id)"
+          >
+            <el-icon class="session-icon"><ChatDotRound /></el-icon>
+            <div class="session-content">
+              <div class="session-title">{{ session.title || '新对话' }}</div>
+              <div class="session-meta">
+                {{ session.messageCount }} 条消息 · {{ formatTime(session.updatedAt) }}
+              </div>
+            </div>
+            <el-dropdown trigger="click" @click.stop>
+              <el-icon class="more-icon"><MoreFilled /></el-icon>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="renameSession(session)">
+                    <el-icon><Edit /></el-icon>
+                    重命名
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="exportSession(session)">
+                    <el-icon><Download /></el-icon>
+                    导出
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="deleteSession(session)" divided>
+                    <el-icon color="#f56c6c"><Delete /></el-icon>
+                    <span style="color: #f56c6c">删除</span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+        </div>
+      </div>
+    </el-scrollbar>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useChatStore } from '@/stores/chat'
+import { ElMessageBox, ElMessage } from 'element-plus'
+import dayjs from 'dayjs'
+
+const chatStore = useChatStore()
+
+const searchQuery = ref('')
+const currentSessionId = computed(() => chatStore.currentSessionId)
+
+// 按日期分组
+const groupedSessions = computed(() => {
+  const sessions = chatStore.sessions
+    .filter(s => !searchQuery.value ||
+      s.title?.toLowerCase().includes(searchQuery.value.toLowerCase()))
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+
+  const today = dayjs().startOf('day')
+  const yesterday = today.subtract(1, 'day')
+  const thisWeek = today.subtract(7, 'day')
+  const thisMonth = today.subtract(30, 'day')
+
+  const groups: { date: string; label: string; sessions: any[] }[] = [
+    { date: 'today', label: '今天', sessions: [] },
+    { date: 'yesterday', label: '昨天', sessions: [] },
+    { date: 'week', label: '本周', sessions: [] },
+    { date: 'month', label: '本月', sessions: [] },
+    { date: 'older', label: '更早', sessions: [] }
+  ]
+
+  sessions.forEach(session => {
+    const date = dayjs(session.updatedAt)
+    if (date.isAfter(today)) {
+      groups[0].sessions.push(session)
+    } else if (date.isAfter(yesterday)) {
+      groups[1].sessions.push(session)
+    } else if (date.isAfter(thisWeek)) {
+      groups[2].sessions.push(session)
+    } else if (date.isAfter(thisMonth)) {
+      groups[3].sessions.push(session)
+    } else {
+      groups[4].sessions.push(session)
+    }
+  })
+
+  return groups.filter(g => g.sessions.length > 0)
+})
+
+const createSession = () => {
+  chatStore.createSession()
+}
+
+const selectSession = (sessionId: string) => {
+  chatStore.switchSession(sessionId)
+}
+
+const renameSession = async (session: any) => {
+  const { value } = await ElMessageBox.prompt('请输入新名称', '重命名', {
+    inputValue: session.title,
+    confirmButtonText: '确定',
+    cancelButtonText: '取消'
+  })
+  if (value) {
+    chatStore.updateSessionTitle(session.id, value)
+  }
+}
+
+const deleteSession = async (session: any) => {
+  await ElMessageBox.confirm('确定删除此对话？', '提示', {
+    type: 'warning'
+  })
+  chatStore.deleteSession(session.id)
+}
+
+const exportSession = (session: any) => {
+  const data = chatStore.exportSession(session.id)
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `chat-${session.title}-${dayjs().format('YYYYMMDD')}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const formatTime = (time: string) => {
+  return dayjs(time).format('HH:mm')
+}
+
+onMounted(() => {
+  chatStore.loadSessions()
+})
+</script>
+
+<style scoped>
+.session-list {
+  width: 260px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f7f8fa;
+  border-right: 1px solid #e4e7ed;
+}
+
+.session-header {
+  padding: 16px;
+}
+
+.new-session-btn {
+  width: 100%;
+}
+
+.search-input {
+  margin: 0 16px 12px;
+  width: calc(100% - 32px);
+}
+
+.session-scroll {
+  flex: 1;
+  overflow: hidden;
+}
+
+.session-group {
+  margin-bottom: 8px;
+}
+
+.group-title {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #909399;
+  font-weight: 500;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.session-item:hover {
+  background: #eef0f5;
+}
+
+.session-item.active {
+  background: #e6f0ff;
+}
+
+.session-icon {
+  margin-right: 10px;
+  color: #409eff;
+}
+
+.session-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.session-title {
+  font-size: 14px;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-meta {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
+}
+
+.more-icon {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.session-item:hover .more-icon {
+  opacity: 1;
+}
+</style>
+```
+
+### 11.9 使用统计页面
+
+```vue
+<!-- frontend/src/views/UsageView.vue -->
+<template>
+  <div class="usage-view">
+    <h2>使用统计</h2>
+
+    <!-- 概览卡片 -->
+    <el-row :gutter="20" class="overview-cards">
+      <el-col :span="6">
+        <el-card shadow="hover">
+          <div class="stat-card">
+            <div class="stat-value">{{ stats.todayTokens.toLocaleString() }}</div>
+            <div class="stat-label">今日 Token</div>
+            <el-progress
+              :percentage="stats.todayPercent"
+              :color="getProgressColor(stats.todayPercent)"
+            />
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover">
+          <div class="stat-card">
+            <div class="stat-value">${{ stats.todayCost.toFixed(2) }}</div>
+            <div class="stat-label">今日费用</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover">
+          <div class="stat-card">
+            <div class="stat-value">{{ stats.monthTokens.toLocaleString() }}</div>
+            <div class="stat-label">本月 Token</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover">
+          <div class="stat-card">
+            <div class="stat-value">${{ stats.monthCost.toFixed(2) }}</div>
+            <div class="stat-label">本月费用</div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 使用趋势图 -->
+    <el-card class="chart-card">
+      <template #header>
+        <span>使用趋势（最近 7 天）</span>
+      </template>
+      <div ref="chartRef" class="chart-container"></div>
+    </el-card>
+
+    <!-- 使用记录 -->
+    <el-card class="history-card">
+      <template #header>
+        <span>使用记录</span>
+      </template>
+      <el-table :data="history" stripe>
+        <el-table-column prop="createdAt" label="时间" width="180">
+          <template #default="{ row }">
+            {{ formatDate(row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="modelName" label="模型" width="120" />
+        <el-table-column prop="totalTokens" label="Token 数" width="100" />
+        <el-table-column prop="cost" label="费用" width="100">
+          <template #default="{ row }">
+            ${{ row.cost.toFixed(4) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="requestType" label="类型" width="100" />
+      </el-table>
+    </el-card>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import * as echarts from 'echarts'
+import { costApi } from '@/api/cost'
+import dayjs from 'dayjs'
+
+const stats = ref({
+  todayTokens: 0,
+  todayCost: 0,
+  todayPercent: 0,
+  monthTokens: 0,
+  monthCost: 0
+})
+
+const history = ref<any[]>([])
+const chartRef = ref<HTMLElement>()
+
+const getProgressColor = (percent: number) => {
+  if (percent >= 90) return '#f56c6c'
+  if (percent >= 70) return '#e6a23c'
+  return '#67c23a'
+}
+
+const formatDate = (date: string) => {
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+}
+
+onMounted(async () => {
+  // 获取统计数据
+  const [statsData, historyData, trendData] = await Promise.all([
+    costApi.getStats(),
+    costApi.getHistory({ limit: 20 }),
+    costApi.getTrend({ days: 7 })
+  ])
+
+  stats.value = statsData
+  history.value = historyData
+
+  // 渲染图表
+  if (chartRef.value) {
+    const chart = echarts.init(chartRef.value)
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['Token', '费用'] },
+      xAxis: {
+        type: 'category',
+        data: trendData.dates
+      },
+      yAxis: [
+        { type: 'value', name: 'Token' },
+        { type: 'value', name: '费用 ($)' }
+      ],
+      series: [
+        {
+          name: 'Token',
+          type: 'bar',
+          data: trendData.tokens
+        },
+        {
+          name: '费用',
+          type: 'line',
+          yAxisIndex: 1,
+          data: trendData.costs
+        }
+      ]
+    })
+  }
+})
+</script>
+
+<style scoped>
+.usage-view {
+  padding: 24px;
+}
+
+.overview-cards {
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #909399;
+  margin: 8px 0;
+}
+
+.chart-card, .history-card {
+  margin-bottom: 24px;
+}
+
+.chart-container {
+  height: 300px;
+}
+</style>
+```
+
+### 11.10 实现文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `frontend/src/views/LoginView.vue` | 登录页面 |
+| `frontend/src/views/OAuthCallbackView.vue` | OAuth 回调页面 |
+| `frontend/src/stores/auth.ts` | 认证状态管理 |
+| `frontend/src/router/guards.ts` | 路由守卫 |
+| `frontend/src/utils/http.ts` | Axios 拦截器 |
+| `frontend/src/components/UserInfo.vue` | 用户信息组件 |
+| `frontend/src/components/SessionList.vue` | 会话列表组件 |
+| `frontend/src/views/UsageView.vue` | 使用统计页面 |
+| `frontend/src/api/auth.ts` | 认证 API |
+| `frontend/src/api/cost.ts` | 成本 API |
+| `frontend/src/types/auth.ts` | 认证类型定义 |
+
+### 11.11 实现步骤
+
+1. **Step 1**: 创建认证相关类型定义
+2. **Step 2**: 实现 `auth.ts` Pinia Store
+3. **Step 3**: 实现 Axios 请求/响应拦截器
+4. **Step 4**: 实现路由守卫
+5. **Step 5**: 创建登录页面
+6. **Step 6**: 创建 OAuth 回调页面
+7. **Step 7**: 创建用户信息组件
+8. **Step 8**: 创建会话列表组件
+9. **Step 9**: 创建使用统计页面
+10. **Step 10**: 集成到主布局
+
+---
+
+## 12. 管理员后台
+
+> **核心目标**：提供系统管理功能，包括用户管理、成本监控、系统配置
+
+### 12.1 架构设计
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    管理员后台架构                            │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                    AdminLayout                       │   │
+│  │  ┌──────────┐ ┌───────────────────────────────────┐ │   │
+│  │  │ Sidebar  │ │           Content Area            │ │   │
+│  │  │          │ │                                   │ │   │
+│  │  │ - 仪表盘 │ │  ┌─────────────────────────────┐  │ │   │
+│  │  │ - 用户   │ │  │  Dashboard / Users / ...   │  │ │   │
+│  │  │ - 成本   │ │  │                             │  │ │   │
+│  │  │ - 模型   │ │  └─────────────────────────────┘  │ │   │
+│  │  │ - 配置   │ │                                   │ │   │
+│  │  │ - 日志   │ │                                   │ │   │
+│  │  └──────────┘ └───────────────────────────────────┘ │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 12.2 管理员仪表盘
+
+```vue
+<!-- frontend/src/views/admin/DashboardView.vue -->
+<template>
+  <div class="admin-dashboard">
+    <h2>系统概览</h2>
+
+    <!-- 核心指标 -->
+    <el-row :gutter="20" class="metrics-row">
+      <el-col :span="6">
+        <el-card shadow="hover" class="metric-card">
+          <div class="metric-icon users">
+            <el-icon :size="32"><User /></el-icon>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value">{{ metrics.totalUsers }}</div>
+            <div class="metric-label">总用户数</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="metric-card">
+          <div class="metric-icon active">
+            <el-icon :size="32"><Connection /></el-icon>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value">{{ metrics.activeUsers }}</div>
+            <div class="metric-label">今日活跃</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="metric-card">
+          <div class="metric-icon tokens">
+            <el-icon :size="32"><DataLine /></el-icon>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value">{{ formatNumber(metrics.todayTokens) }}</div>
+            <div class="metric-label">今日 Token</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="metric-card">
+          <div class="metric-icon cost">
+            <el-icon :size="32"><Money /></el-icon>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value">${{ metrics.todayCost.toFixed(2) }}</div>
+            <div class="metric-label">今日费用</div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 图表区域 -->
+    <el-row :gutter="20">
+      <el-col :span="16">
+        <el-card>
+          <template #header>
+            <span>使用趋势</span>
+          </template>
+          <div ref="trendChartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <template #header>
+            <span>模型使用分布</span>
+          </template>
+          <div ref="modelChartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 系统状态 -->
+    <el-row :gutter="20" style="margin-top: 20px">
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>模型健康状态</span>
+          </template>
+          <el-table :data="modelHealth" stripe size="small">
+            <el-table-column prop="name" label="模型" width="150" />
+            <el-table-column prop="status" label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'UP' ? 'success' : 'danger'">
+                  {{ row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="circuitBreaker" label="熔断器" width="100">
+              <template #default="{ row }">
+                <el-tag :type="row.circuitBreaker === 'CLOSED' ? 'success' : 'warning'">
+                  {{ row.circuitBreaker }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="avgLatency" label="平均延迟" width="100">
+              <template #default="{ row }">
+                {{ row.avgLatency }}ms
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>预算使用情况</span>
+          </template>
+          <div class="budget-section">
+            <div class="budget-item">
+              <span>日预算</span>
+              <el-progress
+                :percentage="budget.dailyPercent"
+                :format="() => `$${budget.dailyUsed.toFixed(2)} / $${budget.dailyTotal}`"
+              />
+            </div>
+            <div class="budget-item">
+              <span>月预算</span>
+              <el-progress
+                :percentage="budget.monthlyPercent"
+                :format="() => `$${budget.monthlyUsed.toFixed(2)} / $${budget.monthlyTotal}`"
+              />
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import * as echarts from 'echarts'
+import { adminApi } from '@/api/admin'
+
+const metrics = ref({
+  totalUsers: 0,
+  activeUsers: 0,
+  todayTokens: 0,
+  todayCost: 0
+})
+
+const modelHealth = ref<any[]>([])
+const budget = ref({
+  dailyUsed: 0,
+  dailyTotal: 100,
+  dailyPercent: 0,
+  monthlyUsed: 0,
+  monthlyTotal: 2000,
+  monthlyPercent: 0
+})
+
+const trendChartRef = ref<HTMLElement>()
+const modelChartRef = ref<HTMLElement>()
+
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+  return num.toString()
+}
+
+onMounted(async () => {
+  const [metricsData, healthData, budgetData, trendData, modelData] = await Promise.all([
+    adminApi.getMetrics(),
+    adminApi.getModelHealth(),
+    adminApi.getBudget(),
+    adminApi.getTrend({ days: 7 }),
+    adminApi.getModelDistribution()
+  ])
+
+  metrics.value = metricsData
+  modelHealth.value = healthData
+  budget.value = budgetData
+
+  // 渲染趋势图
+  if (trendChartRef.value) {
+    const chart = echarts.init(trendChartRef.value)
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['Token', '费用', '请求数'] },
+      xAxis: { type: 'category', data: trendData.dates },
+      yAxis: [
+        { type: 'value', name: 'Token' },
+        { type: 'value', name: '费用 ($)' }
+      ],
+      series: [
+        { name: 'Token', type: 'bar', data: trendData.tokens },
+        { name: '费用', type: 'line', yAxisIndex: 1, data: trendData.costs },
+        { name: '请求数', type: 'line', data: trendData.requests }
+      ]
+    })
+  }
+
+  // 渲染模型分布图
+  if (modelChartRef.value) {
+    const chart = echarts.init(modelChartRef.value)
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      series: [{
+        type: 'pie',
+        radius: '60%',
+        data: modelData
+      }]
+    })
+  }
+})
+</script>
+
+<style scoped>
+.admin-dashboard {
+  padding: 24px;
+}
+
+.metrics-row {
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  display: flex;
+  align-items: center;
+}
+
+.metric-card :deep(.el-card__body) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.metric-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+}
+
+.metric-icon.users { background: #e6f7ff; color: #1890ff; }
+.metric-icon.active { background: #f6ffed; color: #52c41a; }
+.metric-icon.tokens { background: #fff7e6; color: #fa8c16; }
+.metric-icon.cost { background: #fff1f0; color: #f5222d; }
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.metric-label {
+  font-size: 14px;
+  color: #909399;
+}
+
+.chart-container {
+  height: 300px;
+}
+
+.budget-item {
+  margin-bottom: 20px;
+}
+
+.budget-item span {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+</style>
+```
+
+### 12.3 用户管理页面
+
+```vue
+<!-- frontend/src/views/admin/UsersView.vue -->
+<template>
+  <div class="users-view">
+    <div class="page-header">
+      <h2>用户管理</h2>
+      <el-button type="primary" @click="showCreateDialog = true">
+        <el-icon><Plus /></el-icon>
+        添加用户
+      </el-button>
+    </div>
+
+    <!-- 搜索和筛选 -->
+    <div class="filter-bar">
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索用户名或邮箱"
+        prefix-icon="Search"
+        clearable
+        style="width: 300px"
+      />
+      <el-select v-model="roleFilter" placeholder="角色" clearable style="width: 120px">
+        <el-option label="普通用户" value="USER" />
+        <el-option label="管理员" value="ADMIN" />
+      </el-select>
+      <el-select v-model="providerFilter" placeholder="登录方式" clearable style="width: 120px">
+        <el-option label="GitHub" value="GITHUB" />
+        <el-option label="GitLab" value="GITLAB" />
+        <el-option label="密码" value="CUSTOM" />
+      </el-select>
+    </div>
+
+    <!-- 用户列表 -->
+    <el-table :data="users" stripe v-loading="loading">
+      <el-table-column prop="username" label="用户名" width="150" />
+      <el-table-column prop="email" label="邮箱" width="200" />
+      <el-table-column prop="nickname" label="昵称" width="120" />
+      <el-table-column prop="role" label="角色" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.role === 'ADMIN' ? 'danger' : 'info'">
+            {{ row.role === 'ADMIN' ? '管理员' : '用户' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="provider" label="登录方式" width="100">
+        <template #default="{ row }">
+          {{ providerLabels[row.provider] }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="lastLoginAt" label="最后登录" width="180">
+        <template #default="{ row }">
+          {{ row.lastLoginAt ? formatDate(row.lastLoginAt) : '从未登录' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="今日使用" width="120">
+        <template #default="{ row }">
+          {{ formatNumber(row.todayTokens) }} tokens
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="200" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="viewUser(row)">详情</el-button>
+          <el-button link type="primary" @click="editUser(row)">编辑</el-button>
+          <el-button
+            link
+            :type="row.role === 'ADMIN' ? 'warning' : 'primary'"
+            @click="toggleAdmin(row)"
+          >
+            {{ row.role === 'ADMIN' ? '取消管理员' : '设为管理员' }}
+          </el-button>
+          <el-button link type="danger" @click="deleteUser(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <!-- 分页 -->
+    <el-pagination
+      v-model:current-page="currentPage"
+      v-model:page-size="pageSize"
+      :total="total"
+      :page-sizes="[10, 20, 50, 100]"
+      layout="total, sizes, prev, pager, next"
+      @change="loadUsers"
+    />
+
+    <!-- 用户详情抽屉 -->
+    <el-drawer v-model="showUserDrawer" title="用户详情" size="500px">
+      <template v-if="selectedUser">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="用户ID">{{ selectedUser.id }}</el-descriptions-item>
+          <el-descriptions-item label="用户名">{{ selectedUser.username }}</el-descriptions-item>
+          <el-descriptions-item label="邮箱">{{ selectedUser.email }}</el-descriptions-item>
+          <el-descriptions-item label="昵称">{{ selectedUser.nickname }}</el-descriptions-item>
+          <el-descriptions-item label="角色">{{ selectedUser.role }}</el-descriptions-item>
+          <el-descriptions-item label="登录方式">{{ selectedUser.provider }}</el-descriptions-item>
+          <el-descriptions-item label="注册时间">{{ formatDate(selectedUser.createdAt) }}</el-descriptions-item>
+        </el-descriptions>
+
+        <h4 style="margin-top: 20px">使用统计</h4>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-statistic title="今日 Token" :value="selectedUser.todayTokens" />
+          </el-col>
+          <el-col :span="12">
+            <el-statistic title="今日费用" :value="selectedUser.todayCost" prefix="$" />
+          </el-col>
+        </el-row>
+
+        <h4 style="margin-top: 20px">配额设置</h4>
+        <el-form label-width="120px">
+          <el-form-item label="日 Token 限额">
+            <el-input-number v-model="selectedUser.dailyTokenLimit" :min="0" />
+          </el-form-item>
+          <el-form-item label="月 Token 限额">
+            <el-input-number v-model="selectedUser.monthlyTokenLimit" :min="0" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="saveQuota">保存配额</el-button>
+          </el-form-item>
+        </el-form>
+      </template>
+    </el-drawer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
+import { adminApi } from '@/api/admin'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import dayjs from 'dayjs'
+
+const loading = ref(false)
+const users = ref<any[]>([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(20)
+const searchQuery = ref('')
+const roleFilter = ref('')
+const providerFilter = ref('')
+const showUserDrawer = ref(false)
+const selectedUser = ref<any>(null)
+
+const providerLabels: Record<string, string> = {
+  GITHUB: 'GitHub',
+  GITLAB: 'GitLab',
+  CUSTOM: '密码'
+}
+
+const formatDate = (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm')
+const formatNumber = (num: number) => num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num
+
+const loadUsers = async () => {
+  loading.value = true
+  try {
+    const res = await adminApi.getUsers({
+      page: currentPage.value,
+      size: pageSize.value,
+      search: searchQuery.value,
+      role: roleFilter.value,
+      provider: providerFilter.value
+    })
+    users.value = res.data
+    total.value = res.total
+  } finally {
+    loading.value = false
+  }
+}
+
+const viewUser = async (user: any) => {
+  selectedUser.value = await adminApi.getUserDetail(user.id)
+  showUserDrawer.value = true
+}
+
+const toggleAdmin = async (user: any) => {
+  const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN'
+  await ElMessageBox.confirm(
+    `确定将用户 ${user.username} ${newRole === 'ADMIN' ? '设为' : '取消'}管理员？`,
+    '提示'
+  )
+  await adminApi.updateUserRole(user.id, newRole)
+  ElMessage.success('操作成功')
+  loadUsers()
+}
+
+const deleteUser = async (user: any) => {
+  await ElMessageBox.confirm(`确定删除用户 ${user.username}？`, '警告', { type: 'warning' })
+  await adminApi.deleteUser(user.id)
+  ElMessage.success('删除成功')
+  loadUsers()
+}
+
+const saveQuota = async () => {
+  await adminApi.updateUserQuota(selectedUser.value.id, {
+    dailyTokenLimit: selectedUser.value.dailyTokenLimit,
+    monthlyTokenLimit: selectedUser.value.monthlyTokenLimit
+  })
+  ElMessage.success('配额已更新')
+}
+
+watch([searchQuery, roleFilter, providerFilter], () => {
+  currentPage.value = 1
+  loadUsers()
+})
+
+onMounted(loadUsers)
+</script>
+
+<style scoped>
+.users-view {
+  padding: 24px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+</style>
+```
+
+### 12.4 成本监控页面
+
+```vue
+<!-- frontend/src/views/admin/CostView.vue -->
+<template>
+  <div class="cost-view">
+    <h2>成本监控</h2>
+
+    <!-- 预算概览 -->
+    <el-row :gutter="20" class="budget-overview">
+      <el-col :span="8">
+        <el-card>
+          <div class="budget-card">
+            <h4>日预算</h4>
+            <div class="budget-amount">
+              <span class="used">${{ budget.dailyUsed.toFixed(2) }}</span>
+              <span class="total">/ ${{ budget.dailyTotal }}</span>
+            </div>
+            <el-progress
+              :percentage="budget.dailyPercent"
+              :color="getProgressColor(budget.dailyPercent)"
+              :stroke-width="12"
+            />
+            <div class="budget-status">
+              <el-tag v-if="budget.dailyPercent >= 100" type="danger">已超支</el-tag>
+              <el-tag v-else-if="budget.dailyPercent >= 80" type="warning">接近上限</el-tag>
+              <el-tag v-else type="success">正常</el-tag>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <div class="budget-card">
+            <h4>月预算</h4>
+            <div class="budget-amount">
+              <span class="used">${{ budget.monthlyUsed.toFixed(2) }}</span>
+              <span class="total">/ ${{ budget.monthlyTotal }}</span>
+            </div>
+            <el-progress
+              :percentage="budget.monthlyPercent"
+              :color="getProgressColor(budget.monthlyPercent)"
+              :stroke-width="12"
+            />
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <div class="budget-card">
+            <h4>预算设置</h4>
+            <el-form label-width="80px" size="small">
+              <el-form-item label="日预算">
+                <el-input-number v-model="budgetForm.dailyTotal" :min="0" :step="10" />
+              </el-form-item>
+              <el-form-item label="月预算">
+                <el-input-number v-model="budgetForm.monthlyTotal" :min="0" :step="100" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="saveBudget">保存</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 模型成本统计 -->
+    <el-card style="margin-top: 20px">
+      <template #header>
+        <span>模型成本统计</span>
+      </template>
+      <el-table :data="modelCosts" stripe>
+        <el-table-column prop="modelName" label="模型" width="150" />
+        <el-table-column prop="totalTokens" label="总 Token" width="120">
+          <template #default="{ row }">{{ formatNumber(row.totalTokens) }}</template>
+        </el-table-column>
+        <el-table-column prop="totalCost" label="总费用" width="120">
+          <template #default="{ row }">${{ row.totalCost.toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column prop="avgTokensPerRequest" label="平均 Token/请求" width="150" />
+        <el-table-column prop="requestCount" label="请求数" width="100" />
+        <el-table-column label="占比" width="200">
+          <template #default="{ row }">
+            <el-progress :percentage="row.costPercent" :stroke-width="8" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 用户消费排行 -->
+    <el-row :gutter="20" style="margin-top: 20px">
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>用户消费排行（今日）</span>
+          </template>
+          <el-table :data="topUsers" stripe size="small">
+            <el-table-column prop="username" label="用户" width="120" />
+            <el-table-column prop="tokens" label="Token" width="100" />
+            <el-table-column prop="cost" label="费用">
+              <template #default="{ row }">${{ row.cost.toFixed(4) }}</template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>成本趋势（最近 30 天）</span>
+          </template>
+          <div ref="trendChartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, reactive } from 'vue'
+import * as echarts from 'echarts'
+import { adminApi } from '@/api/admin'
+import { ElMessage } from 'element-plus'
+
+const budget = ref({
+  dailyUsed: 0,
+  dailyTotal: 100,
+  dailyPercent: 0,
+  monthlyUsed: 0,
+  monthlyTotal: 2000,
+  monthlyPercent: 0
+})
+
+const budgetForm = reactive({
+  dailyTotal: 100,
+  monthlyTotal: 2000
+})
+
+const modelCosts = ref<any[]>([])
+const topUsers = ref<any[]>([])
+const trendChartRef = ref<HTMLElement>()
+
+const getProgressColor = (percent: number) => {
+  if (percent >= 100) return '#f56c6c'
+  if (percent >= 80) return '#e6a23c'
+  return '#67c23a'
+}
+
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+  return num
+}
+
+const saveBudget = async () => {
+  await adminApi.updateBudget(budgetForm)
+  ElMessage.success('预算设置已保存')
+}
+
+onMounted(async () => {
+  const [budgetData, costsData, usersData, trendData] = await Promise.all([
+    adminApi.getBudget(),
+    adminApi.getModelCosts(),
+    adminApi.getTopUsers({ limit: 10 }),
+    adminApi.getCostTrend({ days: 30 })
+  ])
+
+  budget.value = budgetData
+  budgetForm.dailyTotal = budgetData.dailyTotal
+  budgetForm.monthlyTotal = budgetData.monthlyTotal
+  modelCosts.value = costsData
+  topUsers.value = usersData
+
+  // 渲染趋势图
+  if (trendChartRef.value) {
+    const chart = echarts.init(trendChartRef.value)
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: trendData.dates },
+      yAxis: { type: 'value', name: '费用 ($)' },
+      series: [{
+        type: 'line',
+        areaStyle: { opacity: 0.3 },
+        data: trendData.costs
+      }]
+    })
+  }
+})
+</script>
+
+<style scoped>
+.cost-view {
+  padding: 24px;
+}
+
+.budget-card h4 {
+  margin-bottom: 12px;
+}
+
+.budget-amount {
+  margin-bottom: 12px;
+}
+
+.budget-amount .used {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.budget-amount .total {
+  font-size: 14px;
+  color: #909399;
+}
+
+.budget-status {
+  margin-top: 12px;
+}
+
+.chart-container {
+  height: 250px;
+}
+</style>
+```
+
+### 12.5 系统配置页面
+
+```vue
+<!-- frontend/src/views/admin/SettingsView.vue -->
+<template>
+  <div class="settings-view">
+    <h2>系统配置</h2>
+
+    <el-tabs v-model="activeTab">
+      <!-- 模型配置 -->
+      <el-tab-pane label="模型配置" name="models">
+        <el-card>
+          <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <span>模型提供者</span>
+              <el-button type="primary" size="small" @click="addModel">添加模型</el-button>
+            </div>
+          </template>
+          <el-table :data="modelConfigs" stripe>
+            <el-table-column prop="name" label="名称" width="120" />
+            <el-table-column prop="modelName" label="模型" width="150" />
+            <el-table-column prop="weight" label="权重" width="80" />
+            <el-table-column prop="priority" label="优先级" width="80" />
+            <el-table-column prop="enabled" label="状态" width="80">
+              <template #default="{ row }">
+                <el-switch v-model="row.enabled" @change="toggleModel(row)" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="150">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="editModel(row)">编辑</el-button>
+                <el-button link type="danger" @click="deleteModel(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
+      <!-- 限流配置 -->
+      <el-tab-pane label="限流配置" name="rateLimit">
+        <el-card>
+          <el-form :model="rateLimitConfig" label-width="150px">
+            <el-form-item label="全局请求限流">
+              <el-input-number v-model="rateLimitConfig.globalLimit" :min="0" />
+              <span class="form-hint">次/分钟</span>
+            </el-form-item>
+            <el-form-item label="用户日限额">
+              <el-input-number v-model="rateLimitConfig.userDailyLimit" :min="0" />
+              <span class="form-hint">Token 数</span>
+            </el-form-item>
+            <el-form-item label="用户月限额">
+              <el-input-number v-model="rateLimitConfig.userMonthlyLimit" :min="0" />
+              <span class="form-hint">Token 数</span>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="saveRateLimit">保存配置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+      </el-tab-pane>
+
+      <!-- 熔断配置 -->
+      <el-tab-pane label="熔断配置" name="circuitBreaker">
+        <el-card>
+          <el-form :model="circuitBreakerConfig" label-width="150px">
+            <el-form-item label="失败率阈值">
+              <el-slider v-model="circuitBreakerConfig.failureThreshold" :min="0" :max="100" show-input />
+              <span class="form-hint">%</span>
+            </el-form-item>
+            <el-form-item label="熔断等待时间">
+              <el-input-number v-model="circuitBreakerConfig.waitDuration" :min="0" />
+              <span class="form-hint">秒</span>
+            </el-form-item>
+            <el-form-item label="滑动窗口大小">
+              <el-input-number v-model="circuitBreakerConfig.slidingWindowSize" :min="1" :max="100" />
+              <span class="form-hint">次请求</span>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="saveCircuitBreaker">保存配置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+      </el-tab-pane>
+
+      <!-- Prompt 模板管理 -->
+      <el-tab-pane label="Prompt 模板" name="prompts">
+        <el-card>
+          <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <span>模板列表</span>
+              <el-button type="primary" size="small" @click="createTemplate">新建模板</el-button>
+            </div>
+          </template>
+          <el-table :data="promptTemplates" stripe>
+            <el-table-column prop="name" label="名称" width="150" />
+            <el-table-column prop="description" label="描述" />
+            <el-table-column prop="version" label="版本" width="80" />
+            <el-table-column prop="updatedAt" label="更新时间" width="180" />
+            <el-table-column label="操作" width="150">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="editTemplate(row)">编辑</el-button>
+                <el-button link type="danger" @click="deleteTemplate(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { adminApi } from '@/api/admin'
+import { ElMessage } from 'element-plus'
+
+const activeTab = ref('models')
+const modelConfigs = ref<any[]>([])
+const promptTemplates = ref<any[]>([])
+
+const rateLimitConfig = reactive({
+  globalLimit: 100,
+  userDailyLimit: 100000,
+  userMonthlyLimit: 2000000
+})
+
+const circuitBreakerConfig = reactive({
+  failureThreshold: 50,
+  waitDuration: 30,
+  slidingWindowSize: 10
+})
+
+const loadConfigs = async () => {
+  const [models, templates, rateLimit, circuitBreaker] = await Promise.all([
+    adminApi.getModelConfigs(),
+    adminApi.getPromptTemplates(),
+    adminApi.getRateLimitConfig(),
+    adminApi.getCircuitBreakerConfig()
+  ])
+
+  modelConfigs.value = models
+  promptTemplates.value = templates
+  Object.assign(rateLimitConfig, rateLimit)
+  Object.assign(circuitBreakerConfig, circuitBreaker)
+}
+
+const saveRateLimit = async () => {
+  await adminApi.updateRateLimitConfig(rateLimitConfig)
+  ElMessage.success('限流配置已保存')
+}
+
+const saveCircuitBreaker = async () => {
+  await adminApi.updateCircuitBreakerConfig(circuitBreakerConfig)
+  ElMessage.success('熔断配置已保存')
+}
+
+const toggleModel = async (model: any) => {
+  await adminApi.updateModelConfig(model.name, { enabled: model.enabled })
+  ElMessage.success(`模型 ${model.name} 已${model.enabled ? '启用' : '禁用'}`)
+}
+
+onMounted(loadConfigs)
+</script>
+
+<style scoped>
+.settings-view {
+  padding: 24px;
+}
+
+.form-hint {
+  margin-left: 8px;
+  color: #909399;
+  font-size: 13px;
+}
+</style>
+```
+
+### 12.6 实现文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `frontend/src/views/admin/DashboardView.vue` | 管理员仪表盘 |
+| `frontend/src/views/admin/UsersView.vue` | 用户管理 |
+| `frontend/src/views/admin/CostView.vue` | 成本监控 |
+| `frontend/src/views/admin/SettingsView.vue` | 系统配置 |
+| `frontend/src/views/admin/LogsView.vue` | 审计日志 |
+| `frontend/src/layouts/AdminLayout.vue` | 管理员布局 |
+| `frontend/src/api/admin.ts` | 管理员 API |
+| `frontend/src/router/admin.ts` | 管理员路由 |
+
+### 12.7 后端管理员 API
+
+```
+# 管理员接口（需要 ADMIN 角色）
+GET    /admin/metrics                    # 系统指标
+GET    /admin/users                      # 用户列表
+GET    /admin/users/{id}                 # 用户详情
+PUT    /admin/users/{id}/role            # 更新用户角色
+PUT    /admin/users/{id}/quota           # 更新用户配额
+DELETE /admin/users/{id}                 # 删除用户
+GET    /admin/cost/budget                # 预算信息
+PUT    /admin/cost/budget                # 更新预算
+GET    /admin/cost/models                # 模型成本统计
+GET    /admin/models                     # 模型配置
+PUT    /admin/models/{name}              # 更新模型配置
+GET    /admin/config/rate-limit          # 限流配置
+PUT    /admin/config/rate-limit          # 更新限流配置
+GET    /admin/config/circuit-breaker     # 熔断配置
+PUT    /admin/config/circuit-breaker     # 更新熔断配置
+GET    /admin/prompts                    # Prompt 模板列表
+PUT    /admin/prompts/{name}             # 更新模板
+GET    /admin/logs                       # 审计日志
+```
+
+---
+
+## 13. 部署与运维
+
+> **核心目标**：提供完整的部署指南和运维脚本
+
+### 13.1 环境变量配置清单
+
+```bash
+# ===========================================
+# 必需环境变量
+# ===========================================
+
+# ===== 数据库 =====
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=langchain4j
+
+# ===== Redis =====
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+
+# ===== AI 模型 API Keys =====
+# 主模型（必需）
+DASHSCOPE_API_KEY=sk-your-dashscope-key
+
+# 备用模型（可选）
+ZHIPU_API_KEY=your-zhipu-key
+DEEPSEEK_API_KEY=your-deepseek-key
+SILICONFLOW_API_KEY=your-siliconflow-key
+
+# ===== OAuth 配置 =====
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+GITLAB_CLIENT_ID=your-gitlab-client-id
+GITLAB_CLIENT_SECRET=your-gitlab-client-secret
+
+# ===== JWT 配置 =====
+JWT_SECRET=your-256-bit-secret-key-at-least-32-characters
+
+# ===== 加密配置 =====
+APP_ENCRYPTION_KEY=your-encryption-key-32-chars
+
+# ===========================================
+# 可选环境变量（有默认值）
+# ===========================================
+
+# ===== 服务端口 =====
+SERVER_PORT=8082
+
+# ===== OAuth 回调地址 =====
+OAUTH_REDIRECT_URI=http://localhost:8082/auth/callback
+
+# ===== 前端配置 =====
+VITE_API_BASE_URL=http://localhost:8082/api
+VITE_GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+VITE_GITLAB_CLIENT_ID=${GITLAB_CLIENT_ID}
+
+# ===== 成本控制 =====
+APP_COST_SYSTEM_DAILY_BUDGET=100.0
+APP_COST_SYSTEM_MONTHLY_BUDGET=2000.0
+
+# ===== 监控配置 =====
+PROMETHEUS_ENABLED=true
+ZIPKIN_ENABLED=false
+ZIPKIN_ENDPOINT=http://localhost:9411
+
+# ===== 日志级别 =====
+LOG_LEVEL_ROOT=INFO
+LOG_LEVEL_APP=DEBUG
+```
+
+### 13.2 数据库初始化脚本
+
+```sql
+-- ===========================================
+-- 数据库初始化脚本
+-- 执行方式: psql -U postgres -d langchain4j -f init.sql
+-- ===========================================
+
+-- 启用 pgvector 扩展
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- ===== 用户表 =====
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(64) PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    nickname VARCHAR(100),
+    avatar VARCHAR(500),
+    provider VARCHAR(20) NOT NULL,
+    provider_id VARCHAR(100),
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP,
+    version BIGINT DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+-- ===== Token 黑名单 =====
+CREATE TABLE IF NOT EXISTS token_blacklist (
+    id SERIAL PRIMARY KEY,
+    token_hash VARCHAR(128) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_blacklist_token ON token_blacklist(token_hash);
+CREATE INDEX IF NOT EXISTS idx_blacklist_expires ON token_blacklist(expires_at);
+
+-- ===== 会话表 =====
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    session_id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    title VARCHAR(255),
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON chat_sessions(user_id);
+
+-- ===== 长期记忆表 =====
+CREATE TABLE IF NOT EXISTS long_term_memories (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL,
+    content TEXT NOT NULL,
+    embedding vector(1536),
+    value_score INT DEFAULT 50,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_memories_embedding ON long_term_memories
+    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_memories_session ON long_term_memories(session_id);
+
+-- ===== 文档表 =====
+CREATE TABLE IF NOT EXISTS documents (
+    id VARCHAR(64) PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    file_type VARCHAR(20) NOT NULL,
+    file_size BIGINT,
+    content_hash VARCHAR(64),
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== 文档块表 =====
+CREATE TABLE IF NOT EXISTS document_chunks (
+    id VARCHAR(64) PRIMARY KEY,
+    document_id VARCHAR(64) NOT NULL,
+    content TEXT NOT NULL,
+    embedding vector(1536),
+    chunk_index INT NOT NULL,
+    start_index INT,
+    end_index INT,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON document_chunks
+    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_chunks_document ON document_chunks(document_id);
+
+-- ===== Token 使用记录表 =====
+CREATE TABLE IF NOT EXISTS token_usage_logs (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    session_id VARCHAR(64),
+    model_name VARCHAR(50) NOT NULL,
+    prompt_tokens INT NOT NULL,
+    completion_tokens INT NOT NULL,
+    total_tokens INT NOT NULL,
+    cost DECIMAL(10, 6) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'USD',
+    request_type VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_usage_user_date ON token_usage_logs(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_usage_date ON token_usage_logs(created_at);
+
+-- ===== 用户配额表 =====
+CREATE TABLE IF NOT EXISTS user_quotas (
+    user_id VARCHAR(64) PRIMARY KEY,
+    daily_token_limit INT DEFAULT 100000,
+    monthly_token_limit INT DEFAULT 2000000,
+    daily_cost_limit DECIMAL(10, 2) DEFAULT 10.00,
+    monthly_cost_limit DECIMAL(10, 2) DEFAULT 200.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== 工具执行审计表 =====
+CREATE TABLE IF NOT EXISTS tool_execution_audits (
+    id SERIAL PRIMARY KEY,
+    execution_id VARCHAR(64) UNIQUE NOT NULL,
+    tool_name VARCHAR(50) NOT NULL,
+    session_id VARCHAR(64),
+    user_id VARCHAR(64),
+    params TEXT,
+    success BOOLEAN NOT NULL,
+    result TEXT,
+    error_message TEXT,
+    execution_time_ms BIGINT,
+    risk_level VARCHAR(20),
+    confirmed BOOLEAN DEFAULT FALSE,
+    confirmed_by VARCHAR(64),
+    executed_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_tool ON tool_execution_audits(tool_name);
+CREATE INDEX IF NOT EXISTS idx_audit_user ON tool_execution_audits(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_time ON tool_execution_audits(executed_at);
+
+-- ===== 工具回滚记录表 =====
+CREATE TABLE IF NOT EXISTS tool_rollback_records (
+    id SERIAL PRIMARY KEY,
+    execution_id VARCHAR(64) UNIQUE NOT NULL,
+    tool_name VARCHAR(50) NOT NULL,
+    session_id VARCHAR(64) NOT NULL,
+    params TEXT NOT NULL,
+    executed_result TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    error_message TEXT,
+    executed_at TIMESTAMP NOT NULL,
+    rolled_back_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_rollback_session ON tool_rollback_records(session_id);
+CREATE INDEX IF NOT EXISTS idx_rollback_status ON tool_rollback_records(status);
+
+-- ===== 对话日志表 =====
+CREATE TABLE IF NOT EXISTS conversation_logs (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(64),
+    user_id VARCHAR(64),
+    role VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    tokens_used INT,
+    model_name VARCHAR(50),
+    latency_ms BIGINT,
+    tool_calls JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_logs_session ON conversation_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_logs_user ON conversation_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_logs_created ON conversation_logs(created_at);
+
+-- ===== 系统配置表 =====
+CREATE TABLE IF NOT EXISTS system_configs (
+    config_key VARCHAR(100) PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(64)
+);
+
+-- 插入默认配置
+INSERT INTO system_configs (config_key, config_value, description) VALUES
+    ('daily_budget', '100.0', '系统日预算（美元）'),
+    ('monthly_budget', '2000.0', '系统月预算（美元）'),
+    ('alert_threshold', '0.8', '预算告警阈值'),
+    ('max_tokens_per_request', '8000', '单次请求最大 Token 数')
+ON CONFLICT (config_key) DO NOTHING;
+
+-- ===== 创建管理员用户 =====
+-- 注意：实际部署时应通过 OAuth 登录创建
+INSERT INTO users (id, username, email, nickname, provider, provider_id, role, created_at)
+VALUES
+    ('admin-001', 'admin', 'admin@example.com', '系统管理员', 'CUSTOM', 'admin', 'ADMIN', CURRENT_TIMESTAMP)
+ON CONFLICT (id) DO NOTHING;
+
+-- 完成提示
+DO $$
+BEGIN
+    RAISE NOTICE '数据库初始化完成！';
+    RAISE NOTICE '请确保：';
+    RAISE NOTICE '1. 已配置环境变量';
+    RAISE NOTICE '2. 已启动 Redis 服务';
+    RAISE NOTICE '3. 已配置 OAuth 应用';
+END $$;
+```
+
+### 13.3 Docker Compose 完整配置
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # ===== PostgreSQL with pgvector =====
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: langchain4j-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-langchain4j}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ===== Redis =====
+  redis:
+    image: redis:7-alpine
+    container_name: langchain4j-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis123}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ===== 后端服务 =====
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: langchain4j-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-langchain4j}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
+      ZHIPU_API_KEY: ${ZHIPU_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "${SERVER_PORT:-8082}:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===== 前端服务 =====
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8082/api}
+        VITE_GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+    container_name: langchain4j-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ===== Prometheus（可选）=====
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: langchain4j-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  # ===== Grafana（可选）=====
+  grafana:
+    image: grafana/grafana:latest
+    container_name: langchain4j-grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: langchain4j-network
+```
+
+### 13.4 部署步骤说明
+
+```markdown
+## 部署步骤
+
+### 1. 环境准备
+
+```bash
+# 克隆代码
+git clone <repository-url>
+cd langchain4j-demo
+
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑环境变量
+vim .env
+```
+
+### 2. 配置 OAuth 应用
+
+#### GitHub OAuth
+1. 访问 https://github.com/settings/developers
+2. 创建新的 OAuth App
+3. 设置回调 URL: `http://your-domain/auth/github/callback`
+4. 复制 Client ID 和 Client Secret 到 .env
+
+#### GitLab OAuth
+1. 访问 GitLab -> Settings -> Applications
+2. 创建新应用
+3. 设置回调 URL: `http://your-domain/auth/gitlab/callback`
+4. 复制 Client ID 和 Client Secret 到 .env
+
+### 3. 启动服务
+
+```bash
+# 基础服务
+docker compose up -d
+
+# 包含监控服务
+docker compose --profile monitoring up -d
+
+# 查看日志
+docker compose logs -f backend
+```
+
+### 4. 初始化数据库
+
+```bash
+# 数据库会在首次启动时自动初始化
+# 如需手动初始化：
+docker compose exec postgres psql -U postgres -d langchain4j -f /docker-entrypoint-initdb.d/init.sql
+```
+
+### 5. 验证部署
+
+```bash
+# 检查服务健康状态
+curl http://localhost:8082/actuator/health
+
+# 检查前端
+curl http://localhost:3000
+
+# 检查数据库连接
+docker compose exec postgres pg_isready
+
+# 检查 Redis 连接
+docker compose exec redis redis-cli ping
+```
+
+### 6. 配置 Nginx（生产环境）
+
+```nginx
+# /etc/nginx/conf.d/langchain4j.conf
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    # 前端
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # 后端 API
+    location /api {
+        proxy_pass http://localhost:8082;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Authorization $http_authorization;
+    }
+
+    # OAuth 回调
+    location /auth {
+        proxy_pass http://localhost:8082;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### 7. SSL 配置（生产环境）
+
+```bash
+# 使用 Let's Encrypt
+sudo certbot --nginx -d your-domain.com
+```
+
+### 8. 监控配置
+
+访问 Grafana: http://localhost:3001
+- 默认账号: admin / admin
+- 添加 Prometheus 数据源: http://prometheus:9090
+- 导入预设 Dashboard
+```
+
+### 13.5 运维脚本
+
+```bash
+#!/bin/bash
+# scripts/ops.sh - 运维脚本
+
+set -e
+
+case "$1" in
+  # 查看服务状态
+  status)
+    docker compose ps
+    ;;
+
+  # 查看日志
+  logs)
+    docker compose logs -f --tail=100 ${2:-backend}
+    ;;
+
+  # 重启服务
+  restart)
+    docker compose restart ${2:-backend}
+    ;;
+
+  # 数据库备份
+  backup)
+    BACKUP_FILE="backup-$(date +%Y%m%d-%H%M%S).sql"
+    docker compose exec postgres pg_dump -U postgres langchain4j > "backups/$BACKUP_FILE"
+    echo "备份完成: backups/$BACKUP_FILE"
+    ;;
+
+  # 数据库恢复
+  restore)
+    if [ -z "$2" ]; then
+      echo "用法: $0 restore <backup-file>"
+      exit 1
+    fi
+    cat "$2" | docker compose exec -T postgres psql -U postgres langchain4j
+    echo "恢复完成"
+    ;;
+
+  # 清理旧数据
+  cleanup)
+    # 清理过期的 Token 黑名单
+    docker compose exec postgres psql -U postgres langchain4j -c \
+      "DELETE FROM token_blacklist WHERE expires_at < CURRENT_TIMESTAMP;"
+
+    # 清理 30 天前的对话日志
+    docker compose exec postgres psql -U postgres langchain4j -c \
+      "DELETE FROM conversation_logs WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '30 days';"
+
+    echo "清理完成"
+    ;;
+
+  # 查看成本统计
+  cost)
+    docker compose exec postgres psql -U postgres langchain4j -c \
+      "SELECT
+        DATE(created_at) as date,
+        SUM(total_tokens) as tokens,
+        SUM(cost) as cost
+       FROM token_usage_logs
+       WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+       GROUP BY DATE(created_at)
+       ORDER BY date DESC;"
+    ;;
+
+  # 健康检查
+  health)
+    echo "=== 服务健康状态 ==="
+    curl -s http://localhost:8082/actuator/health | jq .
+    echo ""
+    echo "=== 数据库连接 ==="
+    docker compose exec postgres pg_isready -U postgres
+    echo ""
+    echo "=== Redis 连接 ==="
+    docker compose exec redis redis-cli ping
+    ;;
+
+  *)
+    echo "用法: $0 {status|logs|restart|backup|restore|cleanup|cost|health}"
+    exit 1
+    ;;
+esac
+```
+
+### 13.6 实现文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `.env.example` | 环境变量模板 |
+| `init.sql` | 数据库初始化脚本 |
+| `docker-compose.yml` | Docker Compose 配置 |
+| `prometheus.yml` | Prometheus 配置 |
+| `scripts/ops.sh` | 运维脚本 |
+| `scripts/backup.sh` | 备份脚本 |
+| `nginx/langchain4j.conf` | Nginx 配置 |
+
+---
+
 **文档版本更新日志**
 
 | 版本 | 日期 | 更新内容 |
@@ -5591,6 +8486,7 @@ spec:
 | 1.1 | 2026-04-17 | 补充记忆治理策略（写入/遗忘/去重） |
 | 1.1 | 2026-04-17 | 补充工具安全与稳定性保障（校验/幂等/熔断/确认） |
 | 1.2 | 2026-04-17 | 添加决策确认机制，实施时逐一确认并分析利弊 |
+| 1.3 | 2026-04-17 | 补充前端认证系统、管理员后台、部署运维章节 |
 
 ---
 
