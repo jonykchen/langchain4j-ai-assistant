@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jonychen.planning.*;
 import com.jonychen.tool.ToolResult;
 import com.jonychen.tool.ToolRegistry;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -65,12 +67,12 @@ public class ReActAgent {
 
     private static final int DEFAULT_MAX_ITERATIONS = 10;
 
-    private final ChatLanguageModel chatModel;
+    private final ChatModel chatModel;
     private final ToolRegistry toolRegistry;
     private final ObjectMapper objectMapper;
     private final int maxIterations;
 
-    public ReActAgent(ChatLanguageModel chatModel, ToolRegistry toolRegistry) {
+    public ReActAgent(ChatModel chatModel, ToolRegistry toolRegistry) {
         this.chatModel = chatModel;
         this.toolRegistry = toolRegistry;
         this.objectMapper = new ObjectMapper();
@@ -98,7 +100,9 @@ public class ReActAgent {
                     .replace("{history}", history.toString());
 
             // 2. LLM 思考
-            String response = chatModel.generate(prompt);
+            String response = chatModel.chat(ChatRequest.builder()
+                    .messages(UserMessage.from(prompt))
+                    .build()).aiMessage().text();
             log.debug("ReAct iteration {}: {}", i + 1, response);
 
             // 3. 解析响应

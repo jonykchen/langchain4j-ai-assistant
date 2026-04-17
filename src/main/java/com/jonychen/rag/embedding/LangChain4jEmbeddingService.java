@@ -4,6 +4,7 @@ import com.jonychen.rag.EmbeddingService;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -12,11 +13,14 @@ import java.util.List;
 /**
  * LangChain4j Embedding 服务实现
  *
+ * 仅当容器中存在 EmbeddingModel bean 时才激活
+ *
  * @author jonychen
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnBean(EmbeddingModel.class)
 public class LangChain4jEmbeddingService implements EmbeddingService {
 
     private final EmbeddingModel embeddingModel;

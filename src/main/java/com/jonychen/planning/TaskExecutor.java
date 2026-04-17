@@ -14,7 +14,7 @@ import java.util.Map;
  * @author jonychen
  */
 @Slf4j
-@Service
+@Service("planningTaskExecutor")
 @RequiredArgsConstructor
 public class TaskExecutor {
 

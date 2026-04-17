@@ -158,5 +158,13 @@ public class ToolParameterSchema {
         public String getDescription() {
             return description;
         }
+
+        public List<String> getEnumValues() {
+            return enumValues;
+        }
+
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
     }
 }

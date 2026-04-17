@@ -58,7 +58,7 @@ public class ToolExecutionAuditAspect {
 
         // 创建审计记录
         ToolExecutionAudit audit = ToolExecutionAudit.create(executionId, toolName, null, null);
-        audit.setParams(dataMasker.mask(params));
+        audit.setParams(dataMasker.mask((Object) params));
         audit.setRiskLevel(riskLevel);
 
         try {

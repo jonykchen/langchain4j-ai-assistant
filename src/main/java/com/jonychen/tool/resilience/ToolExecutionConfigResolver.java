@@ -4,6 +4,8 @@ import com.jonychen.tool.ToolCategory;
 import com.jonychen.tool.ToolDefinition;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 /**
  * 工具执行配置解析器
  *
