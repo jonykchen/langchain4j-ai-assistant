@@ -86,3 +86,9 @@ Desktop.ini
 *.swp
 *.swo
 *~
+
+### 代码质量报告 ###
+**/site/
+**/spotbugsXml.xml
+**/checkstyle-result.xml
+**/pmd.xml

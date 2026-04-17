@@ -34,7 +34,9 @@
       "Bash(pkill -9 -f \"com.docker\")",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(mvn clean:*)",
+      "Bash(mvn test:*)"
     ]
   }
 }

@@ -6,7 +6,7 @@
  * 2. streamMessage: 流式模式，逐字返回（推荐）
  */
 
-import type { ChatRequest, ChatResponse } from '@/types'
+import type { ApiResponse, ChatRequest, ChatResponse } from '@/types'
 
 /** API 基础路径，由 Vite 代理转发到后端 */
 const API_BASE = '/api/chat'
@@ -38,12 +38,19 @@ export async function sendMessage(message: string): Promise<string> {
 
   // 检查响应状态
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
   }
 
   // 解析 JSON 响应
-  const data: ChatResponse = await response.json()
-  return data.reply
+  const result: ApiResponse<ChatResponse> = await response.json()
+
+  // 检查业务状态码
+  if (result.code !== 200) {
+    throw new Error(result.message || '请求失败')
+  }
+
+  return result.data?.reply || ''
 }
 
 /**

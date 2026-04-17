@@ -1,6 +1,10 @@
 package com.jonychen.service;
 
 import com.jonychen.assistant.ChatAssistant;
+import com.jonychen.exception.BusinessException;
+import com.jonychen.model.ErrorCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -11,22 +15,14 @@ import reactor.core.publisher.Flux;
  * 1. 封装 ChatAssistant 调用
  * 2. 处理业务逻辑（如日志记录、敏感词过滤）
  * 3. 提供统一的 API 给 Controller 层
- *
- * 为什么需要 Service 层？
- * - 分离关注点：Controller 处理 HTTP，Service 处理业务
- * - 便于复用：多个 Controller 可共用同一 Service
- * - 便于测试：可独立测试业务逻辑
- *
- * @author 30240
  */
 @Service
 public class AiService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AiService.class);
+
     private final ChatAssistant chatAssistant;
 
-    /**
-     * 构造函数注入
-     */
     public AiService(ChatAssistant chatAssistant) {
         this.chatAssistant = chatAssistant;
     }
@@ -36,17 +32,17 @@ public class AiService {
      *
      * @param message 用户消息
      * @return AI 完整回复
-     *
-     * 调用流程：
-     * 1. ChatAssistant.chat() 被调用
-     * 2. AiServices 动态代理拦截调用
-     * 3. 构造 Prompt：SystemMessage + UserMessage + 历史消息
-     * 4. 调用 LLM API
-     * 5. 解析响应，保存到 ChatMemory
-     * 6. 返回结果
      */
     public String chat(String message) {
-        return chatAssistant.chat(message);
+        try {
+            LOG.debug("收到聊天请求: {}", truncateForLog(message));
+            String reply = chatAssistant.chat(message);
+            LOG.debug("聊天完成, 回复长度: {}", reply != null ? reply.length() : 0);
+            return reply;
+        } catch (Exception e) {
+            LOG.error("聊天请求失败", e);
+            throw handleAiException(e);
+        }
     }
 
     /**
@@ -54,63 +50,44 @@ public class AiService {
      *
      * @param message 用户消息
      * @return 响应式流，逐个 token 返回
-     *
-     * 调用流程：
-     * 1. ChatAssistant.chatFlux() 被调用
-     * 2. 构造 Prompt
-     * 3. 调用 LLM Streaming API
-     * 4. 每个 token 到达时，立即发射到 Flux 流
-     * 5. 完成后保存完整回复到 ChatMemory
-     *
-     * Flux 特点：
-     * - 冷流：只有订阅时才开始执行
-     * - 惰性：每个 token 生成时才发送
-     * - 可取消：客户端断开连接时自动取消
      */
     public Flux<String> chatFlux(String message) {
-        return chatAssistant.chatFlux(message);
+        LOG.debug("收到流式聊天请求: {}", truncateForLog(message));
+        return chatAssistant.chatFlux(message)
+                .doOnError(e -> LOG.error("流式聊天失败", e))
+                .onErrorResume(e -> Flux.error(handleAiException(e)));
     }
 
-    /*
-     * ==================== 可扩展的业务逻辑 ====================
-     *
-     * 1. 消息预处理
-     *    public String chat(String message) {
-     *        // 敏感词过滤
-     *        message = sensitiveWordFilter.filter(message);
-     *        // 消息长度限制
-     *        if (message.length() > 2000) {
-     *            throw new IllegalArgumentException("消息过长");
-     *        }
-     *        return chatAssistant.chat(message);
-     *    }
-     *
-     * 2. 响应后处理
-     *    public String chat(String message) {
-     *        String reply = chatAssistant.chat(message);
-     *        // 内容审核
-     *        contentModerator.check(reply);
-     *        // 记录日志
-     *        logService.saveChatLog(message, reply);
-     *        return reply;
-     *    }
-     *
-     * 3. 重试机制
-     *    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 1000))
-     *    public String chat(String message) {
-     *        return chatAssistant.chat(message);
-     *    }
-     *
-     * 4. 缓存
-     *    @Cacheable(value = "chat", key = "#message")
-     *    public String chat(String message) {
-     *        return chatAssistant.chat(message);
-     *    }
-     *
-     * 5. 异步执行
-     *    @Async
-     *    public CompletableFuture<String> chatAsync(String message) {
-     *        return CompletableFuture.completedFuture(chatAssistant.chat(message));
-     *    }
+    /**
+     * 处理 AI 服务异常，转换为业务异常
      */
+    private BusinessException handleAiException(Throwable e) {
+        String message = e.getMessage();
+        if (message == null) {
+            message = e.getClass().getSimpleName();
+        }
+
+        // 根据异常类型映射错误码
+        if (message.contains("API key") || message.contains("Unauthorized")) {
+            return new BusinessException(ErrorCode.AI_API_KEY_INVALID, "API Key 无效或未配置", e);
+        } else if (message.contains("timeout") || message.contains("Timeout")) {
+            return new BusinessException(ErrorCode.AI_REQUEST_TIMEOUT, e);
+        } else if (message.contains("quota") || message.contains("rate limit")) {
+            return new BusinessException(ErrorCode.AI_QUOTA_EXCEEDED, e);
+        } else if (message.contains("model") || message.contains("not found")) {
+            return new BusinessException(ErrorCode.AI_MODEL_NOT_AVAILABLE, e);
+        }
+
+        return new BusinessException(ErrorCode.AI_SERVICE_ERROR, "AI 服务异常: " + message, e);
+    }
+
+    /**
+     * 截断日志内容，避免日志过长
+     */
+    private String truncateForLog(String text) {
+        if (text == null) {
+            return "null";
+        }
+        return text.length() > 100 ? text.substring(0, 100) + "..." : text;
+    }
 }

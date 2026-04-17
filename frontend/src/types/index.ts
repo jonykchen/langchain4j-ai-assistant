@@ -86,6 +86,20 @@ export interface ChatResponse {
   reply: string
 }
 
+/**
+ * 统一 API 响应格式
+ *
+ * 后端所有接口返回的统一结构
+ */
+export interface ApiResponse<T> {
+  /** 状态码：200 成功，4xx 客户端错误，5xx 服务端错误 */
+  code: number
+  /** 响应消息 */
+  message: string
+  /** 响应数据 */
+  data: T | null
+}
+
 /*
  * ==================== 扩展类型设计 ====================
  *

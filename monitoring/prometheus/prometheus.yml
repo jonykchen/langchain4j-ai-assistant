@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ==================== Spring Boot 应用 ====================
+  - job_name: 'langchain4j-chat'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'backend:8082'
+        labels:
+          application: 'langchain4j-chat'
+          environment: 'docker'
+
+  # ==================== Prometheus 自身 ====================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ==================== Redis（可选，需 Redis Exporter） ====================
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+
+  # ==================== Nacos（可选，需 Nacos Exporter） ====================
+  # - job_name: 'nacos'
+  #   static_configs:
+  #     - targets: ['nacos:8848']
+
+# ==================== 告警规则（可选） ====================
+# rule_files:
+#   - 'alert_rules.yml'
