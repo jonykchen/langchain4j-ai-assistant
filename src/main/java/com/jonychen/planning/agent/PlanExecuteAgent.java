@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jonychen.planning.*;
 import com.jonychen.tool.ToolRegistry;
 import com.jonychen.tool.ToolResult;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -80,12 +82,12 @@ public class PlanExecuteAgent {
 
     private static final int MAX_REPLANS = 3;
 
-    private final ChatLanguageModel chatModel;
+    private final ChatModel chatModel;
     private final ToolRegistry toolRegistry;
     private final ObjectMapper objectMapper;
     private final TaskExecutor taskExecutor;
 
-    public PlanExecuteAgent(ChatLanguageModel chatModel, ToolRegistry toolRegistry, TaskExecutor taskExecutor) {
+    public PlanExecuteAgent(ChatModel chatModel, ToolRegistry toolRegistry, TaskExecutor taskExecutor) {
         this.chatModel = chatModel;
         this.toolRegistry = toolRegistry;
         this.objectMapper = new ObjectMapper();
@@ -179,7 +181,9 @@ public class PlanExecuteAgent {
                 .replace("{tools}", buildToolsDescription())
                 .replace("{goal}", goal);
 
-        String response = chatModel.generate(prompt);
+        String response = chatModel.chat(ChatRequest.builder()
+                .messages(UserMessage.from(prompt))
+                .build()).aiMessage().text();
         return parsePlanResponse(response);
     }
 
@@ -201,7 +205,9 @@ public class PlanExecuteAgent {
                 .replace("{tools}", buildToolsDescription())
                 .replace("{goal}", task.goal());
 
-        String response = chatModel.generate(prompt);
+        String response = chatModel.chat(ChatRequest.builder()
+                .messages(UserMessage.from(prompt))
+                .build()).aiMessage().text();
         return parsePlanResponse(response);
     }
 
@@ -245,7 +251,9 @@ public class PlanExecuteAgent {
             prompt += "\n具体行动: " + step.action();
         }
 
-        String response = chatModel.generate(prompt);
+        String response = chatModel.chat(ChatRequest.builder()
+                .messages(UserMessage.from(prompt))
+                .build()).aiMessage().text();
         return StepResult.success(response);
     }
 

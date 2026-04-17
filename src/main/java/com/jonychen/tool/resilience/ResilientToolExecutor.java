@@ -81,7 +81,13 @@ public class ResilientToolExecutor {
 
         try {
             // 构建执行链
-            Supplier<ToolResult> supplier = () -> executeWithTimeout(tool, params, config);
+            Supplier<ToolResult> supplier = () -> {
+                try {
+                    return executeWithTimeout(tool, params, config);
+                } catch (TimeoutException e) {
+                    throw new CompletionException(e);
+                }
+            };
 
             // 添加重试
             supplier = decorateWithRetry(supplier, tool.name(), config);
@@ -99,14 +105,14 @@ public class ResilientToolExecutor {
             recordCircuitBreakerOpen(tool.name());
             return getFallbackResult(tool, config, "服务熔断中");
 
-        } catch (TimeoutException e) {
-            // 执行超时
-            log.warn("Tool '{}' execution timeout after {}ms", tool.name(), config.timeout().toMillis());
-            recordTimeout(tool.name());
-            return getFallbackResult(tool, config, "执行超时");
-
-        } catch (ExecutionException e) {
-            // 执行异常
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof TimeoutException) {
+                // 执行超时
+                log.warn("Tool '{}' execution timeout after {}ms", tool.name(), config.timeout().toMillis());
+                recordTimeout(tool.name());
+                return getFallbackResult(tool, config, "执行超时");
+            }
+            // 其他 CompletionException，按执行异常处理
             Throwable cause = e.getCause() != null ? e.getCause() : e;
             log.error("Tool '{}' execution failed: {}", tool.name(), cause.getMessage(), cause);
             return ToolResult.failure("执行失败: " + cause.getMessage())
@@ -168,7 +174,7 @@ public class ResilientToolExecutor {
      */
     private CircuitBreaker getOrCreateCircuitBreaker(String toolName, ToolExecutionConfig config) {
         CircuitBreakerConfig cbConfig = CircuitBreakerConfig.custom()
-                .failureRateThreshold(config.circuitBreakerThreshold() * 100)
+                .failureRateThreshold((float)(config.circuitBreakerThreshold() * 100))
                 .slowCallRateThreshold(80)
                 .slowCallDurationThreshold(Duration.ofSeconds(10))
                 .waitDurationInOpenState(config.circuitBreakerWait())

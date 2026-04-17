@@ -18,20 +18,20 @@ public class ToolRiskEvaluator {
     /**
      * 工具风险等级映射
      */
-    private static final Map<String, ToolRiskLevel> RISK_MAPPING = Map.of(
-            "execute_sql", ToolRiskLevel.HIGH,
-            "write_file", ToolRiskLevel.HIGH,
-            "delete_file", ToolRiskLevel.CRITICAL,
-            "send_email", ToolRiskLevel.HIGH,
-            "http_request", ToolRiskLevel.MEDIUM,
-            "web_search", ToolRiskLevel.LOW,
-            "get_current_time", ToolRiskLevel.LOW,
-            "get_current_date", ToolRiskLevel.LOW,
-            "calculate", ToolRiskLevel.LOW,
-            "evaluate_expression", ToolRiskLevel.LOW,
-            "format_datetime", ToolRiskLevel.LOW,
-            "convert_units", ToolRiskLevel.LOW,
-            "calculate_percentage", ToolRiskLevel.LOW
+    private static final Map<String, ToolRiskLevel> RISK_MAPPING = Map.ofEntries(
+            Map.entry("execute_sql", ToolRiskLevel.HIGH),
+            Map.entry("write_file", ToolRiskLevel.HIGH),
+            Map.entry("delete_file", ToolRiskLevel.CRITICAL),
+            Map.entry("send_email", ToolRiskLevel.HIGH),
+            Map.entry("http_request", ToolRiskLevel.MEDIUM),
+            Map.entry("web_search", ToolRiskLevel.LOW),
+            Map.entry("get_current_time", ToolRiskLevel.LOW),
+            Map.entry("get_current_date", ToolRiskLevel.LOW),
+            Map.entry("calculate", ToolRiskLevel.LOW),
+            Map.entry("evaluate_expression", ToolRiskLevel.LOW),
+            Map.entry("format_datetime", ToolRiskLevel.LOW),
+            Map.entry("convert_units", ToolRiskLevel.LOW),
+            Map.entry("calculate_percentage", ToolRiskLevel.LOW)
     );
 
     /**

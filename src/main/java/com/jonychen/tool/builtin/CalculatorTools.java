@@ -170,9 +170,9 @@ public class CalculatorTools {
         }
     }
 
-    private double evaluateSimpleExpression(String expr) {
+    private double evaluateSimpleExpression(String expression) {
         // 移除空格
-        expr = expr.replaceAll("\\s+", "");
+        String expr = expression.replaceAll("\\s+", "");
 
         // 简单递归下降解析
         return new Object() {
@@ -241,22 +241,22 @@ public class CalculatorTools {
         Map<String, Object> result = new HashMap<>();
 
         // 长度转换（基准：米）
-        Map<String, Double> lengthUnits = Map.of(
-                "m", 1.0, "meter", 1.0, "meters", 1.0,
-                "km", 1000.0, "kilometer", 1000.0, "kilometers", 1000.0,
-                "cm", 0.01, "centimeter", 0.01, "centimeters", 0.01,
-                "mm", 0.001, "millimeter", 0.001, "millimeters", 0.001,
-                "mile", 1609.344, "miles", 1609.344,
-                "ft", 0.3048, "foot", 0.3048, "feet", 0.3048,
-                "in", 0.0254, "inch", 0.0254, "inches", 0.0254
+        Map<String, Double> lengthUnits = Map.ofEntries(
+                Map.entry("m", 1.0), Map.entry("meter", 1.0), Map.entry("meters", 1.0),
+                Map.entry("km", 1000.0), Map.entry("kilometer", 1000.0), Map.entry("kilometers", 1000.0),
+                Map.entry("cm", 0.01), Map.entry("centimeter", 0.01), Map.entry("centimeters", 0.01),
+                Map.entry("mm", 0.001), Map.entry("millimeter", 0.001), Map.entry("millimeters", 0.001),
+                Map.entry("mile", 1609.344), Map.entry("miles", 1609.344),
+                Map.entry("ft", 0.3048), Map.entry("foot", 0.3048), Map.entry("feet", 0.3048),
+                Map.entry("in", 0.0254), Map.entry("inch", 0.0254), Map.entry("inches", 0.0254)
         );
 
         // 重量转换（基准：千克）
-        Map<String, Double> weightUnits = Map.of(
-                "kg", 1.0, "kilogram", 1.0, "kilograms", 1.0,
-                "g", 0.001, "gram", 0.001, "grams", 0.001,
-                "lb", 0.453592, "pound", 0.453592, "pounds", 0.453592,
-                "oz", 0.0283495, "ounce", 0.0283495, "ounces", 0.0283495
+        Map<String, Double> weightUnits = Map.ofEntries(
+                Map.entry("kg", 1.0), Map.entry("kilogram", 1.0), Map.entry("kilograms", 1.0),
+                Map.entry("g", 0.001), Map.entry("gram", 0.001), Map.entry("grams", 0.001),
+                Map.entry("lb", 0.453592), Map.entry("pound", 0.453592), Map.entry("pounds", 0.453592),
+                Map.entry("oz", 0.0283495), Map.entry("ounce", 0.0283495), Map.entry("ounces", 0.0283495)
         );
 
         double metersValue;

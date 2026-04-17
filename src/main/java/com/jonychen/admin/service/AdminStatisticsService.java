@@ -1,8 +1,9 @@
 package com.jonychen.admin.service;
 
 import com.jonychen.admin.dto.*;
+import com.jonychen.admin.repository.TokenUsageRepository;
 import com.jonychen.auth.UserRepository;
-import com.jonychen.model.ModelHealthStatus;
+import com.jonychen.config.ModelProperties;
 import com.jonychen.model.ModelProvider;
 import com.jonychen.rag.VectorStore;
 import com.jonychen.tool.resilience.ResilientToolExecutor;
@@ -10,8 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,7 +30,7 @@ public class AdminStatisticsService {
     private final TokenUsageRepository tokenUsageRepository;
     private final VectorStore vectorStore;
     private final ResilientToolExecutor resilientToolExecutor;
-    private final ModelProvider modelProvider;
+    private final ModelProperties modelProperties;
 
     /**
      * 获取仪表盘统计数据
@@ -213,7 +212,7 @@ public class AdminStatisticsService {
     private List<DashboardMetrics.ModelHealthInfo> getModelHealthStatus() {
         List<DashboardMetrics.ModelHealthInfo> healthList = new ArrayList<>();
 
-        for (var provider : modelProvider.getProviders()) {
+        for (var provider : modelProperties.getEnabledProviders()) {
             if (!provider.enabled()) continue;
 
             var status = resilientToolExecutor.getCircuitBreakerStatus(provider.name().toLowerCase());
