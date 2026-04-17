@@ -2,6 +2,160 @@
 
 本项目特有的代码模式和约定。
 
+## 后端模式
+
+### 多模型配置模式
+
+```java
+// ModelProperties.java - 从 application.properties 读取多模型配置
+@Configuration
+@ConfigurationProperties(prefix = "model")
+public class ModelProperties {
+    private Map<String, ProviderConfig> providers = new HashMap<>();
+
+    public List<ModelProvider> getEnabledProviders() {
+        return providers.entrySet().stream()
+            .filter(e -> e.getValue().enabled)
+            .map(e -> new ModelProvider(
+                e.getKey(),
+                e.getValue().baseUrl,
+                e.getValue().apiKey,
+                e.getValue().modelName,
+                e.getValue().weight,
+                e.getValue().priority,
+                true
+            ))
+            .sorted(Comparator.comparingInt(ModelProvider::priority))
+            .toList();
+    }
+}
+```
+
+### 负载均衡模型模式
+
+```java
+// LoadBalancedChatModel.java - 多模型负载均衡 + 故障转移
+public class LoadBalancedChatModel implements ChatModel {
+
+    @Override
+    public ChatResponse chat(ChatRequest request) {
+        // 1. 按权重选择模型
+        ModelInstance selected = selectByWeight(getAvailableModels());
+
+        try {
+            // 2. 通过熔断器执行
+            return executeWithCircuitBreaker(selected, request);
+        } catch (CallNotPermittedException e) {
+            // 3. 熔断器打开，切换备用模型
+            return fallbackChat(request, selected.provider.name());
+        }
+    }
+}
+```
+
+### Resilience4j 注解模式
+
+```java
+// ChatController.java - 限流 + 熔断 + 重试
+@PostMapping
+@RateLimiter(name = "chat", fallbackMethod = "chatRateLimitFallback")
+@CircuitBreaker(name = "chat", fallbackMethod = "chatCircuitBreakerFallback")
+@Retry(name = "chat", fallbackMethod = "chatRetryFallback")
+public ApiResponse<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
+    return ApiResponse.success(new ChatResponse(aiService.chat(request.message())));
+}
+
+// 限流降级
+public ApiResponse<ChatResponse> chatRateLimitFallback(ChatRequest request, RequestNotPermitted e) {
+    return ApiResponse.error(ErrorCode.RATE_LIMITED, "请求过于频繁");
+}
+
+// 熔断降级
+public ApiResponse<ChatResponse> chatCircuitBreakerFallback(ChatRequest request, CallNotPermittedException e) {
+    return ApiResponse.error(ErrorCode.AI_SERVICE_ERROR, "服务暂时不可用");
+}
+```
+
+### 分布式限流模式
+
+```java
+// DistributedRateLimiter.java - Redis + Lua 脚本
+@Component
+public class DistributedRateLimiter {
+
+    // 滑动窗口限流 Lua 脚本（原子操作）
+    private static final String SLIDING_WINDOW_SCRIPT = """
+        local key = KEYS[1]
+        local window = tonumber(ARGV[1])
+        local limit = tonumber(ARGV[2])
+        local now = tonumber(ARGV[3])
+
+        redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+        local count = redis.call('ZCARD', key)
+
+        if count < limit then
+            redis.call('ZADD', key, now, now .. '-' .. math.random())
+            redis.call('PEXPIRE', key, window)
+            return 1
+        else
+            return 0
+        end
+        """;
+
+    public boolean tryAcquireSlidingWindow(String key, int limit, long period, TimeUnit unit) {
+        Long result = redisTemplate.execute(script, Collections.singletonList(key), ...);
+        return result != null && result == 1L;
+    }
+}
+```
+
+### 统一响应模式
+
+```java
+// ApiResponse.java - 统一 API 响应格式
+public record ApiResponse<T>(int code, String message, T data) {
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(200, "success", data);
+    }
+
+    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message) {
+        return new ApiResponse<>(errorCode.getCode(), message, null);
+    }
+}
+
+// ErrorCode.java - 错误码枚举
+public enum ErrorCode {
+    RATE_LIMITED(429, "请求过于频繁"),
+    AI_SERVICE_ERROR(50200, "AI 服务异常"),
+    ALL_MODELS_UNAVAILABLE(50206, "所有 AI 模型均不可用");
+}
+```
+
+### 异常处理模式
+
+```java
+// GlobalExceptionHandler.java - 全局异常处理
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
+        return ResponseEntity
+            .status(getHttpStatus(e.getCode()))
+            .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+            .map(error -> error.getField() + ": " + error.getDefaultMessage())
+            .collect(Collectors.joining("; "));
+        return ResponseEntity.badRequest()
+            .body(ApiResponse.error(ErrorCode.PARAM_INVALID, message));
+    }
+}
+```
+
 ## Vue 3 组件模式
 
 ### Props + Emits 标准模板

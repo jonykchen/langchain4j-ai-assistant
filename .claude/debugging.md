@@ -2,6 +2,98 @@
 
 常见问题诊断与解决方案。
 
+## 后端问题
+
+### 所有模型不可用
+
+**症状：** 返回错误码 50206 "所有 AI 模型均不可用"
+
+**诊断：**
+```bash
+# 检查模型健康状态
+curl http://localhost:8082/api/health/summary
+
+# 检查熔断器状态
+curl http://localhost:8082/api/health/circuit-breakers
+```
+
+**常见原因：**
+| 原因 | 解决 |
+|------|------|
+| API Key 未配置 | 检查环境变量 DASHSCOPE_API_KEY |
+| API Key 无效 | 验证 API Key 是否有效 |
+| 网络问题 | 检查代理设置或网络连接 |
+| 熔断器全部打开 | 等待恢复或重启服务 |
+
+### 请求被限流
+
+**症状：** 返回错误码 429 "请求过于频繁"
+
+**诊断：**
+```bash
+# 检查限流配置
+curl http://localhost:8082/actuator/ratelimiters
+
+# 检查 Redis 连接
+redis-cli ping
+```
+
+**解决：**
+- 检查 `resilience4j.ratelimiters` 配置
+- 检查 Redis 连接是否正常
+- 调整 `limitForPeriod` 参数
+
+### 熔断器一直打开
+
+**症状：** 日志显示熔断器状态变为 OPEN
+
+**诊断：**
+```java
+// 查看熔断器事件
+circuitBreaker.getEventPublisher()
+    .onStateTransition(event -> LOG.warn("状态变化: {}", event))
+    .onError(event -> LOG.warn("调用失败: {}", event));
+```
+
+**解决：**
+- 检查模型 API 是否正常
+- 调整 `failureRateThreshold` 阈值
+- 调整 `waitDurationInOpenState` 恢复时间
+- 调用 `/api/health/circuit-breakers` 查看状态
+
+### API 调用失败
+
+**检查：**
+```properties
+# 启用详细日志
+logging.level.com.jonychen=DEBUG
+logging.level.dev.langchain4j=DEBUG
+logging.level.io.github.resilience4j=DEBUG
+```
+
+**常见错误：**
+| 错误 | 原因 | 解决 |
+|------|------|------|
+| 401 Unauthorized | API Key 无效 | 检查环境变量配置 |
+| 429 Too Many Requests | API 限流 | 降低请求频率或更换模型 |
+| Connection timeout | 网络问题 | 检查代理或超时配置 |
+| All models unavailable | 所有模型不可用 | 检查各模型配置 |
+
+### 模型切换频繁
+
+**症状：** 日志显示大量故障转移
+
+**诊断：**
+```java
+// 查看切换次数指标
+curl http://localhost:8082/actuator/metrics/model_failover_total
+```
+
+**解决：**
+- 调整模型权重，减少低质量模型权重
+- 调整熔断器阈值
+- 检查网络稳定性
+
 ## 前端问题
 
 ### 响应式失效
@@ -165,14 +257,36 @@ console.log(performance.getEntriesByName('render'))
 ```java
 // 添加计时
 long start = System.currentTimeMillis();
-String result = aiService.chat(id, msg);
+String result = aiService.chat(msg);
 log.info("Chat took {}ms", System.currentTimeMillis() - start);
+
+// 查看 Prometheus 指标
+curl http://localhost:8082/actuator/metrics/http.server.requests
 ```
 
 **优化方向：**
-1. 减少对话记忆窗口
-2. 使用流式响应
-3. 缓存常用响应
+1. 减少对话记忆窗口大小
+2. 使用流式响应避免超时
+3. 调整模型超时配置
+4. 启用 Nacos 动态配置热更新
+
+### Redis 连接问题
+
+**症状：** 分布式限流失效
+
+**诊断：**
+```bash
+# 检查 Redis 连接
+redis-cli -h localhost -p 6379 ping
+
+# 查看连接数
+redis-cli info clients
+```
+
+**解决：**
+- 检查 `spring.data.redis.*` 配置
+- 检查网络连通性
+- Redis 异常时自动降级为本地限流
 
 ## 调试工具
 
@@ -182,6 +296,38 @@ log.info("Chat took {}ms", System.currentTimeMillis() - start);
 - **Performance**: 分析渲染性能
 
 ### 后端工具
+
+**健康检查接口：**
+```bash
+# 模型状态
+curl http://localhost:8082/api/health/models
+
+# 熔断器状态
+curl http://localhost:8082/api/health/circuit-breakers
+
+# 综合状态
+curl http://localhost:8082/api/health/summary
+```
+
+**Actuator 端点：**
+```bash
+# 所有端点
+curl http://localhost:8082/actuator
+
+# 健康检查
+curl http://localhost:8082/actuator/health
+
+# Prometheus 指标
+curl http://localhost:8082/actuator/prometheus
+
+# 限流器状态
+curl http://localhost:8082/actuator/ratelimiters
+
+# 熔断器状态
+curl http://localhost:8082/actuator/circuitbreakers
+```
+
+**日志分析：**
 ```bash
 # 查看日志
 tail -f logs/spring.log
@@ -189,5 +335,10 @@ tail -f logs/spring.log
 # 测试接口
 curl -X POST http://localhost:8082/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"message":"hello","conversationId":"test"}'
+  -d '{"message":"hello"}'
 ```
+
+**Prometheus + Grafana：**
+- 访问 Grafana 仪表盘查看 AI 服务指标
+- 监控模型切换次数、熔断器状态
+- 设置告警规则
