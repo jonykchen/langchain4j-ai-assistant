@@ -100,6 +100,91 @@ export interface ApiResponse<T> {
   data: T | null
 }
 
+// ==================== 认证相关类型 ====================
+
+/**
+ * 用户信息
+ */
+export interface UserInfo {
+  /** 用户 ID */
+  id: string
+  /** 用户名 */
+  username: string
+  /** 邮箱 */
+  email?: string
+  /** 昵称 */
+  nickname?: string
+  /** 头像 URL */
+  avatar?: string
+  /** 角色 */
+  role: 'USER' | 'ADMIN'
+  /** 认证提供商 */
+  provider?: string
+  /** 注册时间 */
+  createdAt?: string
+  /** 最后登录时间 */
+  lastLoginAt?: string
+}
+
+/**
+ * Token 响应
+ */
+export interface TokenResponse {
+  /** 访问令牌 */
+  accessToken: string
+  /** 刷新令牌 */
+  refreshToken: string
+  /** 令牌类型 */
+  tokenType: string
+  /** 过期时间（秒） */
+  expiresIn: number
+  /** 权限范围 */
+  scope?: string
+}
+
+/**
+ * OAuth 回调响应
+ */
+export interface OAuthCallbackResponse {
+  token: TokenResponse
+  user: UserInfo
+}
+
+/**
+ * 登录请求
+ */
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+/**
+ * 刷新 Token 请求
+ */
+export interface RefreshTokenRequest {
+  refreshToken: string
+}
+
+// ==================== 会话相关类型 ====================
+
+/**
+ * 会话信息
+ */
+export interface SessionInfo {
+  /** 会话 ID */
+  sessionId: string
+  /** 用户 ID */
+  userId: string
+  /** 会话标题 */
+  title: string
+  /** 创建时间 */
+  createdAt: string
+  /** 更新时间 */
+  updatedAt: string
+  /** 消息数量 */
+  messageCount: number
+}
+
 /*
  * ==================== 扩展类型设计 ====================
  *

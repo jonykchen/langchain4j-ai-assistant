@@ -30,16 +30,30 @@ public enum ErrorCode {
     UNAUTHORIZED(401, "未授权访问"),
     TOKEN_EXPIRED(40101, "登录已过期，请重新登录"),
     TOKEN_INVALID(40102, "无效的访问令牌"),
+    LOGIN_FAILED(40103, "登录失败"),
+    OAUTH_FAILED(40104, "OAuth 认证失败"),
+    INVALID_CODE(40105, "无效的授权码"),
 
     FORBIDDEN(403, "没有操作权限"),
 
     NOT_FOUND(404, "资源不存在"),
     CONVERSATION_NOT_FOUND(40401, "对话不存在"),
+    USER_NOT_FOUND(40402, "用户不存在"),
+    TOOL_NOT_FOUND(40403, "工具不存在"),
 
     METHOD_NOT_ALLOWED(405, "请求方法不允许"),
     CONFLICT(409, "资源冲突"),
+    USERNAME_EXISTS(40901, "用户名已存在"),
+    EMAIL_EXISTS(40902, "邮箱已被注册"),
 
     RATE_LIMITED(429, "请求过于频繁，请稍后再试"),
+
+    // ==================== 工具错误 45xxx ====================
+    TOOL_EXECUTION_FAILED(45000, "工具执行失败"),
+    TOOL_VALIDATION_FAILED(45001, "工具参数校验失败"),
+    TOOL_PERMISSION_DENIED(45002, "没有工具执行权限"),
+    TOOL_TIMEOUT(45003, "工具执行超时"),
+    TOOL_CONFIRMATION_REQUIRED(45004, "工具执行需要确认"),
 
     // ==================== 服务端错误 5xx ====================
     INTERNAL_ERROR(500, "服务器内部错误"),

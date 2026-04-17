@@ -2,6 +2,7 @@ package com.jonychen.exception;
 
 import com.jonychen.model.ApiResponse;
 import com.jonychen.model.ErrorCode;
+import com.jonychen.tool.ToolNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -100,6 +101,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ErrorCode.BAD_REQUEST, e.getMessage()));
+    }
+
+    /**
+     * 处理工具未找到异常
+     */
+    @ExceptionHandler(ToolNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleToolNotFoundException(ToolNotFoundException e) {
+        log.warn("工具未找到: {}", e.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ErrorCode.TOOL_NOT_FOUND, e.getMessage()));
     }
 
     /**

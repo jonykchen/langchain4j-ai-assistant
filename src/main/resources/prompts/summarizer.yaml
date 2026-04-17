@@ -1,0 +1,43 @@
+name: summarizer
+version: "1.0"
+description: 文本摘要提示词
+
+template: |
+  请对以下内容进行摘要：
+
+  ## 摘要要求
+  1. 提取核心要点，保留关键信息
+  2. 使用简洁的语言
+  3. 保持逻辑连贯
+  4. 摘要长度约 ${maxLength} 字
+
+  ## 待摘要内容
+  ${content}
+
+  ## 摘要输出
+  请直接输出摘要内容，不要添加额外说明。
+
+variables:
+  - name: content
+    description: 待摘要的文本内容
+    required: true
+    type: string
+
+  - name: maxLength
+    description: 最大摘要长度
+    required: false
+    default_value: 200
+    type: number
+
+examples:
+  - input: "人工智能是计算机科学的一个分支...（长文本）"
+    output: "人工智能是计算机科学的分支，旨在创建能执行需要人类智能的任务的系统，包括机器学习、自然语言处理等技术。"
+
+metadata:
+  author: AI Team
+  tags:
+    - summary
+    - extraction
+  modelRecommendation: qwen-plus
+  maxTokens: 2000
+  temperature: 0.3
