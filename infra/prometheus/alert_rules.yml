@@ -1,0 +1,156 @@
+# ==================== Prometheus 告警规则 ====================
+#
+# 定义 Agent 应用的关键告警规则
+
+groups:
+  # ==================== 应用层告警 ====================
+  - name: application_alerts
+    rules:
+      # 应用实例宕机
+      - alert: AppInstanceDown
+        expr: up{job="langchain4j-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "应用实例 DOWN"
+          description: "{{ $labels.instance }} 已经宕机超过 1 分钟"
+
+      # HTTP 错误率过高
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5..",job="langchain4j-app"}[5m]))
+          / sum(rate(http_server_requests_seconds_count{job="langchain4j-app"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 错误率过高"
+          description: "应用 5xx 错误率为 {{ $value | humanizePercentage }}，超过 5% 阈值"
+
+      # 响应时间过长
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job="langchain4j-app"}[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 响应延迟过高"
+          description: "应用 P95 响应时间 {{ $value | humanizeDuration }}，超过 2 秒阈值"
+
+      # JVM 内存告警
+      - alert: JVMHeapMemoryHigh
+        expr: |
+          jvm_memory_used_bytes{area="heap",job="langchain4j-app"}
+          / jvm_memory_max_bytes{area="heap",job="langchain4j-app"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM 堆内存使用率过高"
+          description: "JVM 堆内存使用率 {{ $value | humanizePercentage }}，超过 85% 阈值"
+
+      # GC 频繁告警
+      - alert: HighGCRate
+        expr: |
+          rate(jvm_gc_pause_seconds_sum{job="langchain4j-app"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GC 频繁"
+          description: "应用 GC 时间占比 {{ $value | humanizeDuration }}/s，可能存在内存问题"
+
+  # ==================== AI 模型告警 ====================
+  - name: ai_model_alerts
+    rules:
+      # 模型响应过慢
+      - alert: AIModelSlowResponse
+        expr: |
+          histogram_quantile(0.95, sum(rate(langchain4j_model_request_seconds_bucket[5m])) by (le)) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI 模型响应过慢"
+          description: "AI 模型 P95 响应时间 {{ $value | humanizeDuration }}，超过 10 秒阈值"
+
+      # Token 消耗过快
+      - alert: HighTokenConsumption
+        expr: |
+          sum(rate(langchain4j_token_usage_total[1h])) > 10000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Token 消耗过快"
+          description: "Token 消耗率 {{ $value }}/h，请检查使用情况"
+
+      # 熔断器打开
+      - alert: CircuitBreakerOpen
+        expr: |
+          resilience4j_circuitbreaker_state{state="open"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "熔断器已打开"
+          description: "{{ $labels.name }} 熔断器已打开，请检查模型可用性"
+
+  # ==================== 基础设施告警 ====================
+  - name: infrastructure_alerts
+    rules:
+      # Redis 连接失败
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 服务 DOWN"
+          description: "Redis 服务不可用，分布式限流将降级为本地限流"
+
+      # Redis 内存不足
+      - alert: RedisMemoryHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存使用率过高"
+          description: "Redis 内存使用率 {{ $value | humanizePercentage }}，超过 90% 阈值"
+
+      # PostgreSQL 连接数过高
+      - alert: PostgresTooManyConnections
+        expr: |
+          pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL 连接数过高"
+          description: "PostgreSQL 连接数使用率 {{ $value | humanizePercentage }}，超过 80% 阈值"
+
+      # PostgreSQL 死锁
+      - alert: PostgresDeadlocks
+        expr: |
+          rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "检测到 PostgreSQL 死锁"
+          description: "PostgreSQL 死锁检测频率 {{ $value }}/s，请检查事务逻辑"
+
+      # 磁盘空间不足
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘空间不足"
+          description: "根分区剩余空间 {{ $value | humanizePercentage }}，低于 10% 阈值"

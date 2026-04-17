@@ -1,0 +1,96 @@
+# ==================== Prometheus 配置 ====================
+#
+# 数据采集配置，用于监控整个 Agent 工程
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'development'
+    project: 'langchain4j-agent'
+
+# 告警规则文件
+rule_files:
+  - /etc/prometheus/alert_rules.yml
+
+# 告警管理器配置（可选）
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # ==================== Spring Boot 应用（核心监控） ====================
+  - job_name: 'langchain4j-app'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    static_configs:
+      # 开发环境通过 host.docker.internal 访问宿主机
+      - targets:
+          - 'host.docker.internal:8082'
+        labels:
+          application: 'langchain4j-chat'
+          environment: 'development'
+          component: 'backend'
+
+  # ==================== Prometheus 自身 ====================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          application: 'prometheus'
+
+  # ==================== Redis 指标 ====================
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          application: 'redis'
+          component: 'cache'
+
+  # ==================== PostgreSQL 指标 ====================
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          application: 'postgres'
+          component: 'database'
+
+  # ==================== Nacos（服务发现模式） ====================
+  - job_name: 'nacos'
+    metrics_path: '/nacos/actuator/prometheus'
+    static_configs:
+      - targets: ['nacos:8848']
+        labels:
+          application: 'nacos'
+          component: 'config-center'
+
+  # ==================== Zipkin ====================
+  - job_name: 'zipkin'
+    metrics_path: '/prometheus'
+    static_configs:
+      - targets: ['zipkin:9411']
+        labels:
+          application: 'zipkin'
+          component: 'tracing'
+
+  # ==================== Grafana ====================
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          application: 'grafana'
+          component: 'visualization'
+
+  # ==================== 节点监控（Portainer/Prometheus Node Exporter） ====================
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+
+# ==================== 远程写入（可选，用于长期存储） ====================
+# remote_write:
+#   - url: "http://remote-storage:9090/api/v1/write"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500

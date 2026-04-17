@@ -51,7 +51,10 @@
       "Bash(echo $JAVA_HOME)",
       "Read(//Library/Java/JavaVirtualMachines/**)",
       "Read(//opt/homebrew/**)",
-      "Bash(export JAVA_HOME=/usr/local/opt/openjdk@17)"
+      "Bash(export JAVA_HOME=/usr/local/opt/openjdk@17)",
+      "Bash(/Users/jonychen/IdeaProjects/langchain4j-demo/.env.example:*)",
+      "Bash(chmod:*)",
+      "Bash(ls:*)"
     ]
   }
 }
