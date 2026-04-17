@@ -1,0 +1,215 @@
+package com.jonychen.model;
+
+import com.jonychen.exception.AllModelsUnavailableException;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * 负载均衡流式聊天模型
+ *
+ * 核心功能：
+ * 1. 多模型负载均衡（按权重分配请求）
+ * 2. 故障自动转移（主模型故障时切换备用）
+ * 3. 模型级熔断（每个模型独立熔断器）
+ * 4. 健康状态监控
+ */
+public class LoadBalancedStreamingChatModel implements StreamingChatModel {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LoadBalancedStreamingChatModel.class);
+
+    private final List<StreamingModelInstance> models;
+    private final Map<String, CircuitBreaker> circuitBreakers;
+    private final Map<String, ModelHealthStatus> healthStatuses;
+    private final Counter failoverCounter;
+
+    public LoadBalancedStreamingChatModel(List<ModelProvider> providers,
+                                           CircuitBreakerRegistry registry,
+                                           MeterRegistry meterRegistry) {
+        this.models = new ArrayList<>();
+        this.circuitBreakers = new ConcurrentHashMap<>();
+        this.healthStatuses = new ConcurrentHashMap<>();
+
+        for (ModelProvider provider : providers) {
+            if (!provider.isValid()) {
+                LOG.warn("流式模型提供者 {} 配置无效，跳过", provider.name());
+                continue;
+            }
+
+            OpenAiStreamingChatModel streamingModel = OpenAiStreamingChatModel.builder()
+                    .baseUrl(provider.baseUrl())
+                    .apiKey(provider.apiKey())
+                    .modelName(provider.modelName())
+                    .timeout(Duration.ofSeconds(60))
+                    .build();
+
+            CircuitBreaker circuitBreaker = registry.circuitBreaker(
+                    "model-" + provider.name(),
+                    CircuitBreakerConfig.custom()
+                            .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
+                            .slidingWindowSize(5)
+                            .failureRateThreshold(50)
+                            .waitDurationInOpenState(Duration.ofSeconds(30))
+                            .permittedNumberOfCallsInHalfOpenState(2)
+                            .build()
+            );
+
+            models.add(new StreamingModelInstance(provider, streamingModel));
+            circuitBreakers.put(provider.name(), circuitBreaker);
+            healthStatuses.put(provider.name(), new ModelHealthStatus(provider.name(), true));
+        }
+
+        this.failoverCounter = meterRegistry != null
+                ? Counter.builder("model_stream_failover_total").description("流式模型切换次数").register(meterRegistry)
+                : null;
+
+        LOG.info("负载均衡流式模型初始化完成，共 {} 个可用模型", models.size());
+    }
+
+    @Override
+    public void chat(ChatRequest request, StreamingChatResponseHandler handler) {
+        List<StreamingModelInstance> availableModels = getAvailableModels();
+
+        if (availableModels.isEmpty()) {
+            LOG.error("所有流式模型均不可用");
+            handler.onError(new AllModelsUnavailableException("所有 AI 模型均不可用"));
+            return;
+        }
+
+        StreamingModelInstance selected = selectByWeight(availableModels);
+        String selectedName = selected.provider.name();
+
+        LOG.debug("选择流式模型: {}", selectedName);
+
+        try {
+            selected.streamingModel.chat(request, new FaultTolerantHandler(handler, request, selectedName));
+        } catch (Exception e) {
+            LOG.warn("流式模型 {} 启动失败: {}", selectedName, e.getMessage());
+            handleFailover(request, handler, selectedName);
+        }
+    }
+
+    private void handleFailover(ChatRequest request, StreamingChatResponseHandler handler, String failedModel) {
+        recordFailover();
+
+        List<StreamingModelInstance> fallbackModels = models.stream()
+                .filter(m -> !m.provider.name().equals(failedModel))
+                .filter(m -> !isCircuitBreakerOpen(m.provider.name()))
+                .sorted(Comparator.comparingInt(m -> m.provider.priority()))
+                .toList();
+
+        for (StreamingModelInstance model : fallbackModels) {
+            String modelName = model.provider.name();
+            LOG.info("流式故障转移: 尝试模型 {}", modelName);
+
+            try {
+                model.streamingModel.chat(request, handler);
+                return;
+            } catch (Exception e) {
+                LOG.warn("流式模型 {} 失败: {}", modelName, e.getMessage());
+            }
+        }
+
+        LOG.error("所有备用流式模型均不可用");
+        handler.onError(new AllModelsUnavailableException("所有 AI 模型均不可用，请稍后重试"));
+    }
+
+    private StreamingModelInstance selectByWeight(List<StreamingModelInstance> availableModels) {
+        int totalWeight = availableModels.stream()
+                .mapToInt(m -> m.provider.weight())
+                .sum();
+
+        if (totalWeight <= 0) {
+            return availableModels.get(ThreadLocalRandom.current().nextInt(availableModels.size()));
+        }
+
+        int random = ThreadLocalRandom.current().nextInt(totalWeight);
+        int accumulated = 0;
+
+        for (StreamingModelInstance model : availableModels) {
+            accumulated += model.provider.weight();
+            if (random < accumulated) {
+                return model;
+            }
+        }
+
+        return availableModels.get(availableModels.size() - 1);
+    }
+
+    private List<StreamingModelInstance> getAvailableModels() {
+        return models.stream()
+                .filter(m -> !isCircuitBreakerOpen(m.provider.name()))
+                .toList();
+    }
+
+    private boolean isCircuitBreakerOpen(String modelName) {
+        CircuitBreaker cb = circuitBreakers.get(modelName);
+        return cb != null && cb.getState() == CircuitBreaker.State.OPEN;
+    }
+
+    private void recordFailover() {
+        if (failoverCounter != null) {
+            failoverCounter.increment();
+        }
+    }
+
+    public List<ModelHealthStatus> getModelStatuses() {
+        return new ArrayList<>(healthStatuses.values());
+    }
+
+    private static class StreamingModelInstance {
+        final ModelProvider provider;
+        final OpenAiStreamingChatModel streamingModel;
+
+        StreamingModelInstance(ModelProvider provider, OpenAiStreamingChatModel streamingModel) {
+            this.provider = provider;
+            this.streamingModel = streamingModel;
+        }
+    }
+
+    private class FaultTolerantHandler implements StreamingChatResponseHandler {
+        private final StreamingChatResponseHandler delegate;
+        private final ChatRequest request;
+        private final String modelName;
+        private volatile boolean completed = false;
+
+        FaultTolerantHandler(StreamingChatResponseHandler delegate, ChatRequest request, String modelName) {
+            this.delegate = delegate;
+            this.request = request;
+            this.modelName = modelName;
+        }
+
+        @Override
+        public void onPartialResponse(String partialResponse) {
+            delegate.onPartialResponse(partialResponse);
+        }
+
+        @Override
+        public void onCompleteResponse(ChatResponse completeResponse) {
+            completed = true;
+            delegate.onCompleteResponse(completeResponse);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            if (!completed) {
+                LOG.warn("流式模型 {} 失败: {}", modelName, error.getMessage());
+                handleFailover(request, delegate, modelName);
+            }
+        }
+    }
+}
