@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import ChatView from './views/ChatView.vue'
+// 主应用组件
 </script>
 
 <template>
-  <ChatView />
+  <router-view />
 </template>
 
 <style scoped>

@@ -42,7 +42,8 @@
       "Bash(cat target/surefire-reports/*.txt)",
       "Bash(mvn spring-boot:run -q)",
       "Bash(docker run:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(./mvnw compile:*)"
     ]
   }
 }
