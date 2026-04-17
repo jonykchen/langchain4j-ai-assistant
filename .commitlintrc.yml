@@ -1,0 +1,44 @@
+# Commitlint 配置
+# Git commit 消息格式规范
+
+extends:
+  - '@commitlint/config-conventional'
+
+rules:
+  # type 类型定义
+  type-enum:
+    - 2
+    - always
+    - - feat     # 新功能
+      - fix      # Bug 修复
+      - docs     # 文档更新
+      - style    # 代码格式（不影响逻辑）
+      - refactor # 重构
+      - perf     # 性能优化
+      - test     # 测试相关
+      - build    # 构建/依赖更新
+      - ci       # CI 配置
+      - chore    # 其他杂项
+      - revert   # 回退
+
+  # subject 不能为空
+  subject-empty:
+    - 2
+    - never
+
+  # subject 不以句号结尾
+  subject-full-stop:
+    - 2
+    - never
+    - '.'
+
+  # type 必须小写
+  type-case:
+    - 2
+    - always
+    - lower-case
+
+  # subject 格式（允许中文）
+  subject-case:
+    - 0
+    - always
