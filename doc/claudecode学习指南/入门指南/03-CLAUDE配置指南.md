@@ -97,7 +97,7 @@ mvn test                     # 运行测试
 mvn test -Dtest=UserTest     # 运行单个测试
 
 # 前端
-cd frontend && npm run dev   # 启动前端 (端口 3000)
+cd frontend && npm run dev   # 启动前端 (端口 5173)
 npm run build                # 构建生产版本
 
 # Docker

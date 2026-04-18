@@ -66,6 +66,7 @@ onMounted(async () => {
     // 清理临时数据
     sessionStorage.removeItem('oauth_state')
     sessionStorage.removeItem('oauth_provider')
+    sessionStorage.removeItem('oauth_redirect_uri')
 
     // 跳转到首页
     setTimeout(() => {

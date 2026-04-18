@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
-import { ElButton, ElDialog, ElInput } from 'element-plus'
-import { Plus, Delete } from '@element-plus/icons-vue'
+import { ref, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElButton, ElDialog, ElInput, ElMessageBox } from 'element-plus'
+import { Plus, Delete, SwitchButton, Setting, User, DataLine } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/stores/auth'
 import type { Conversation } from '@/types'
 
 const emit = defineEmits<{
@@ -15,6 +17,11 @@ defineProps<{
   conversations: Conversation[]
   currentId: string | null
 }>()
+
+const router = useRouter()
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
+const isAdmin = computed(() => authStore.isAdmin)
 
 // 重命名弹窗
 const renameVisible = ref(false)
@@ -43,6 +50,20 @@ function closeRename() {
   renameVisible.value = false
   renameId.value = null
   renameTitle.value = ''
+}
+
+async function handleLogout() {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await authStore.logout()
+    router.push('/login')
+  } catch {
+    // 用户取消
+  }
 }
 </script>
 
@@ -74,6 +95,21 @@ function closeRename() {
             class="delete-btn"
             @click.stop="$emit('delete', conv.id)"
           />
+        </div>
+      </div>
+
+      <!-- 底部用户区域 -->
+      <div class="sidebar-footer">
+        <div v-if="isAdmin" class="admin-entry" @click="router.push('/admin')">
+          <el-icon><Setting /></el-icon>
+          <span>后台管理</span>
+        </div>
+        <div class="user-entry" @click="handleLogout">
+          <el-avatar :size="28" :src="user?.avatar" class="user-avatar">
+            {{ user?.username?.charAt(0).toUpperCase() }}
+          </el-avatar>
+          <span class="user-name">{{ user?.nickname || user?.username }}</span>
+          <el-icon class="logout-icon"><SwitchButton /></el-icon>
         </div>
       </div>
     </aside>
@@ -208,5 +244,68 @@ function closeRename() {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 底部用户区域 */
+.sidebar-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 8px;
+  flex-shrink: 0;
+}
+
+.admin-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #409eff;
+  transition: background 0.2s;
+}
+
+.admin-entry:hover {
+  background: #ecf5ff;
+}
+
+.user-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.user-entry:hover {
+  background: #e5e7eb;
+}
+
+.user-avatar {
+  background: #409eff;
+  color: white;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.user-name {
+  flex: 1;
+  font-size: 14px;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-icon {
+  color: #909399;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.user-entry:hover .logout-icon {
+  color: #f56c6c;
 }
 </style>
