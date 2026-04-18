@@ -85,12 +85,44 @@ cp .env.example .env
 
 ### 2. 启动基础设施
 
+**Linux / macOS：**
+
 ```bash
 # 一键启动
 ./dev.sh start
 
 # 或使用 Makefile
 make dev-docker
+```
+
+**Windows（PowerShell）：**
+
+```powershell
+# 首次使用：创建 .env 文件和数据目录
+copy .env.example .env
+New-Item -ItemType Directory -Force -Path data/postgres,data/redis,data/nacos,data/nacos-db,data/prometheus,data/grafana
+
+# 启动基础设施
+docker compose -f docker-compose.dev.yml up -d
+
+# 启动基础服务 + 可选服务（如 Ollama CPU 版 + 向量数据库）
+# docker compose -f docker-compose.dev.yml --profile cpu --profile vector up -d
+
+# 停止所有服务
+docker compose -f docker-compose.dev.yml down
+
+# 查看服务状态
+docker compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker compose -f docker-compose.dev.yml logs -f --tail=100
+
+# 查看指定服务日志（如 redis）
+docker compose -f docker-compose.dev.yml logs -f --tail=100 redis
+
+# 重置环境（清除所有数据）
+docker compose -f docker-compose.dev.yml down -v --remove-orphans
+Remove-Item -Recurse -Force .\data
 ```
 
 ### 3. 启动应用

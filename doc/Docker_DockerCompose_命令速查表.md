@@ -481,3 +481,121 @@ docker compose cp ./config.yml app:/app/  # 复制进容器
 | Docker Desktop | 需额外安装 | 默认包含 |
 
 > **建议**：新项目统一使用 V2 (`docker compose`)，无需横线。
+
+---
+
+## 八、Docker 国内镜像源配置
+
+由于网络原因，国内拉取 Docker 镜像可能较慢或失败。配置国内镜像加速器可显著提升下载速度。
+
+### 1. Windows / macOS Docker Desktop 配置
+
+打开 Docker Desktop → Settings → Docker Engine，编辑 JSON 配置文件：
+
+```json
+{
+  "builder": {
+    "gc": {
+      "defaultKeepStorage": "20GB",
+      "enabled": true
+    }
+  },
+  "experimental": false,
+  "registry-mirrors": [
+    "https://f0mt0v67.mirror.aliyuncs.com",
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+```
+
+点击 "Apply & Restart" 使配置生效。
+
+### 2. Linux 配置
+
+编辑 `/etc/docker/daemon.json`（文件不存在则创建）：
+
+```bash
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://f0mt0v67.mirror.aliyuncs.com",
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+EOF
+```
+
+重启 Docker 服务：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+```
+
+### 3. 常用国内镜像源
+
+| 镜像源 | 地址 | 说明 |
+|--------|------|------|
+| 阿里云 | `https://f0mt0v67.mirror.aliyuncs.com` | 专属加速地址 |
+| 1ms | `https://docker.1ms.run` | 免费 |
+| 轩辕 | `https://docker.xuanyuan.me` | 免费 |
+| DaoCloud | `https://docker.m.daocloud.io` | DaoCloud 提供 |
+
+> **提示**：镜像源可用性会变化，建议多配置几个备用。若某个镜像源失效，可更换其他源。
+
+### 4. 验证配置是否生效
+
+```bash
+# 查看镜像配置
+docker info | grep -A 5 "Registry Mirrors"
+
+# 或使用 JSON 输出
+docker info --format '{{json .}}' | jq '.RegistryConfig.Mirrors'
+```
+
+### 5. 第三方镜像拉取失败处理
+
+阿里云镜像加速器**仅支持 Docker Hub 官方镜像**（`library/` 命名空间），第三方镜像（如 `oliver006/redis_exporter`）会返回 403 Forbidden。
+
+**解决方法**：手动通过其他镜像源拉取第三方镜像：
+
+```bash
+# 方法一：通过 1ms 镜像源拉取
+docker pull docker.1ms.run/oliver006/redis_exporter:v1.55.0
+docker tag docker.1ms.run/oliver006/redis_exporter:v1.55.0 oliver006/redis_exporter:v1.55.0
+
+# 方法二：通过 DaoCloud 镜像源拉取
+docker pull docker.m.daocloud.io/oliver006/redis_exporter:v1.55.0
+docker tag docker.m.daocloud.io/oliver006/redis_exporter:v1.55.0 oliver006/redis_exporter:v1.55.0
+
+# 方法三：直接指定完整仓库地址拉取
+docker pull docker.io/oliver006/redis_exporter:v1.55.0
+```
+
+**通用模板**：
+
+```bash
+# 替换 <镜像源地址> 和 <完整镜像名>
+docker pull <镜像源地址>/<完整镜像名>
+docker tag <镜像源地址>/<完整镜像名> <完整镜像名>
+```
+
+### 6. 手动指定镜像源拉取官方镜像
+
+临时使用镜像源拉取官方镜像（不修改配置）：
+
+```bash
+# 示例：从阿里云镜像拉取
+docker pull f0mt0v67.mirror.aliyuncs.com/library/nginx:alpine
+docker tag f0mt0v67.mirror.aliyuncs.com/library/nginx:alpine nginx:alpine
+```
+
+### 7. 注意事项
+
+1. **配置顺序**：Docker 会按 `registry-mirrors` 数组顺序依次尝试
+2. **官方 vs 第三方镜像**：阿里云加速器仅加速 `library/` 官方镜像，第三方镜像（如 `oliver006/redis_exporter`、`grafana/grafana`）会返回 403，需通过其他镜像源手动拉取
+3. **私有仓库不受影响**：镜像加速仅作用于 Docker Hub，私有仓库（如 `ghcr.io`、`quay.io`）不受影响
+4. **镜像源可用性**：镜像源可能随时失效，建议多配置几个备用
