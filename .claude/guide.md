@@ -9,7 +9,7 @@
 # 后端 (端口 8082)
 mvn spring-boot:run
 
-# 前端 (端口 3000)
+# 前端 (端口 5173)
 cd frontend && npm run dev
 ```
 

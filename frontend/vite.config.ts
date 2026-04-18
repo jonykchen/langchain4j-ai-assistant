@@ -48,7 +48,7 @@ export default defineConfig({
    */
   server: {
     /** 端口号，默认 5173 */
-    port: 3000,
+    port: 5173,
 
     /**
      * 代理配置
@@ -74,6 +74,18 @@ export default defineConfig({
         changeOrigin: true,
         // 可选：重写路径
         // rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/auth': {
+        // 认证接口代理
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        // 浏览器导航（GitHub 重定向回来）交给 Vue Router，API 请求代理到后端
+        bypass: (req) => {
+          if (req.url && req.url.includes('/callback') &&
+              req.headers.accept && req.headers.accept.includes('text/html')) {
+            return req.url
+          }
+        }
       }
     }
   }

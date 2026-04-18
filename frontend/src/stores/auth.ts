@@ -101,6 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 获取授权 URL
     const redirectUri = `${window.location.origin}/auth/${provider}/callback`
+    sessionStorage.setItem('oauth_redirect_uri', redirectUri)
     const getAuthUrl = provider === 'github' ? authApi.getGitHubAuthUrl : authApi.getGitLabAuthUrl
 
     const response = await getAuthUrl(redirectUri, state)
@@ -114,8 +115,9 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function handleOAuthCallback(provider: 'github' | 'gitlab', code: string, state: string): Promise<void> {
     const handleCallback = provider === 'github' ? authApi.handleGitHubCallback : authApi.handleGitLabCallback
+    const redirectUri = sessionStorage.getItem('oauth_redirect_uri') || undefined
 
-    const response = await handleCallback(code, state)
+    const response = await handleCallback(code, state, redirectUri)
 
     if (response.code === 200 && response.data) {
       saveAuth(response.data.token, response.data.user)
@@ -123,6 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
       // 清理临时数据
       sessionStorage.removeItem('oauth_state')
       sessionStorage.removeItem('oauth_provider')
+      sessionStorage.removeItem('oauth_redirect_uri')
     } else {
       throw new Error(response.message || 'OAuth 认证失败')
     }

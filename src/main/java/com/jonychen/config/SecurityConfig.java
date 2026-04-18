@@ -62,11 +62,12 @@ public class SecurityConfig {
                                 "/auth/gitlab/callback"
                         ).permitAll()
 
-                        // 公开接口：健康检查
+                        // 公开接口：健康检查和监控指标
                         .requestMatchers(
                                 "/actuator/health",
                                 "/actuator/health/**",
-                                "/actuator/info"
+                                "/actuator/info",
+                                "/actuator/prometheus"
                         ).permitAll()
 
                         // 公开接口：静态资源
