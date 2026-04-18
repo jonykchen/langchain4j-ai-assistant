@@ -37,6 +37,8 @@ cd langchain4j-demo
 
 ### 2. 配置环境变量
 
+**Linux / macOS：**
+
 ```bash
 # 复制环境变量模板
 cp .env.example .env
@@ -45,7 +47,19 @@ cp .env.example .env
 # 必填项：DASHSCOPE_API_KEY
 ```
 
+**Windows（PowerShell）：**
+
+```powershell
+# 复制环境变量模板
+copy .env.example .env
+
+# 编辑 .env 文件，填入你的 API Keys
+# 必填项：DASHSCOPE_API_KEY
+```
+
 ### 3. 启动基础设施
+
+**Linux / macOS：**
 
 ```bash
 # 方式一：使用启动脚本
@@ -56,6 +70,28 @@ make dev-docker
 
 # 方式三：直接使用 Docker Compose
 docker compose -f docker-compose.dev.yml up -d
+```
+
+**Windows（PowerShell）：**
+
+```powershell
+# 首次使用：创建数据目录
+New-Item -ItemType Directory -Force -Path data/postgres,data/redis,data/nacos,data/nacos-db,data/prometheus,data/grafana
+
+# 启动基础设施
+docker compose -f docker-compose.dev.yml up -d
+
+# 启动基础服务 + 可选服务（如 Ollama CPU 版）
+# docker compose -f docker-compose.dev.yml --profile cpu up -d
+
+# 查看服务状态
+docker compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker compose -f docker-compose.dev.yml logs -f --tail=100
+
+# 停止所有服务
+docker compose -f docker-compose.dev.yml down
 ```
 
 ### 4. 启动后端应用
@@ -320,13 +356,22 @@ Database: nacos
 
 ### Ollama 本地模型
 
-**启动：**
+**启动（Linux / macOS）：**
 ```bash
 # CPU 版本
 ./dev.sh start --profile cpu
 
 # GPU 版本（需要 NVIDIA GPU）
 ./dev.sh start --profile gpu
+```
+
+**启动（Windows PowerShell）：**
+```powershell
+# CPU 版本
+docker compose -f docker-compose.dev.yml --profile cpu up -d
+
+# GPU 版本（需要 NVIDIA GPU + NVIDIA Container Toolkit）
+docker compose -f docker-compose.dev.yml --profile gpu up -d
 ```
 
 **访问地址：** `http://localhost:11434`
@@ -348,9 +393,14 @@ curl http://localhost:11434/api/generate -d '{
 
 ### Qdrant 向量数据库
 
-**启动：**
+**启动（Linux / macOS）：**
 ```bash
 ./dev.sh start --profile vector
+```
+
+**启动（Windows PowerShell）：**
+```powershell
+docker compose -f docker-compose.dev.yml --profile vector up -d
 ```
 
 **访问地址：**
@@ -369,9 +419,14 @@ curl -X PUT http://localhost:6333/collections/documents \
 
 ### RabbitMQ 消息队列
 
-**启动：**
+**启动（Linux / macOS）：**
 ```bash
 ./dev.sh start --profile mq
+```
+
+**启动（Windows PowerShell）：**
+```powershell
+docker compose -f docker-compose.dev.yml --profile mq up -d
 ```
 
 **访问地址：**
@@ -384,9 +439,14 @@ curl -X PUT http://localhost:6333/collections/documents \
 
 ### Milvus 分布式向量库
 
-**启动：**
+**启动（Linux / macOS）：**
 ```bash
 ./dev.sh start --profile milvus
+```
+
+**启动（Windows PowerShell）：**
+```powershell
+docker compose -f docker-compose.dev.yml --profile milvus up -d
 ```
 
 **访问地址：**
@@ -447,6 +507,8 @@ mvn spring-boot:run -Dspring-boot.run.profiles=prod
 
 ### Docker 管理
 
+**Linux / macOS：**
+
 ```bash
 # 查看服务状态
 docker compose -f docker-compose.dev.yml ps
@@ -465,7 +527,27 @@ docker compose -f docker-compose.dev.yml down -v
 rm -rf data/
 ```
 
-### 使用启动脚本
+**Windows（PowerShell）：**
+
+```powershell
+# 查看服务状态
+docker compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker compose -f docker-compose.dev.yml logs -f [服务名]
+
+# 停止所有服务
+docker compose -f docker-compose.dev.yml down
+
+# 重启服务
+docker compose -f docker-compose.dev.yml restart [服务名]
+
+# 重置环境（删除所有数据）
+docker compose -f docker-compose.dev.yml down -v
+Remove-Item -Recurse -Force .\data
+```
+
+### 使用启动脚本（仅 Linux / macOS）
 
 ```bash
 ./dev.sh start          # 启动服务
@@ -475,6 +557,8 @@ rm -rf data/
 ./dev.sh logs redis     # 查看 Redis 日志
 ./dev.sh reset          # 重置环境
 ```
+
+> Windows 用户请直接使用 `docker compose` 命令，参考上方「Docker 管理」章节。
 
 ### 使用 Makefile
 
@@ -507,7 +591,11 @@ docker compose -f docker-compose.dev.yml logs [服务名]
 
 检查端口占用：
 ```bash
+# Linux / macOS
 lsof -i :8082
+
+# Windows（PowerShell）
+netstat -ano | findstr :8082
 ```
 
 修改端口（在 `.env` 中）：
@@ -558,7 +646,8 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 
 ```
 1. 启动 Docker 基础设施
-   └─> ./dev.sh start
+   ├─ Linux/macOS:  ./dev.sh start
+   └─ Windows:      docker compose -f docker-compose.dev.yml up -d
 
 2. 等待服务就绪（约 30 秒）
    └─> Nacos 需要 MySQL 先启动
