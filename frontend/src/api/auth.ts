@@ -35,10 +35,11 @@ export function getGitLabAuthUrl(redirectUri?: string, state?: string): Promise<
 /**
  * 处理 GitHub OAuth 回调
  */
-export function handleGitHubCallback(code: string, state?: string): Promise<ApiResponse<OAuthCallbackResponse>> {
+export function handleGitHubCallback(code: string, state?: string, redirectUri?: string): Promise<ApiResponse<OAuthCallbackResponse>> {
   const params = new URLSearchParams()
   params.append('code', code)
   if (state) params.append('state', state)
+  if (redirectUri) params.append('redirectUri', redirectUri)
 
   return http.get(`/auth/github/callback?${params.toString()}`)
 }
@@ -46,10 +47,11 @@ export function handleGitHubCallback(code: string, state?: string): Promise<ApiR
 /**
  * 处理 GitLab OAuth 回调
  */
-export function handleGitLabCallback(code: string, state?: string): Promise<ApiResponse<OAuthCallbackResponse>> {
+export function handleGitLabCallback(code: string, state?: string, redirectUri?: string): Promise<ApiResponse<OAuthCallbackResponse>> {
   const params = new URLSearchParams()
   params.append('code', code)
   if (state) params.append('state', state)
+  if (redirectUri) params.append('redirectUri', redirectUri)
 
   return http.get(`/auth/gitlab/callback?${params.toString()}`)
 }

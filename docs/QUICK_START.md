@@ -148,7 +148,7 @@ npm run dev
 |------|------|------|
 | **后端 API** | http://localhost:8082 | Spring Boot 应用 |
 | **H2 Console** | http://localhost:8082/h2-console | 内存数据库控制台（开发模式） |
-| **前端** | http://localhost:3000 | Vue 3 开发服务器 |
+| **前端** | http://localhost:5173 | Vue 3 开发服务器 |
 
 ---
 
@@ -663,7 +663,7 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 
 | 端口 | 服务 | 协议 |
 |------|------|------|
-| 3000 | 前端 | HTTP |
+| 5173 | 前端 | HTTP |
 | 3001 | Grafana | HTTP |
 | 5432 | PostgreSQL | TCP |
 | 6379 | Redis | TCP |

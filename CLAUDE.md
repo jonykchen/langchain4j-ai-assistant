@@ -16,7 +16,7 @@ mvn test -Dtest=ClassName    # 运行单个测试类
 ```bash
 cd frontend
 npm install                  # 安装依赖
-npm run dev                  # 启动开发服务器，默认端口 3000
+npm run dev                  # 启动开发服务器，默认端口 5173
 npm run build                # 生产环境构建
 npm run preview              # 预览生产构建
 ```
@@ -181,7 +181,7 @@ resilience4j.retry.instances.chat.maxAttempts=2
 - `REDIS_HOST/REDIS_PORT`: Redis 连接信息（可选，分布式限流）
 
 **前端配置：** `frontend/vite.config.ts`
-- 开发服务器端口 3000
+- 开发服务器端口 5173
 - 代理 `/api` 请求到后端
 - 路径别名 `@` 指向 `src` 目录
 

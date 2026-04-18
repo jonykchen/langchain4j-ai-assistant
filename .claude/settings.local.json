@@ -54,7 +54,10 @@
       "Bash(export JAVA_HOME=/usr/local/opt/openjdk@17)",
       "Bash(/Users/jonychen/IdeaProjects/langchain4j-demo/.env.example:*)",
       "Bash(chmod:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(timeout 120 mvn spring-boot:run -Dcheckstyle.skip=true)"
     ]
   }
 }

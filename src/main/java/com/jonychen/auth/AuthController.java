@@ -52,10 +52,11 @@ public class AuthController {
     @GetMapping("/github/callback")
     public ApiResponse<OAuthCallbackResponse> githubCallback(
             @RequestParam String code,
-            @RequestParam(required = false) String state
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String redirectUri
     ) {
         try {
-            TokenResponse token = oAuth2UserService.handleGitHubCallback(code);
+            TokenResponse token = oAuth2UserService.handleGitHubCallback(code, redirectUri);
             User user = userRepository.findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))
                     .orElseThrow(() -> new RuntimeException("用户不存在"));
 
@@ -92,10 +93,11 @@ public class AuthController {
     @GetMapping("/gitlab/callback")
     public ApiResponse<OAuthCallbackResponse> gitlabCallback(
             @RequestParam String code,
-            @RequestParam(required = false) String state
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String redirectUri
     ) {
         try {
-            TokenResponse token = oAuth2UserService.handleGitLabCallback(code);
+            TokenResponse token = oAuth2UserService.handleGitLabCallback(code, redirectUri);
             User user = userRepository.findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))
                     .orElseThrow(() -> new RuntimeException("用户不存在"));
 

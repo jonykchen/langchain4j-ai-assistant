@@ -1,32 +1,37 @@
--- ==================== 用户认证相关数据表 ====================
+-- ================================================================================
+-- LangChain4j AI Chat 应用 - 数据库 Schema（MySQL 8.0+）
+-- ================================================================================
+-- 说明：此文件由 Spring Boot 在启动时自动执行（defer-datasource-initialization=true）
+-- 实际生产环境建议使用 infra/mysql/init/01-langchain4j-init.sql 初始化
+-- ================================================================================
 
 -- 用户表
-CREATE TABLE IF NOT EXISTS users (
-    id VARCHAR(64) PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE,
-    nickname VARCHAR(100),
-    avatar VARCHAR(500),
-    provider VARCHAR(20) NOT NULL,
-    provider_id VARCHAR(100),
-    role VARCHAR(20) NOT NULL DEFAULT 'USER',
-    created_at TIMESTAMP NOT NULL,
-    last_login_at TIMESTAMP,
-    version BIGINT DEFAULT 0
-);
+CREATE TABLE IF NOT EXISTS `users` (
+    `id`            VARCHAR(64)     NOT NULL,
+    `username`      VARCHAR(100)    NOT NULL,
+    `email`         VARCHAR(255)    DEFAULT NULL,
+    `nickname`      VARCHAR(100)    DEFAULT NULL,
+    `avatar`        VARCHAR(500)    DEFAULT NULL,
+    `provider`      VARCHAR(20)     NOT NULL,
+    `provider_id`   VARCHAR(100)    DEFAULT NULL,
+    `role`          VARCHAR(20)     NOT NULL DEFAULT 'USER',
+    `created_at`    DATETIME        NOT NULL,
+    `last_login_at` DATETIME        DEFAULT NULL,
+    `version`       BIGINT          DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_username` (`username`),
+    UNIQUE KEY `uk_email` (`email`),
+    KEY `idx_provider` (`provider`, `provider_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id);
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
--- Token 黑名单（用于登出时使 Token 失效）
-CREATE TABLE IF NOT EXISTS token_blacklist (
-    id SERIAL PRIMARY KEY,
-    token_hash VARCHAR(128) NOT NULL,
-    user_id VARCHAR(64) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_blacklist_token ON token_blacklist(token_hash);
-CREATE INDEX IF NOT EXISTS idx_blacklist_expires ON token_blacklist(expires_at);
+-- Token 黑名单表
+CREATE TABLE IF NOT EXISTS `token_blacklist` (
+    `id`            BIGINT          NOT NULL AUTO_INCREMENT,
+    `token_hash`    VARCHAR(128)    NOT NULL,
+    `user_id`       VARCHAR(64)     NOT NULL,
+    `expires_at`    DATETIME        NOT NULL,
+    `created_at`    DATETIME        DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_token_hash` (`token_hash`),
+    KEY `idx_expires_at` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

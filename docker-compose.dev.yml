@@ -89,6 +89,7 @@ services:
       - MYSQL_SERVICE_DB_NAME=nacos
       - MYSQL_SERVICE_USER=${NACOS_DB_USER:-nacos}
       - MYSQL_SERVICE_PASSWORD=${NACOS_DB_PASSWORD:-REDACTED_NACOS_PASSWORD}
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=10000&socketTimeout=30000&autoReconnect=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     volumes:
       - ./data/nacos/logs:/home/nacos/logs
     healthcheck:
@@ -104,10 +105,10 @@ services:
       - langchain4j-network
     restart: unless-stopped
 
-  # Nacos 数据库
+  # Nacos 数据库（同时承载 langchain4j 数据库）
   nacos-db:
     image: mysql:8.0
-    container_name: langchain4j-nacos-db
+    container_name: langchain4j-db
     ports:
       - "3307:3306"
     environment:
@@ -117,7 +118,9 @@ services:
       MYSQL_PASSWORD: ${NACOS_DB_PASSWORD:-REDACTED_NACOS_PASSWORD}
     volumes:
       - ./data/nacos-db:/var/lib/mysql
-      - ./infra/nacos/init:/docker-entrypoint-initdb.d:ro
+      - ./infra/mysql/conf/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./infra/nacos/init/01-nacos-init.sql:/docker-entrypoint-initdb.d/01-nacos-init.sql:ro
+      - ./infra/mysql/init/01-langchain4j-init.sql:/docker-entrypoint-initdb.d/02-langchain4j-init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-REDACTED_ROOT_PASSWORD}"]
       interval: 10s
@@ -179,7 +182,6 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-REDACTED_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3001
-      - GF_INSTALL_PLUGINS=redis-datasource
     volumes:
       - ./data/grafana:/var/lib/grafana
       - ./infra/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro

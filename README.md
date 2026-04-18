@@ -139,7 +139,7 @@ cd frontend && npm run dev
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| 前端应用 | http://localhost:3000 | Vue 3 前端 |
+| 前端应用 | http://localhost:5173 | Vue 3 前端 |
 | 后端 API | http://localhost:8082 | Spring Boot |
 | Grafana | http://localhost:3001 | 监控面板 |
 | Nacos | http://localhost:8848/nacos | 配置中心 |
