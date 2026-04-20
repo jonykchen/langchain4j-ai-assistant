@@ -57,7 +57,22 @@
       "Bash(ls:*)",
       "Bash(rm:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(timeout 120 mvn spring-boot:run -Dcheckstyle.skip=true)"
+      "Bash(timeout 120 mvn spring-boot:run -Dcheckstyle.skip=true)",
+      "Bash(group=DEFAULT_GROUP 2>/dev/null)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(powershell:*)",
+      "Bash(mvn spring-boot:run -Dspring-boot.run.arguments=\"--logging.level.com.alibaba.nacos=DEBUG\")",
+      "Bash(mvn spring-boot:run -Dcheckstyle.skip=true -Dpmd.skip=true)",
+      "Bash(mvn spring-boot:run -Dcheckstyle.skip=true -Dpmd.skip=true -Dspring-boot.run.arguments=\"--logging.level.com.alibaba.nacos.client=DEBUG\")",
+      "Bash(mvn spring-boot:run -Dcheckstyle.skip=true -Dpmd.skip=true -Dspring-boot.run.arguments=\"--logging.level.com.alibaba.nacos.client.config.impl=DEBUG\")",
+      "Bash(NACOS_NAMESPACE=dev mvn spring-boot:run -Dcheckstyle.skip=true -Dpmd.skip=true)",
+      "Bash(mvn spring-boot:run -Dcheckstyle.skip=true -Dpmd.skip=true -Dspring-boot.run.jvmArguments=\"-Dnacos.logging.default.config.enabled=false\")",
+      "Bash(NACOS_LOGGING_DEFAULT_CONFIG_ENABLED=false mvn spring-boot:run -Dcheckstyle.skip=true -Dpmd.skip=true)",
+      "Bash(lsof -ti:8082)",
+      "Bash(xargs kill:*)",
+      "Bash(mvn dependency:tree -Dincludes=\"com.alibaba.nacos:nacos-client\")",
+      "Bash(mvn dependency:tree -Dverbose -Dincludes=\"com.alibaba.nacos\")"
     ]
   }
 }
