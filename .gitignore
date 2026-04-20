@@ -94,7 +94,8 @@ Desktop.ini
 **/pmd.xml
 
 ### Docker 数据卷（本地开发） ###
-#data/
+data/
+backup/
 
 ### Claude Code ###
 #.claude/settings.local.json

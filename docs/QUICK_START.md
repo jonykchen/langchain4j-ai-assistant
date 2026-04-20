@@ -154,7 +154,7 @@ npm run dev
 
 ## 详细服务说明
 
-### PostgreSQL 数据库
+### PostgreSQL 数据库（应用业务数据）
 
 **连接信息：**
 ```
@@ -176,19 +176,45 @@ JDBC URL: jdbc:postgresql://localhost:5432/langchain4j
 docker exec -it langchain4j-postgres psql -U langchain4j -d langchain4j
 ```
 
+**扩展支持：**
+- `pgvector` - 向量存储和相似度检索
+- `uuid-ossp` - UUID 生成
+- `pg_trgm` - 全文搜索
+
 **数据表结构：**
 | 表名 | 说明 |
 |------|------|
-| `users` | 用户表 |
-| `conversations` | 会话表 |
-| `messages` | 消息表 |
-| `token_usage_logs` | Token 使用日志 |
-| `tool_execution_audits` | 工具执行审计 |
-| `documents` | RAG 文档表 |
-| `document_chunks` | RAG 文档分块表 |
-| `roles` | 角色表 |
-| `user_roles` | 用户角色关联表 |
-| `api_keys` | API Key 表 |
+| `app.users` | 用户表 |
+| `app.conversations` | 会话表 |
+| `app.messages` | 消息表 |
+| `app.token_usage_logs` | Token 使用日志 |
+| `app.tool_execution_audits` | 工具执行审计 |
+| `app.documents` | RAG 文档表 |
+| `app.document_chunks` | RAG 文档分块表（含向量） |
+| `app.roles` | 角色表 |
+| `app.user_roles` | 用户角色关联表 |
+| `app.api_keys` | API Key 表 |
+
+---
+
+### MySQL 数据库（仅 Nacos 元数据）
+
+> **注意**：MySQL 仅存储 Nacos 配置中心的元数据，应用业务数据使用 PostgreSQL。
+
+**连接信息：**
+```
+Host: localhost
+Port: 3307
+Database: nacos
+Username: nacos
+Password: REDACTED_NACOS_PASSWORD
+JDBC URL: jdbc:mysql://localhost:3307/nacos
+```
+
+**使用 Adminer 管理：**
+1. 访问 http://localhost:8080
+2. 选择 "MySQL" 作为数据库类型
+3. 输入连接信息后登录
 
 ---
 
@@ -318,10 +344,13 @@ jvm_memory_used_bytes{area="heap"}
 **访问地址：** http://localhost:8080
 
 **支持的数据库：**
-- PostgreSQL（主数据库）
-- MySQL（Nacos 数据库，端口 3307）
 
-**连接 PostgreSQL：**
+| 数据库 | 类型 | 用途 | 连接信息 |
+|--------|------|------|----------|
+| PostgreSQL | 主数据库 | 业务数据 | Server: `postgres`, User: `langchain4j`, Password: `REDACTED_DB_PASSWORD` |
+| MySQL | 辅助数据库 | Nacos 元数据 | Server: `nacos-db`, User: `nacos`, Password: `REDACTED_NACOS_PASSWORD` |
+
+**连接 PostgreSQL（业务数据）：**
 ```
 System: PostgreSQL
 Server: postgres
@@ -330,7 +359,7 @@ Password: REDACTED_DB_PASSWORD
 Database: langchain4j
 ```
 
-**连接 Nacos MySQL：**
+**连接 MySQL（Nacos 元数据）：**
 ```
 System: MySQL
 Server: nacos-db
@@ -616,24 +645,6 @@ docker compose -f docker-compose.dev.yml ps postgres
 
 Nacos 依赖 MySQL，需要等待 MySQL 启动完成后才会开始初始化。通常需要 30-60 秒。
 
-### Q: 如何切换到 PostgreSQL？
-
-修改 `application-dev.properties`：
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/langchain4j
-spring.datasource.username=langchain4j
-spring.datasource.password=REDACTED_DB_PASSWORD
-spring.datasource.driver-class-name=org.postgresql.Driver
-```
-
-添加依赖（`pom.xml`）：
-```xml
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-</dependency>
-```
-
 ### Q: 如何导入已有的数据？
 
 数据目录 `data/` 包含所有持久化数据，复制整个目录到新项目即可恢复数据。
@@ -661,24 +672,25 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 
 ### 端口使用总览
 
-| 端口 | 服务 | 协议 |
-|------|------|------|
-| 5173 | 前端 | HTTP |
-| 3001 | Grafana | HTTP |
-| 5432 | PostgreSQL | TCP |
-| 6379 | Redis | TCP |
-| 8080 | Adminer | HTTP |
-| 8081 | Redis Commander | HTTP |
-| 8082 | 后端 API | HTTP |
-| 8848 | Nacos | HTTP |
-| 9090 | Prometheus | HTTP |
-| 9411 | Zipkin | HTTP |
-| 9121 | Redis Exporter | HTTP |
-| 9187 | Postgres Exporter | HTTP |
-| 11434 | Ollama | HTTP |
-| 15672 | RabbitMQ Management | HTTP |
-| 19530 | Milvus | gRPC |
-| 6333 | Qdrant | HTTP |
+| 端口 | 服务 | 协议 | 说明 |
+|------|------|------|------|
+| 5173 | 前端 | HTTP | Vue 3 开发服务器 |
+| 3001 | Grafana | HTTP | 监控面板 |
+| 3307 | MySQL | TCP | Nacos 元数据库 |
+| 5432 | PostgreSQL | TCP | 应用业务数据库 |
+| 6379 | Redis | TCP | 缓存/限流 |
+| 8080 | Adminer | HTTP | 数据库管理 |
+| 8081 | Redis Commander | HTTP | Redis 管理 |
+| 8082 | 后端 API | HTTP | Spring Boot 应用 |
+| 8848 | Nacos | HTTP | 配置中心 |
+| 9090 | Prometheus | HTTP | 指标收集 |
+| 9121 | Redis Exporter | HTTP | Redis 指标导出 |
+| 9187 | Postgres Exporter | HTTP | PostgreSQL 指标导出 |
+| 9411 | Zipkin | HTTP | 链路追踪 |
+| 11434 | Ollama | HTTP | 本地大模型 |
+| 15672 | RabbitMQ Management | HTTP | 消息队列管理 |
+| 19530 | Milvus | gRPC | 分布式向量库 |
+| 6333 | Qdrant | HTTP | 向量数据库 |
 
 ---
 
@@ -689,7 +701,7 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 ```
 langchain4j-demo/
 ├── data/                      # Docker 数据卷（本地持久化）
-│   ├── postgres/              # PostgreSQL 数据
+│   ├── postgres/              # PostgreSQL 数据（业务数据）
 │   ├── redis/                 # Redis 数据
 │   ├── nacos/                 # Nacos 日志
 │   ├── nacos-db/              # Nacos MySQL 数据
@@ -701,11 +713,18 @@ langchain4j-demo/
 ├── frontend/                  # 前端项目
 ├── infra/                     # 基础设施配置
 │   ├── postgres/init/         # PostgreSQL 初始化脚本
-│   ├── nacos/init/            # Nacos 初始化脚本
+│   ├── nacos/init/            # Nacos 初始化 SQL（含预置配置）
+│   ├── nacos/config/          # Nacos 配置文件模板
+│   ├── mysql/conf/            # MySQL 配置（仅 Nacos 使用）
 │   ├── prometheus/            # Prometheus 配置
 │   └── grafana/               # Grafana 配置
 ├── src/main/java/             # Java 源代码
+├── src/main/resources/        # 配置文件
+│   ├── application.properties # 本地配置（仅端口）
+│   ├── bootstrap.yml          # Nacos 连接配置
+│   └── schema.sql             # 数据库 Schema（Spring Boot 自动执行）
 ├── docker-compose.dev.yml     # 开发环境编排
+├── docker-compose.yml         # 生产环境编排
 ├── dev.sh                     # 快速启动脚本
 ├── Makefile                   # 便捷命令
 ├── .env.example               # 环境变量模板
@@ -720,4 +739,4 @@ langchain4j-demo/
 
 ---
 
-**最后更新：** 2024-04
+**最后更新：** 2026-04

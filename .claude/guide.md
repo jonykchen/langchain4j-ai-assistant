@@ -2,6 +2,41 @@
 
 本项目指南，帮助高效使用 Claude Code 进行开发。
 
+## 工程规范
+
+### 配置优先级
+
+项目改动时，配置存放遵循以下优先级：
+
+1. **Nacos 配置中心**（首选）
+   - 业务配置：数据库、模型、安全、JWT、OAuth、限流阈值等
+   - 需要动态调整的配置
+   - 跨环境差异配置
+
+2. **项目本地配置文件**（兜底）
+   - 实例特定配置：server.port
+   - 环境变量引用说明
+   - 敏感配置通过 `${ENV_VAR:default}` 格式注入
+
+**配置文件职责划分：**
+| 配置位置 | 内容 |
+|----------|------|
+| `bootstrap.yml` | Nacos 连接配置 |
+| `application.properties` | 仅 server.port 和环境变量说明 |
+| `langchain4j-chat.properties` | 公共业务配置 |
+| `langchain4j-chat-{profile}.properties` | 环境差异配置 |
+| `common.properties` | 跨应用共享配置 |
+
+### 文档同步更新
+
+任何架构/配置/依赖变更，必须同步更新以下文档：
+
+| 文档 | 更新场景 |
+|------|----------|
+| `README.md` | 数据架构、技术栈、项目结构变更 |
+| `docs/QUICK_START.md` | 服务说明、连接信息、端口表变更 |
+| `CLAUDE.md` | 配置说明、技术栈变更 |
+
 ## 快速开始
 
 ### 启动服务

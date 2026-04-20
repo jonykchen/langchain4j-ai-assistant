@@ -22,9 +22,9 @@
 services:
   # ==================== 基础设施 ====================
 
-  # PostgreSQL - 主数据库
+  # PostgreSQL - 主数据库（带 pgvector 扩展）
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: langchain4j-postgres
     ports:
       - "5432:5432"
@@ -105,10 +105,10 @@ services:
       - langchain4j-network
     restart: unless-stopped
 
-  # Nacos 数据库（同时承载 langchain4j 数据库）
+  # Nacos 数据库（仅存储 Nacos 元数据，应用业务数据使用 PostgreSQL）
   nacos-db:
     image: mysql:8.0
-    container_name: langchain4j-db
+    container_name: langchain4j-nacos-db
     ports:
       - "3307:3306"
     environment:
@@ -120,7 +120,6 @@ services:
       - ./data/nacos-db:/var/lib/mysql
       - ./infra/mysql/conf/my.cnf:/etc/mysql/conf.d/my.cnf:ro
       - ./infra/nacos/init/01-nacos-init.sql:/docker-entrypoint-initdb.d/01-nacos-init.sql:ro
-      - ./infra/mysql/init/01-langchain4j-init.sql:/docker-entrypoint-initdb.d/02-langchain4j-init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-REDACTED_ROOT_PASSWORD}"]
       interval: 10s
