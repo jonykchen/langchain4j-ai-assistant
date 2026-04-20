@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { adminApi, type DashboardMetrics, type ModelHealthInfo, type BudgetInfo, type TrendData, type ModelDistribution } from '@/api/admin'
+import { adminApi, type DashboardMetrics } from '@/api/admin'
 
 const loading = ref(true)
 const metrics = ref<DashboardMetrics>({
@@ -20,7 +20,8 @@ const metrics = ref<DashboardMetrics>({
   }
 })
 
-const formatNumber = (num: number) => {
+const formatNumber = (num: number | undefined | null) => {
+  if (num === undefined || num === null) return '0'
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
   return num.toString()
@@ -98,7 +99,7 @@ onMounted(async () => {
             <el-icon :size="32"><Money /></el-icon>
           </div>
           <div class="metric-content">
-            <div class="metric-value">${{ metrics.todayCost.toFixed(2) }}</div>
+            <div class="metric-value">${{ (metrics.todayCost ?? 0).toFixed(2) }}</div>
             <div class="metric-label">今日费用</div>
           </div>
         </el-card>
@@ -145,22 +146,22 @@ onMounted(async () => {
             <div class="budget-item">
               <span>日预算</span>
               <el-progress
-                :percentage="Math.min(metrics.budget.dailyPercent, 100)"
-                :color="getProgressColor(metrics.budget.dailyPercent)"
+                :percentage="Math.min(metrics.budget.dailyPercent ?? 0, 100)"
+                :color="getProgressColor(metrics.budget.dailyPercent ?? 0)"
               >
                 <template #default>
-                  ${{ metrics.budget.dailyUsed.toFixed(2) }} / ${{ metrics.budget.dailyTotal }}
+                  ${{ (metrics.budget.dailyUsed ?? 0).toFixed(2) }} / ${{ metrics.budget.dailyTotal ?? 0 }}
                 </template>
               </el-progress>
             </div>
             <div class="budget-item">
               <span>月预算</span>
               <el-progress
-                :percentage="Math.min(metrics.budget.monthlyPercent, 100)"
-                :color="getProgressColor(metrics.budget.monthlyPercent)"
+                :percentage="Math.min(metrics.budget.monthlyPercent ?? 0, 100)"
+                :color="getProgressColor(metrics.budget.monthlyPercent ?? 0)"
               >
                 <template #default>
-                  ${{ metrics.budget.monthlyUsed.toFixed(2) }} / ${{ metrics.budget.monthlyTotal }}
+                  ${{ (metrics.budget.monthlyUsed ?? 0).toFixed(2) }} / ${{ metrics.budget.monthlyTotal ?? 0 }}
                 </template>
               </el-progress>
             </div>

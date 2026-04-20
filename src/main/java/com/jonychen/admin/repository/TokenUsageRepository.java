@@ -96,4 +96,9 @@ public interface TokenUsageRepository extends JpaRepository<TokenUsageLog, Long>
      * 按会话统计使用量
      */
     List<TokenUsageLog> findBySessionIdOrderByCreatedAtDesc(String sessionId);
+
+    /**
+     * 按 Trace ID 查询使用量
+     */
+    List<TokenUsageLog> findByTraceIdOrderByCreatedAtDesc(String traceId);
 }

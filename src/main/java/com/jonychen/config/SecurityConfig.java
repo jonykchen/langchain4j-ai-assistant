@@ -91,7 +91,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // 管理员接口
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // 其他接口需要认证
                         .anyRequest().authenticated()
