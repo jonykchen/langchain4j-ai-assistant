@@ -72,7 +72,12 @@
       "Bash(lsof -ti:8082)",
       "Bash(xargs kill:*)",
       "Bash(mvn dependency:tree -Dincludes=\"com.alibaba.nacos:nacos-client\")",
-      "Bash(mvn dependency:tree -Dverbose -Dincludes=\"com.alibaba.nacos\")"
+      "Bash(mvn dependency:tree -Dverbose -Dincludes=\"com.alibaba.nacos\")",
+      "Bash(dir /s /b src\\\\main\\\\java\\\\com\\\\jonychen\\\\*.java)",
+      "Bash(mvn dependency:sources -q)",
+      "Read(//c/Users/30240/.m2/repository/dev/langchain4j/**)",
+      "Bash(jar tf:*)",
+      "Bash(javap:*)"
     ]
   }
 }

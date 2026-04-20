@@ -52,6 +52,30 @@ const routes: RouteRecordRaw[] = [
         name: 'AdminCost',
         component: () => import('@/views/admin/CostView.vue'),
         meta: { title: '成本监控' }
+      },
+      {
+        path: 'test',
+        name: 'AdminTest',
+        component: () => import('@/views/admin/TestDashboardView.vue'),
+        meta: { title: '测试管理' }
+      },
+      {
+        path: 'traces',
+        name: 'AdminTraces',
+        component: () => import('@/views/admin/AgentTraceView.vue'),
+        meta: { title: 'Agent 追踪' }
+      },
+      {
+        path: 'prompts',
+        name: 'AdminPrompts',
+        component: () => import('@/views/admin/PromptManagementView.vue'),
+        meta: { title: 'Prompt 管理' }
+      },
+      {
+        path: 'evaluation',
+        name: 'AdminEvaluation',
+        component: () => import('@/views/admin/EvaluationView.vue'),
+        meta: { title: 'Agent 评测' }
       }
     ]
   }

@@ -22,7 +22,10 @@ const providerLabels: Record<string, string> = {
 }
 
 const formatDate = (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '从未登录'
-const formatNumber = (num: number) => num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num.toString()
+const formatNumber = (num: number | undefined | null) => {
+  if (num === undefined || num === null) return '0'
+  return num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num.toString()
+}
 
 const loadUsers = async () => {
   loading.value = true

@@ -10,6 +10,7 @@ mvn spring-boot:run          # 启动后端服务，默认端口 8082
 mvn clean package            # 构建项目
 mvn test                     # 运行所有测试
 mvn test -Dtest=ClassName    # 运行单个测试类
+mvn gatling:test             # 运行性能测试（Gatling）
 ```
 
 ### 前端 (Vue 3/Vite)
@@ -19,6 +20,20 @@ npm install                  # 安装依赖
 npm run dev                  # 启动开发服务器，默认端口 5173
 npm run build                # 生产环境构建
 npm run preview              # 预览生产构建
+npm run test:e2e             # 运行 E2E 测试（Playwright）
+npm run test:e2e:ui          # E2E 测试 UI 模式
+npm run test:e2e:debug       # E2E 测试调试模式
+```
+
+### 测试执行脚本
+```bash
+# Windows
+scripts\run-tests.bat all          # 运行全部测试
+scripts\run-tests.bat unit         # 仅单元测试
+scripts\run-tests.bat integration  # 仅集成测试
+scripts\run-tests.bat e2e          # 仅 E2E 测试
+scripts\run-tests.bat performance  # 仅性能测试
+scripts\run-tests.bat ai           # 仅 AI 模型测试
 ```
 
 ### Docker 部署
@@ -62,6 +77,36 @@ src/main/java/com/jonychen/
 │   └── LoadBalancedStreamingChatModel.java # 负载均衡流式模型
 ├── service/
 │   └── AiService.java           # 服务层，封装 ChatAssistant
+├── admin/
+│   ├── controller/AdminController.java      # 管理员 REST API
+│   ├── controller/TestManagementController.java # 测试管理 REST API
+│   ├── service/AdminStatisticsService.java  # 管理统计服务
+│   ├── service/UserAdminService.java        # 用户管理服务
+│   ├── service/TokenUsageService.java       # Token 用量服务
+│   └── service/TestExecutionService.java    # 测试执行服务
+├── ai/
+│   ├── model/AIModelTestCase.java           # AI 测试用例定义
+│   ├── model/AIModelTestResult.java         # AI 测试结果
+│   └── evaluator/ResponseQualityEvaluator.java # 响应质量评估器
+├── observability/                           # Agent 可观测性系统
+│   ├── trace/                               # 执行追踪
+│   │   ├── AgentTrace.java                  # 追踪实体
+│   │   ├── AgentTraceSpan.java              # Span 实体
+│   │   ├── AgentTraceService.java           # 追踪服务
+│   │   ├── AgentTraceAspect.java            # 追踪切面（AOP）
+│   │   └── TraceContext.java                # ThreadLocal 追踪上下文
+│   ├── prompt/                              # Prompt 管理
+│   │   ├── PromptTemplateEntity.java        # Prompt 模板实体
+│   │   └── PromptVersionService.java        # 版本控制服务
+│   ├── evaluation/                          # 评测框架
+│   │   ├── EvaluationMetrics.java           # 评测指标
+│   │   ├── AgentEvaluator.java              # 评测器接口
+│   │   ├── EvaluationService.java           # 评测服务
+│   │   └── impl/                            # 评测器实现
+│   └── state/                               # 状态持久化
+│       ├── AgentStateSnapshot.java          # 状态快照实体
+│       ├── AgentStateService.java           # 状态持久化服务
+│       └── ResumableReActAgent.java         # 可恢复 Agent
 ├── ratelimit/
 │   ├── DistributedRateLimiter.java      # Redis 分布式限流器
 │   └── DistributedRateLimitAspect.java  # 限流切面
@@ -92,7 +137,9 @@ src/main/java/com/jonychen/
 ### 前端结构
 ```
 frontend/src/
-├── api/chat.ts                  # API 调用：sendMessage(), streamMessage()
+├── api/
+│   ├── chat.ts                  # API 调用：sendMessage(), streamMessage()
+│   └── admin.ts                 # 管理员 API + 测试管理 API
 ├── stores/chat.ts               # Pinia 状态管理，支持 localStorage 持久化
 ├── types/index.ts               # TypeScript 类型定义
 ├── main.ts                      # 入口文件，注册 Element Plus 和图标
@@ -102,7 +149,28 @@ frontend/src/
 │   ├── MessageItem.vue          # 消息渲染组件（核心组件）
 │   ├── MessageList.vue          # 消息列表容器，自动滚动到底部
 │   └── Sidebar.vue              # 侧边栏，显示对话历史列表
-└── views/ChatView.vue           # 主页面布局
+├── views/
+│   ├── ChatView.vue             # 主页面布局
+│   ├── LoginView.vue            # 登录页面
+│   └── admin/
+│       ├── AdminLayout.vue      # 管理后台布局（含测试管理菜单）
+│       ├── DashboardView.vue    # 仪表盘
+│       ├── UsersView.vue        # 用户管理
+│       ├── CostView.vue         # 成本监控
+│       ├── TestDashboardView.vue  # 测试管理仪表盘
+│       ├── E2ETestView.vue        # E2E 测试管理
+│       ├── PerformanceTestView.vue # 性能测试管理
+│       ├── AIModelTestView.vue    # AI 模型测试管理
+│       ├── AgentTraceView.vue     # Agent 追踪管理
+│       ├── PromptManagementView.vue # Prompt 版本管理
+│       └── EvaluationView.vue     # Agent 评测管理
+└── tests/e2e/                   # Playwright E2E 测试
+    ├── playwright.config.ts     # Playwright 配置
+    ├── auth.setup.ts            # 认证设置
+    ├── fixtures/test-fixtures.ts # 测试夹具
+    ├── pages/                   # 页面对象模型
+    ├── mocks/                   # API Mock
+    └── specs/                   # 测试用例
 ```
 
 **MessageItem.vue 核心功能：**
@@ -113,6 +181,8 @@ frontend/src/
 
 ## API 接口
 
+### 核心接口
+
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | /api/chat | 同步聊天，返回 `ApiResponse<ChatResponse>` |
@@ -120,6 +190,51 @@ frontend/src/
 | GET | /api/health/models | 获取所有模型健康状态 |
 | GET | /api/health/circuit-breakers | 获取所有模型熔断器状态 |
 | GET | /api/health/summary | 获取综合健康状态 |
+
+### 测试管理接口（需 ADMIN 角色）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/admin/test/e2e/run | 运行 E2E 测试 |
+| GET | /api/admin/test/e2e/status | 获取 E2E 测试状态 |
+| GET | /api/admin/test/e2e/report | 获取 E2E 测试报告路径 |
+| POST | /api/admin/test/performance/run | 运行性能测试 |
+| GET | /api/admin/test/performance/results | 获取性能测试结果 |
+| GET | /api/admin/test/performance/simulations | 获取可用模拟场景 |
+| POST | /api/admin/test/ai/run | 运行 AI 模型测试 |
+| GET | /api/admin/test/ai/results | 获取 AI 模型测试结果 |
+| GET | /api/admin/test/ai/categories | 获取 AI 测试分类 |
+| GET | /api/admin/test/job/{jobId}/status | 获取测试任务状态 |
+| DELETE | /api/admin/test/job/{jobId} | 取消测试任务 |
+| GET | /api/admin/test/stats/summary | 获取测试统计摘要 |
+
+### 可观测性接口（需 ADMIN 角色）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/admin/observability/traces | 获取 Agent 追踪列表 |
+| GET | /api/admin/observability/traces/{traceId} | 获取追踪详情 |
+| GET | /api/admin/observability/traces/{traceId}/spans | 获取追踪 Span 列表 |
+| GET | /api/admin/observability/traces/active | 获取活跃追踪 |
+| GET | /api/admin/observability/traces/statistics | 获取追踪统计 |
+| GET | /api/admin/observability/prompts | 获取 Prompt 模板列表 |
+| GET | /api/admin/observability/prompts/names | 获取模板名称列表 |
+| GET | /api/admin/observability/prompts/{name}/versions | 获取版本历史 |
+| POST | /api/admin/observability/prompts | 创建 Prompt 模板 |
+| POST | /api/admin/observability/prompts/{name}/versions | 创建新版本 |
+| POST | /api/admin/observability/prompts/{name}/versions/{version}/activate | 激活版本 |
+| POST | /api/admin/observability/prompts/{name}/versions/{version}/promote | 推送到生产 |
+| POST | /api/admin/observability/prompts/{name}/rollback/{version} | 回滚版本 |
+| POST | /api/admin/observability/prompts/{name}/ab-test | 配置 A/B 测试 |
+| POST | /api/admin/observability/prompts/{name}/ab-test/stop | 停止 A/B 测试 |
+| POST | /api/admin/observability/evaluation/evaluate/{traceId} | 评测追踪 |
+| POST | /api/admin/observability/evaluation/batch | 批量评测 |
+| POST | /api/admin/observability/evaluation/report | 生成评测报告 |
+| GET | /api/admin/observability/evaluation/evaluators | 获取评测器列表 |
+| GET | /api/admin/observability/snapshots/session/{sessionId} | 获取会话快照 |
+| GET | /api/admin/observability/snapshots/session/{sessionId}/resumable | 获取可恢复快照 |
+| GET | /api/admin/observability/snapshots/statistics | 获取快照统计 |
+| POST | /api/admin/observability/snapshots/cleanup | 清理过期快照 |
 
 **统一响应格式：**
 ```json
@@ -142,9 +257,19 @@ frontend/src/
 
 | 数据库 | 用途 | 端口 | 初始化脚本 |
 |--------|------|------|-----------|
-| PostgreSQL | 应用业务数据（支持 pgvector 向量检索） | 5432 | `infra/postgres/init/01-init.sql` |
+| PostgreSQL | 应用业务数据（支持 pgvector 向量检索） | 5432 | `infra/postgres/init/01-init.sql`, `02-agent-observability.sql` |
 | MySQL | 仅 Nacos 配置中心元数据 | 3307 | `infra/nacos/init/01-nacos-init.sql` |
 | Redis | 缓存/限流/会话 | 6379 | — |
+
+#### Agent 可观测性数据表
+
+| 表名 | 说明 |
+|------|------|
+| `agent_traces` | Agent 执行追踪记录 |
+| `agent_trace_spans` | Agent 执行步骤详情 |
+| `prompt_templates` | Prompt 模板版本管理 |
+| `agent_state_snapshots` | Agent 状态快照（断点续传） |
+| `evaluation_results` | Agent 评测结果 |
 
 ### 配置文件结构
 
@@ -248,10 +373,16 @@ model.providers.dashscope.enabled=true    # 是否启用
 | 配置中心 | Nacos |
 | 监控 | Prometheus + Grafana, Micrometer |
 | 链路追踪 | OpenTelemetry + Zipkin |
+| Agent 可观测性 | 执行追踪、Prompt 管理、评测框架、状态持久化 |
 | 容错 | Resilience4j（熔断、限流、重试） |
 | 分布式限流 | Redis + Lua 脚本（滑动窗口、令牌桶） |
 | 流式传输 | WebFlux + SSE |
 | 部署 | Docker, Docker Compose, Nginx |
+| E2E 测试 | Playwright 1.40+, @axe-core/playwright |
+| 性能测试 | Gatling 3.10+, Scala 2.13 |
+| 契约测试 | Spring Cloud Contract 4.0+ |
+| 测试容器 | Testcontainers 1.19+ |
+| 代码覆盖率 | JaCoCo 0.8.11 |
 
 ## 关键技术点
 
@@ -305,6 +436,43 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
     }
 }
+```
+
+#### 6. Agent 执行追踪
+AOP 自动追踪 Agent 执行过程：
+```java
+@Around("execution(* com.jonychen.planning.agent.ReActAgent.execute(..))")
+public Object traceReActExecution(ProceedingJoinPoint joinPoint) throws Throwable {
+    AgentTrace trace = traceService.startTrace(sessionId, userId, "REACT", question);
+    try {
+        Object result = joinPoint.proceed();
+        traceService.endTraceSuccess(trace.getTraceId(), output, tokens);
+        return result;
+    } catch (Throwable e) {
+        traceService.endTraceFailed(trace.getTraceId(), e.getMessage());
+        throw e;
+    }
+}
+```
+
+#### 7. Prompt 版本管理
+支持版本控制、A/B 测试、回滚：
+```java
+// 创建新版本
+promptService.createVersion(name, newContent, description);
+// 激活版本
+promptService.activateVersion(name, version);
+// 配置 A/B 测试
+promptService.configureABTest(name, config);
+```
+
+#### 8. Agent 状态持久化
+支持断点续传，执行中断后可恢复：
+```java
+// 保存检查点
+stateService.saveCheckpoint(traceId, sessionId, "REACT", state, step, total);
+// 从快照恢复
+AgentResumeContext context = stateService.resumeFromSnapshot(snapshotId);
 ```
 
 ### 前端技术点
@@ -410,6 +578,27 @@ A: 检查后端连接是否超时，确保 `Flux` 正确完成并释放资源。
 ### Q: 对话记忆丢失？
 A: 检查 `MessageWindowChatMemory` 配置，确保消息窗口大小足够（默认 10 条）。
 
+### Q: E2E 测试无法启动？
+A: 确保已安装 Playwright：`cd frontend && npx playwright install`。CI 环境需 `npx playwright install --with-deps`。
+
+### Q: 性能测试报错找不到 Scala？
+A: 项目已配置 `scala-maven-plugin`，直接运行 `mvn gatling:test` 即可。
+
+### Q: AI 模型测试超时？
+A: 检查 AI API Key 是否正确，`application-ai-test.properties` 中限流配置是否宽松。
+
+### Q: 测试管理页面打不开？
+A: 需要 ADMIN 角色登录，检查 `/api/admin/test/**` 接口是否在 SecurityConfig 中配置。
+
+### Q: Agent 追踪数据看不到？
+A: 检查 `agent_traces` 表是否有数据，确认 Agent 执行时 AgentTraceAspect 切面生效。检查日志中是否有 "Started agent trace" 输出。
+
+### Q: Prompt 模板版本管理不生效？
+A: 确认 `prompt_templates` 表已创建，检查模板的 `active` 字段是否正确设置。A/B 测试需要两个版本都启用 `abTestEnabled`。
+
+### Q: Agent 状态无法恢复？
+A: 检查快照是否过期（默认 24 小时），确认 `resumable` 标志为 true。使用 `ResumableReActAgent` 替代直接调用 `ReActAgent`。
+
 ## 扩展指南
 
 项目提供更详细的指南文件，帮助高效开发：
@@ -419,6 +608,37 @@ A: 检查 `MessageWindowChatMemory` 配置，确保消息窗口大小足够（�
 | [.claude/guide.md](./.claude/guide.md) | Claude Code 使用方法、协作最佳实践 |
 | [.claude/patterns.md](./.claude/patterns.md) | 项目特有代码模式和模板 |
 | [.claude/debugging.md](./.claude/debugging.md) | 常见问题诊断与解决方案 |
+| [docs/测试体系技术实现方案.md](./docs/测试体系技术实现方案.md) | 测试体系完整技术方案 |
+| [docs/Agent可观测性技术实现方案.md](./docs/Agent可观测性技术实现方案.md) | Agent 可观测性系统技术方案 |
+
+## 测试体系
+
+项目已建立完整的测试体系，覆盖从单元测试到 AI 模型测试的全链路。
+
+### 测试类型与目录
+
+| 测试类型 | 目录 | 运行命令 |
+|---------|------|---------|
+| 单元测试 | `src/test/java/` | `mvn test -Dtest="!*IntegrationTest,!*ContractTest,!*AIModelTest*"` |
+| 集成测试 | `src/test/java/` | `mvn test -Dtest="*IntegrationTest"` |
+| 契约测试 | `src/test/resources/contracts/` | `mvn test -Dtest="*ContractTest*"` |
+| AI 模型测试 | `src/test/java/com/jonychen/ai/runner/` | `mvn test -Dtest="*AIModelTest*"` |
+| 性能测试 | `src/test/scala/gatling/simulations/` | `mvn gatling:test` |
+| E2E 测试 | `frontend/tests/e2e/` | `cd frontend && npx playwright test` |
+
+### 测试配置文件
+
+| 配置文件 | 说明 |
+|---------|------|
+| `src/test/resources/application-test.properties` | 单元/集成测试配置 |
+| `src/test/resources/application-contract-test.properties` | 契约测试配置 |
+| `src/test/resources/application-ai-test.properties` | AI 模型测试配置 |
+| `src/test/resources/gatling.conf` | Gatling 性能测试配置 |
+| `frontend/tests/e2e/playwright.config.ts` | Playwright E2E 测试配置 |
+
+### 代码覆盖率
+
+JaCoCo 已配置，运行 `mvn test` 后在 `target/site/jacoco/` 查看覆盖率报告。
 
 ## 学习路径
 
