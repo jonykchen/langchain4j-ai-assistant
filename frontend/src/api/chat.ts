@@ -26,11 +26,15 @@ const API_BASE = '/api/chat'
  * - 长回复可能导致超时
  */
 export async function sendMessage(message: string): Promise<string> {
+  // 从 localStorage 获取 Token
+  const token = localStorage.getItem('access_token')
+
   // fetch API 发送 POST 请求
   const response = await fetch(API_BASE, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     // 将消息封装为请求体
     body: JSON.stringify({ message } as ChatRequest),
@@ -82,11 +86,15 @@ export async function sendMessage(message: string): Promise<string> {
  * data: [DONE]
  */
 export async function* streamMessage(message: string): AsyncGenerator<string> {
+  // 从 localStorage 获取 Token
+  const token = localStorage.getItem('access_token')
+
   // 发送 POST 请求到流式接口
   const response = await fetch(`${API_BASE}/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ message } as ChatRequest),
   })

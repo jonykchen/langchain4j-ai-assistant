@@ -82,6 +82,12 @@ public class TokenUsageLog {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    /**
+     * 关联的 Trace ID
+     */
+    @Column(name = "trace_id", length = 36)
+    private String traceId;
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) {

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { adminApi, type CostStatistics, type UserCostRanking, type BudgetInfo } from '@/api/admin'
-import { ElMessage } from 'element-plus'
 
 const budget = ref<BudgetInfo>({
   dailyUsed: 0,
@@ -15,7 +14,8 @@ const budget = ref<BudgetInfo>({
 const modelCosts = ref<CostStatistics[]>([])
 const topUsers = ref<UserCostRanking[]>([])
 
-const formatNumber = (num: number) => {
+const formatNumber = (num: number | undefined | null) => {
+  if (num === undefined || num === null) return '0'
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
   return num.toString()
