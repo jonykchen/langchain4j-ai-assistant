@@ -14,7 +14,7 @@
 
 ### Agent 工程
 - **工具调用** - Function Calling + 审计日志
-- **RAG 检索** - 文档分块 + 向量检索
+- **RAG 检索** - 文档分块 + 向量检索（pgvector）
 - **Planning Agent** - ReAct / Plan-Execute 模式
 
 ### 工程化
@@ -24,6 +24,39 @@
 - **配置中心** - Nacos 动态配置
 - **一键启动** - Docker Compose 编排
 
+## 数据架构
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         数据存储分层架构                              │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌───────────────────────────────┐  ┌───────────────────────────┐  │
+│  │  MySQL (仅 Nacos 元数据)       │  │  PostgreSQL (应用业务)    │  │
+│  │  端口: 3307 (dev)              │  │  端口: 5432               │  │
+│  │  ┌─────────────────────────┐   │  │  ┌─────────────────────┐  │  │
+│  │  │ nacos.config_info       │   │  │  │ users               │  │  │
+│  │  │ nacos.tenant_info       │   │  │  │ token_usage_logs   │  │  │
+│  │  │ nacos.users             │   │  │  │ tool_execution_... │  │  │
+│  │  └─────────────────────────┘   │  │  │ documents          │  │  │
+│  └───────────────────────────────┘  │  │  │ document_chunks    │  │  │
+│                                      │  │  │ (pgvector 1536维)  │  │  │
+│  ┌───────────────────────────────┐  │  │  │ conversations      │  │  │
+│  │  Redis (热数据/缓存)           │  │  │  │ messages           │  │  │
+│  │  端口: 6379                    │  │  │  │ api_keys           │  │  │
+│  │  会话 │ 限流 │ Token 缓存      │  │  └─────────────────────┘  │  │
+│  └───────────────────────────────┘  └───────────────────────────┘  │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  Nacos 配置中心 (端口: 8848)                                    │  │
+│  │  langchain4j-chat.properties (公共)                            │  │
+│  │  langchain4j-chat-dev.properties / langchain4j-chat-prod.properties │
+│  │  common.properties (跨应用共享)                                  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
 ## 技术栈
 
 | 层级 | 技术 |
@@ -31,7 +64,9 @@
 | 后端 | Java 17, Spring Boot 3.4, LangChain4j 1.13, WebFlux |
 | 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript |
 | AI 模型 | DashScope, 智谱, DeepSeek, 硅基流动, Ollama |
-| 数据库 | PostgreSQL, Redis |
+| 主数据库 | PostgreSQL 16 + pgvector |
+| 配置数据库 | MySQL 8.0 (仅 Nacos) |
+| 缓存/限流 | Redis 7 |
 | 可观测性 | Prometheus, Grafana, Zipkin |
 | 配置中心 | Nacos |
 | 容错 | Resilience4j（熔断、限流、重试） |
@@ -55,12 +90,15 @@ langchain4j-demo/
 ├── docs/                          # 文档
 │   └── QUICK_START.md             # 快速开始指南
 ├── infra/                         # 基础设施配置
-│   ├── postgres/init/             # 数据库初始化
-│   ├── nacos/init/                # Nacos 初始化
+│   ├── postgres/init/             # PostgreSQL 初始化（业务数据）
+│   ├── nacos/init/                # Nacos 初始化（配置预置）
+│   ├── nacos/config/              # Nacos 配置文件模板
+│   ├── mysql/conf/                # MySQL 配置（仅 Nacos）
 │   ├── prometheus/                # Prometheus 配置
 │   └── grafana/                   # Grafana 配置
 ├── data/                          # 本地数据（gitignore）
 ├── docker-compose.dev.yml         # 开发环境编排
+├── docker-compose.yml             # 生产环境编排
 ├── dev.sh                         # 快速启动脚本
 ├── Makefile                       # 便捷命令
 ├── .env.example                   # 环境变量模板
@@ -105,24 +143,8 @@ New-Item -ItemType Directory -Force -Path data/postgres,data/redis,data/nacos,da
 # 启动基础设施
 docker compose -f docker-compose.dev.yml up -d
 
-# 启动基础服务 + 可选服务（如 Ollama CPU 版 + 向量数据库）
-# docker compose -f docker-compose.dev.yml --profile cpu --profile vector up -d
-
 # 停止所有服务
 docker compose -f docker-compose.dev.yml down
-
-# 查看服务状态
-docker compose -f docker-compose.dev.yml ps
-
-# 查看日志
-docker compose -f docker-compose.dev.yml logs -f --tail=100
-
-# 查看指定服务日志（如 redis）
-docker compose -f docker-compose.dev.yml logs -f --tail=100 redis
-
-# 重置环境（清除所有数据）
-docker compose -f docker-compose.dev.yml down -v --remove-orphans
-Remove-Item -Recurse -Force .\data
 ```
 
 ### 3. 启动应用
@@ -141,89 +163,34 @@ cd frontend && npm run dev
 |------|------|------|
 | 前端应用 | http://localhost:5173 | Vue 3 前端 |
 | 后端 API | http://localhost:8082 | Spring Boot |
-| Grafana | http://localhost:3001 | 监控面板 |
+| PostgreSQL | localhost:5432 | 业务数据库 |
+| MySQL | localhost:3307 | Nacos 数据库 |
+| Redis | localhost:6379 | 缓存/限流 |
 | Nacos | http://localhost:8848/nacos | 配置中心 |
+| Grafana | http://localhost:3001 | 监控面板 |
 | Zipkin | http://localhost:9411 | 链路追踪 |
-| Adminer | http://localhost:8080 | 数据库管理 |
-
-## 功能详解
-
-### 思考过程展示
-AI 在回答前展示推理过程（`<thinking>` 标签），用户可：
-- 点击「思考过程」展开/折叠查看
-- 流式响应时显示「思考中...」加载状态
-- 完成后自动显示最终回答
-
-### 代码块增强
-- **语法高亮** - 支持 Java、JavaScript、Python、SQL 等主流语言
-- **复制** - 一键复制代码到剪贴板
-- **编辑** - 弹窗编辑代码内容
-- **主题切换** - 深色/浅色模式
-- **折叠** - 长代码块可折叠
-
-### 对话记忆
-- 滑动窗口记忆（MessageWindowChatMemory）
-- 保留最近 10 条消息上下文
-- 防止超出模型 token 限制
-
-### 本地持久化
-- 对话历史保存到 localStorage
-- 页面刷新不丢失数据
-- 支持多对话管理
-
-## API 接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/chat | 同步聊天，返回完整回复 |
-| POST | /api/chat/stream | SSE 流式聊天，逐字返回 |
-
-### 请求示例
-```bash
-# 同步请求
-curl -X POST http://localhost:8082/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "你好，请介绍一下自己"}'
-
-# 流式请求
-curl -X POST http://localhost:8082/api/chat/stream \
-  -H "Content-Type: application/json" \
-  -d '{"message": "你好，请介绍一下自己"}'
-```
-
-### SSE 响应格式
-```
-event: token
-data: 你
-
-event: token
-data: 好
-
-event: done
-data: [DONE]
-```
 
 ## 开发指南
 
 - **[快速开始指南](./docs/QUICK_START.md)** - 环境搭建、服务地址、配置说明
 - **[CLAUDE.md](./CLAUDE.md)** - 架构说明、关键技术点、常见问题
 
-### 核心技术要点
-1. **Vue 响应式陷阱** - 使用 `currentMessages` ref + 新数组触发更新
-2. **scoped 样式限制** - v-html 内容需要非 scoped 样式
-3. **Tailwind preflight** - 禁用避免移除列表样式
-4. **事件代理** - 动态生成元素的事件处理
-5. **SSE 解析** - 缓冲处理跨 chunk 的消息
+### 核心配置
 
-## 学习资源
+应用配置已迁移至 Nacos，本地仅保留服务端口：
 
-本项目代码包含详细注释，适合学习：
-- **LangChain4j** - Java AI Agent 开发框架
-- **AiServices** - 动态代理模式实现 AI 接口
-- **WebFlux** - 响应式编程与流式传输
-- **SSE** - Server-Sent Events 协议
-- **Pinia** - Vue 3 状态管理
-- **Event Delegation** - 事件代理模式
+| 配置位置 | 说明 |
+|----------|------|
+| `infra/nacos/config/` | Nacos 配置模板（首次部署需导入） |
+| `src/main/resources/application.properties` | 仅 server.port |
+| `src/main/resources/bootstrap.yml` | Nacos 连接配置 |
+
+### 数据库初始化
+
+| 数据库 | 初始化脚本 |
+|--------|-----------|
+| PostgreSQL | `infra/postgres/init/01-init.sql` |
+| MySQL (Nacos) | `infra/nacos/init/01-nacos-init.sql` |
 
 ## 许可证
 

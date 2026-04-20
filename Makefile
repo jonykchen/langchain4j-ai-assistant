@@ -7,7 +7,7 @@
 #   make init    - 初始化开发环境
 #   make dev     - 启动 Docker 基础设施 + 本地应用
 
-.PHONY: help init dev dev-docker dev-local stop restart status logs reset clean test build run
+.PHONY: help init dev dev-docker dev-local stop restart status logs reset clean test build run db-backup db-restore db-sync
 
 # 默认目标
 help:
@@ -42,6 +42,9 @@ help:
 	@echo "数据库:"
 	@echo "  make db-psql      连接 PostgreSQL"
 	@echo "  make db-redis     连接 Redis"
+	@echo "  make db-backup    备份 PG业务+Nacos配置为种子 (git 共享)"
+	@echo "  make db-restore   从种子恢复 PG+Nacos 数据"
+	@echo "  make db-sync      备份 + git 提交 (同步给团队)"
 	@echo ""
 	@echo "前端:"
 	@echo "  make frontend     启动前端开发服务器"
@@ -131,6 +134,25 @@ run-dev:
 	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 # ==================== 数据库 ====================
+
+# ==================== 数据库工具（跨环境数据共享） ====================
+
+# 备份当前数据为种子文件 → 提交 Git → 团队共享
+db-backup:
+	@./scripts/db/db-backup.sh --seed
+
+# 从种子文件恢复数据（新环境 pull 代码后执行）
+db-restore:
+	@./scripts/db/db-restore.sh
+
+# 一键同步：备份 + git commit + push
+db-sync: db-backup
+	@echo ""
+	@echo "==> 提交种子数据到 Git..."
+	@git add infra/postgres/init/02-seed-data.sql infra/nacos/init/03-nacos-config-seed.sql 2>/dev/null; \
+	(git diff --cached --quiet || \
+		git commit -m "sync: update database & nacos seed data $(shell date +%Y-%m-%d)")
+	@echo "OK! 请执行 git push 同步给团队"
 
 # 连接 PostgreSQL
 db-psql:

@@ -316,11 +316,12 @@ VALUES (
 #
 
 # ==================== 数据库配置 ====================
-# 使用 MySQL 数据库（与 Nacos 共享同一 MySQL 实例）
-spring.datasource.url=${DATABASE_URL:jdbc:mysql://localhost:3307/langchain4j?characterEncoding=UTF-8&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
-spring.datasource.username=${DATABASE_USERNAME:root}
-spring.datasource.password=${DATABASE_PASSWORD:REDACTED_ROOT_PASSWORD}
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+# 应用业务数据库使用 PostgreSQL（支持 pgvector 向量检索和 Row Level Security）
+# Nacos 元数据仍使用 MySQL，与业务数据隔离
+spring.datasource.url=${DATABASE_URL:jdbc:postgresql://localhost:5432/langchain4j?currentSchema=public}
+spring.datasource.username=${DATABASE_USERNAME:langchain4j}
+spring.datasource.password=${DATABASE_PASSWORD:REDACTED_DB_PASSWORD}
+spring.datasource.driver-class-name=org.postgresql.Driver
 
 # Hikari 连接池配置
 spring.datasource.hikari.minimum-idle=5
@@ -334,6 +335,8 @@ spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=${JPA_SHOW_SQL:false}
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.defer-datasource-initialization=true
+# PostgreSQL 方言
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
 # ==================== Redis 基础配置 ====================
 spring.data.redis.database=0

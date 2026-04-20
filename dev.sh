@@ -71,6 +71,36 @@ check_docker() {
     fi
 }
 
+# 检测种子数据状态并提示用户
+check_seed_status() {
+    local SEED_FILE="infra/postgres/init/02-seed-data.sql"
+    local DATA_DIR="data/postgres"
+    local MARKER_FILE="$DATA_DIR/.seed_restored"
+
+    if [ ! -f "$SEED_FILE" ] || [ ! -s "$SEED_FILE" ]; then
+        return  # 无种子文件，无需提示
+    fi
+
+    # 首次启动：data 为空，PG 会自动执行所有 init sql（包括 seed）
+    if [ ! -d "$DATA_DIR" ] || [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+        echo -e "${GREEN}✅ 发现种子数据文件，首次启动将自动导入${NC}"
+        return
+    fi
+
+    # 已有数据：检查是否有新的种子更新未导入
+    if [ -f "$MARKER_FILE" ]; then
+        SEED_MTIME=$(stat -c %Y "$SEED_FILE" 2>/dev/null || stat -f %m "$SEED_FILE" 2>/dev/null || echo 0)
+        MARKER_MTIME=$(stat -c %Y "$MARKER_FILE" 2>/dev/null || stat -f %m "$MARKER_FILE" 2>/dev/null || echo 0)
+
+        if [ "$SEED_MTIME" -gt "$MARKER_MTIME" ] 2>/dev/null; then
+            echo ""
+            echo -e "${YELLOW}⚠️  种子数据已更新（比上次恢复更新），如需同步最新数据请执行:${NC}"
+            echo -e "    make db-restore          # 导入最新种子数据"
+            echo -e "    make db-sync             # 备份当前+提交（给其他环境用）"
+        fi
+    fi
+}
+
 # 初始化环境
 init_env() {
     if [ ! -f "$ENV_FILE" ]; then
@@ -106,6 +136,10 @@ start_services() {
     done
 
     echo -e "${BLUE}正在启动开发环境...${NC}"
+    
+    # 检测种子数据状态
+    check_seed_status
+    
     docker compose -f $COMPOSE_FILE up -d $profiles
 
     echo ""
