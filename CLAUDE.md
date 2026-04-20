@@ -138,9 +138,55 @@ frontend/src/
 
 ## 配置说明
 
-**后端配置：** `src/main/resources/application.properties` / `application-{profile}.properties`
+### 数据库架构
 
-**多模型配置：**
+| 数据库 | 用途 | 端口 | 初始化脚本 |
+|--------|------|------|-----------|
+| PostgreSQL | 应用业务数据（支持 pgvector 向量检索） | 5432 | `infra/postgres/init/01-init.sql` |
+| MySQL | 仅 Nacos 配置中心元数据 | 3307 | `infra/nacos/init/01-nacos-init.sql` |
+| Redis | 缓存/限流/会话 | 6379 | — |
+
+### 配置文件结构
+
+应用配置已迁移至 Nacos，本地仅保留最小必要配置：
+
+| 配置位置 | 说明 |
+|----------|------|
+| `src/main/resources/application.properties` | 仅 server.port 和环境变量说明 |
+| `src/main/resources/bootstrap.yml` | Nacos 连接配置 |
+| `src/main/resources/schema.sql` | 数据库 Schema（Spring Boot 启动时执行） |
+
+Nacos 配置文件（`infra/nacos/config/`）：
+
+| Data ID | 说明 |
+|---------|------|
+| `common.properties` | 跨应用共享配置（Jackson、HTTP、文件上传） |
+| `langchain4j-chat.properties` | 公共配置（数据库、模型、安全、JWT、监控等） |
+| `langchain4j-chat-dev.properties` | 开发环境覆盖（Redis、日志、宽松策略） |
+| `langchain4j-chat-prod.properties` | 生产环境覆盖（Redis、日志、严格策略） |
+
+配置加载优先级：
+```
+bootstrap.yml（Nacos 连接）
+  → common.properties（共享）
+  → langchain4j-chat.properties（公共）
+  → langchain4j-chat-{profile}.properties（环境覆盖）
+  → application.properties（本地兜底，仅 server.port）
+```
+
+### 数据库配置
+
+```properties
+# PostgreSQL（应用业务数据库，支持 pgvector 和 Row Level Security）
+spring.datasource.url=jdbc:postgresql://localhost:5432/langchain4j?currentSchema=public
+spring.datasource.username=langchain4j
+spring.datasource.password=REDACTED_DB_PASSWORD
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+```
+
+### 多模型配置
+
 ```properties
 # 主模型：阿里云 DashScope
 model.providers.dashscope.base-url=https://dashscope.aliyuncs.com/compatible-mode/v1
@@ -154,31 +200,23 @@ model.providers.dashscope.enabled=true    # 是否启用
 # 配置格式相同，调整 weight/priority/enabled
 ```
 
-**Redis 配置（分布式限流）：**
-```properties
-spring.data.redis.host=${REDIS_HOST:localhost}
-spring.data.redis.port=${REDIS_PORT:6379}
-```
+### 必需的环境变量
 
-**Resilience4j 配置：**
-```properties
-# 限流（每分钟 100 次）
-resilience4j.ratelimiters.instances.chat.limitForPeriod=100
-resilience4j.ratelimiters.instances.chat.limitRefreshPeriod=1m
-
-# 熔断（失败率 50% 触发）
-resilience4j.circuitbreaker.instances.chat.failureRateThreshold=50
-resilience4j.circuitbreaker.instances.chat.waitDurationInOpenState=10s
-
-# 重试（最多 2 次）
-resilience4j.retry.instances.chat.maxAttempts=2
-```
-
-**必需的环境变量：**
 - `DASHSCOPE_API_KEY`: 阿里云 DashScope API Key（主模型）
-- `ZHIPU_API_KEY`: 智谱 API Key（可选，备用模型）
-- `DEEPSEEK_API_KEY`: DeepSeek API Key（可选，备用模型）
-- `REDIS_HOST/REDIS_PORT`: Redis 连接信息（可选，分布式限流）
+- `DATABASE_URL`: PostgreSQL 连接 URL（默认 jdbc:postgresql://localhost:5432/langchain4j）
+- `DATABASE_USERNAME`: 数据库用户名（默认 langchain4j）
+- `DATABASE_PASSWORD`: 数据库密码（默认 REDACTED_DB_PASSWORD）
+- `JWT_SECRET`: JWT 密钥
+- `NACOS_SERVER_ADDR`: Nacos 地址（默认 localhost:8848）
+- `SPRING_PROFILES_ACTIVE`: 激活环境（dev/prod，默认 dev）
+
+可选的环境变量：
+- `ZHIPU_API_KEY`: 智谱 API Key（备用模型）
+- `DEEPSEEK_API_KEY`: DeepSeek API Key（备用模型）
+- `SILICONFLOW_API_KEY`: 硅基流动 API Key（备用模型）
+- `REDIS_HOST/REDIS_PORT`: Redis 连接信息（分布式限流）
+- `GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET`: GitHub OAuth
+- `GITLAB_CLIENT_ID/GITLAB_CLIENT_SECRET`: GitLab OAuth
 
 **前端配置：** `frontend/vite.config.ts`
 - 开发服务器端口 5173
@@ -187,6 +225,13 @@ resilience4j.retry.instances.chat.maxAttempts=2
 
 **Tailwind 配置：** `frontend/tailwind.config.js`
 - `corePlugins.preflight: false` - 禁用 CSS reset，避免移除列表样式
+
+**PostgreSQL 特性：**
+- `pgvector` 扩展 - 向量相似度检索（HNSW/IVFFlat 索引）
+- `JSONB` 类型 - 高效存储工具参数、元数据
+- `Row Level Security` - 数据库层租户/用户隔离
+- `uuid-ossp` 扩展 - UUID 生成
+- `pg_trgm` 扩展 - 全文搜索
 
 ## 技术栈
 
@@ -197,11 +242,14 @@ resilience4j.retry.instances.chat.maxAttempts=2
 | Markdown | markdown-it, highlight.js |
 | 样式 | Tailwind CSS, Scoped CSS |
 | AI 模型 | 多模型：DashScope、智谱、DeepSeek、硅基流动、Ollama |
-| 容错 | Resilience4j（熔断、限流、重试） |
-| 分布式限流 | Redis + Lua 脚本（滑动窗口、令牌桶） |
-| 配置中心 | Nacos（可选） |
+| 业务数据库 | PostgreSQL 16 + pgvector（向量检索、Row Level Security） |
+| 配置数据库 | MySQL 8.0（仅 Nacos 元数据） |
+| 缓存/限流 | Redis 7 |
+| 配置中心 | Nacos |
 | 监控 | Prometheus + Grafana, Micrometer |
 | 链路追踪 | OpenTelemetry + Zipkin |
+| 容错 | Resilience4j（熔断、限流、重试） |
+| 分布式限流 | Redis + Lua 脚本（滑动窗口、令牌桶） |
 | 流式传输 | WebFlux + SSE |
 | 部署 | Docker, Docker Compose, Nginx |
 
