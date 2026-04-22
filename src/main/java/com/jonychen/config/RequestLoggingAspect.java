@@ -1,6 +1,9 @@
 package com.jonychen.config;
 
+import java.util.UUID;
+
 import jakarta.servlet.http.HttpServletRequest;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -11,12 +14,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.UUID;
-
 /**
  * 请求日志切面
  *
- * 记录所有 Controller 方法的请求和响应信息
+ * <p>记录所有 Controller 方法的请求和响应信息
  */
 @Aspect
 @Component
@@ -53,7 +54,13 @@ public class RequestLoggingAspect {
             long duration = System.currentTimeMillis() - startTime;
 
             // 异常日志
-            log.error("[{}] <<< {} {} failed in {}ms: {}", traceId, method, uri, duration, e.getMessage());
+            log.error(
+                    "[{}] <<< {} {} failed in {}ms: {}",
+                    traceId,
+                    method,
+                    uri,
+                    duration,
+                    e.getMessage());
 
             throw e;
         } finally {

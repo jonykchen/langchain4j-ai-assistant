@@ -1,19 +1,18 @@
 package com.jonychen.ratelimit;
 
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-
 /**
  * 基于 Redis 的分布式限流器
  *
- * 使用滑动窗口算法实现精确的分布式限流
- * 通过 Lua 脚本保证原子性
+ * <p>使用滑动窗口算法实现精确的分布式限流 通过 Lua 脚本保证原子性
  */
 @Component
 public class DistributedRateLimiter {
@@ -25,14 +24,12 @@ public class DistributedRateLimiter {
     /**
      * 滑动窗口限流 Lua 脚本
      *
-     * KEYS[1]: 限流键
-     * ARGV[1]: 窗口大小（毫秒）
-     * ARGV[2]: 最大请求数
-     * ARGV[3]: 当前时间戳（毫秒）
+     * <p>KEYS[1]: 限流键 ARGV[1]: 窗口大小（毫秒） ARGV[2]: 最大请求数 ARGV[3]: 当前时间戳（毫秒）
      *
-     * 返回值：1 允许，0 拒绝
+     * <p>返回值：1 允许，0 拒绝
      */
-    private static final String SLIDING_WINDOW_SCRIPT = """
+    private static final String SLIDING_WINDOW_SCRIPT =
+            """
             local key = KEYS[1]
             local window = tonumber(ARGV[1])
             local limit = tonumber(ARGV[2])
@@ -58,14 +55,12 @@ public class DistributedRateLimiter {
     /**
      * 令牌桶限流 Lua 脚本
      *
-     * KEYS[1]: 限流键
-     * ARGV[1]: 桶容量
-     * ARGV[2]: 令牌生成速率（令牌/秒）
-     * ARGV[3]: 当前时间戳（毫秒）
+     * <p>KEYS[1]: 限流键 ARGV[1]: 桶容量 ARGV[2]: 令牌生成速率（令牌/秒） ARGV[3]: 当前时间戳（毫秒）
      *
-     * 返回值：1 允许，0 拒绝
+     * <p>返回值：1 允许，0 拒绝
      */
-    private static final String TOKEN_BUCKET_SCRIPT = """
+    private static final String TOKEN_BUCKET_SCRIPT =
+            """
             local key = KEYS[1]
             local capacity = tonumber(ARGV[1])
             local rate = tonumber(ARGV[2])
@@ -111,10 +106,10 @@ public class DistributedRateLimiter {
     /**
      * 滑动窗口限流
      *
-     * @param key     限流键
-     * @param limit   最大请求数
-     * @param period  时间窗口
-     * @param unit    时间单位
+     * @param key 限流键
+     * @param limit 最大请求数
+     * @param period 时间窗口
+     * @param unit 时间单位
      * @return true 允许，false 拒绝
      */
     public boolean tryAcquireSlidingWindow(String key, int limit, long period, TimeUnit unit) {
@@ -122,13 +117,13 @@ public class DistributedRateLimiter {
         long now = System.currentTimeMillis();
 
         try {
-            Long result = redisTemplate.execute(
-                    slidingWindowScript,
-                    Collections.singletonList(key),
-                    String.valueOf(windowMillis),
-                    String.valueOf(limit),
-                    String.valueOf(now)
-            );
+            Long result =
+                    redisTemplate.execute(
+                            slidingWindowScript,
+                            Collections.singletonList(key),
+                            String.valueOf(windowMillis),
+                            String.valueOf(limit),
+                            String.valueOf(now));
 
             boolean allowed = result != null && result == 1L;
             if (!allowed) {
@@ -145,22 +140,22 @@ public class DistributedRateLimiter {
     /**
      * 令牌桶限流
      *
-     * @param key      限流键
+     * @param key 限流键
      * @param capacity 桶容量
-     * @param rate     令牌生成速率（令牌/秒）
+     * @param rate 令牌生成速率（令牌/秒）
      * @return true 允许，false 拒绝
      */
     public boolean tryAcquireTokenBucket(String key, int capacity, double rate) {
         long now = System.currentTimeMillis();
 
         try {
-            Long result = redisTemplate.execute(
-                    tokenBucketScript,
-                    Collections.singletonList(key),
-                    String.valueOf(capacity),
-                    String.valueOf(rate),
-                    String.valueOf(now)
-            );
+            Long result =
+                    redisTemplate.execute(
+                            tokenBucketScript,
+                            Collections.singletonList(key),
+                            String.valueOf(capacity),
+                            String.valueOf(rate),
+                            String.valueOf(now));
 
             boolean allowed = result != null && result == 1L;
             if (!allowed) {
@@ -176,7 +171,7 @@ public class DistributedRateLimiter {
     /**
      * 构建分布式限流键
      *
-     * @param prefix     前缀
+     * @param prefix 前缀
      * @param identifier 标识符（IP/用户ID）
      * @return 完整的限流键
      */
@@ -184,9 +179,7 @@ public class DistributedRateLimiter {
         return String.format("rate_limit:%s:%s", prefix, identifier);
     }
 
-    /**
-     * 获取当前窗口内的请求数
-     */
+    /** 获取当前窗口内的请求数 */
     public long getCurrentCount(String key, long window, TimeUnit unit) {
         try {
             long now = System.currentTimeMillis();
@@ -199,9 +192,7 @@ public class DistributedRateLimiter {
         }
     }
 
-    /**
-     * 重置限流计数
-     */
+    /** 重置限流计数 */
     public void reset(String key) {
         try {
             redisTemplate.delete(key);

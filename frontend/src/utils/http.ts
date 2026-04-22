@@ -3,7 +3,6 @@
  * 包含请求/响应拦截器，自动处理 Token 和错误
  */
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
-import { useAuthStore } from '@/stores/auth'
 import type { ApiResponse } from '@/types'
 
 // 创建 Axios 实例
@@ -39,7 +38,23 @@ http.interceptors.request.use(
  */
 http.interceptors.response.use(
   (response) => {
-    // 直接返回响应数据
+    // 后端返回格式为 ApiResponse: {code, message, data}
+    const apiResponse = response.data as ApiResponse<unknown>
+
+    if (apiResponse && typeof apiResponse === 'object' && 'code' in apiResponse) {
+      // 检查业务状态码
+      if (apiResponse.code !== 200) {
+        // 业务错误，创建 Error 并抛出
+        const error = new Error(apiResponse.message || '请求失败') as any
+        error.response = response
+        error.code = apiResponse.code
+        return Promise.reject(error)
+      }
+      // 成功：提取 data 字段作为实际响应数据
+      return apiResponse.data
+    }
+
+    // 兼容非标准响应格式
     return response.data
   },
   async (error) => {

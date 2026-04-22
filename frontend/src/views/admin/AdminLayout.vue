@@ -16,6 +16,7 @@ const menuItems = [
   { path: '/admin/users', icon: 'User', title: '用户管理' },
   { path: '/admin/cost', icon: 'Money', title: '成本监控' },
   { path: '/admin/test', icon: 'Checked', title: '测试管理' },
+  { path: '/admin/test-history', icon: 'Timer', title: '测试历史' },
   { path: '/admin/traces', icon: 'View', title: 'Agent 追踪' },
   { path: '/admin/prompts', icon: 'Document', title: 'Prompt 管理' },
   { path: '/admin/evaluation', icon: 'DataAnalysis', title: 'Agent 评测' }

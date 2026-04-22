@@ -5,12 +5,12 @@ import java.time.Duration;
 /**
  * 工具执行配置
  *
- * @param timeout               超时时间
- * @param maxRetries            最大重试次数
- * @param retryDelay            重试间隔
+ * @param timeout 超时时间
+ * @param maxRetries 最大重试次数
+ * @param retryDelay 重试间隔
  * @param circuitBreakerThreshold 熔断阈值（失败率）
- * @param circuitBreakerWait    熔断等待时间
- * @param fallbackResult        降级结果
+ * @param circuitBreakerWait 熔断等待时间
+ * @param fallbackResult 降级结果
  * @author jonychen
  */
 public record ToolExecutionConfig(
@@ -19,48 +19,46 @@ public record ToolExecutionConfig(
         Duration retryDelay,
         double circuitBreakerThreshold,
         Duration circuitBreakerWait,
-        String fallbackResult
-) {
-    /**
-     * 低风险工具配置（宽松限制）
-     */
+        String fallbackResult) {
+    /** 低风险工具配置（宽松限制） */
     public static ToolExecutionConfig lowRisk() {
         return new ToolExecutionConfig(
-                Duration.ofSeconds(30), 3, Duration.ofSeconds(1),
-                0.5, Duration.ofSeconds(30), null
-        );
+                Duration.ofSeconds(30),
+                3,
+                Duration.ofSeconds(1),
+                0.5,
+                Duration.ofSeconds(30),
+                null);
     }
 
-    /**
-     * 高风险工具配置（严格限制）
-     */
+    /** 高风险工具配置（严格限制） */
     public static ToolExecutionConfig highRisk() {
         return new ToolExecutionConfig(
-                Duration.ofSeconds(10), 1, Duration.ofSeconds(2),
-                0.3, Duration.ofSeconds(60), "{\"error\": \"服务暂时不可用\"}"
-        );
+                Duration.ofSeconds(10),
+                1,
+                Duration.ofSeconds(2),
+                0.3,
+                Duration.ofSeconds(60),
+                "{\"error\": \"服务暂时不可用\"}");
     }
 
-    /**
-     * 只读工具配置（中等限制）
-     */
+    /** 只读工具配置（中等限制） */
     public static ToolExecutionConfig readOnly() {
         return new ToolExecutionConfig(
-                Duration.ofSeconds(60), 2, Duration.ofSeconds(1),
-                0.5, Duration.ofSeconds(30), null
-        );
+                Duration.ofSeconds(60),
+                2,
+                Duration.ofSeconds(1),
+                0.5,
+                Duration.ofSeconds(30),
+                null);
     }
 
-    /**
-     * 默认配置
-     */
+    /** 默认配置 */
     public static ToolExecutionConfig defaultConfig() {
         return lowRisk();
     }
 
-    /**
-     * 构建器
-     */
+    /** 构建器 */
     public static Builder builder() {
         return new Builder();
     }
@@ -104,8 +102,13 @@ public record ToolExecutionConfig(
         }
 
         public ToolExecutionConfig build() {
-            return new ToolExecutionConfig(timeout, maxRetries, retryDelay,
-                    circuitBreakerThreshold, circuitBreakerWait, fallbackResult);
+            return new ToolExecutionConfig(
+                    timeout,
+                    maxRetries,
+                    retryDelay,
+                    circuitBreakerThreshold,
+                    circuitBreakerWait,
+                    fallbackResult);
         }
     }
 }

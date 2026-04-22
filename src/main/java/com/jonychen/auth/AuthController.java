@@ -1,20 +1,26 @@
 package com.jonychen.auth;
 
-import com.jonychen.model.ApiResponse;
-import com.jonychen.model.ErrorCode;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.NotBlank;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
 import java.security.Principal;
 
-/**
- * 认证控制器
- * 处理登录、OAuth 回调、Token 刷新等请求
- */
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotBlank;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.jonychen.model.ApiResponse;
+import com.jonychen.model.ErrorCode;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/** 认证控制器 处理登录、OAuth 回调、Token 刷新等请求 */
 @Slf4j
 @RestController
 @RequestMapping("/auth")
@@ -25,16 +31,38 @@ public class AuthController {
     private final OAuth2UserService oAuth2UserService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    /**
-     * 获取 GitHub 授权 URL
-     */
+    /** 用户名密码登录 */
+    @PostMapping("/login")
+    public ApiResponse<OAuthCallbackResponse> login(@RequestBody @Validated LoginRequest request) {
+        try {
+            User user =
+                    userRepository
+                            .findByUsername(request.username())
+                            .orElseThrow(() -> new RuntimeException("用户名或密码错误"));
+
+            if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+                return ApiResponse.error(ErrorCode.UNAUTHORIZED.getCode(), "用户名或密码错误");
+            }
+
+            TokenResponse token = jwtTokenProvider.generateToken(user);
+            return ApiResponse.success(new OAuthCallbackResponse(token, UserInfoVO.from(user)));
+        } catch (RuntimeException e) {
+            if (e.getMessage().equals("用户名或密码错误")) {
+                return ApiResponse.error(ErrorCode.UNAUTHORIZED.getCode(), "用户名或密码错误");
+            }
+            log.error("登录失败", e);
+            return ApiResponse.error(ErrorCode.UNAUTHORIZED.getCode(), "登录失败");
+        }
+    }
+
+    /** 获取 GitHub 授权 URL */
     @GetMapping("/github/url")
     public ApiResponse<String> getGitHubAuthUrl(
             @RequestParam(required = false) String redirectUri,
             @RequestParam(required = false) String state,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         if (state == null || state.isBlank()) {
             state = generateState();
         }
@@ -46,36 +74,33 @@ public class AuthController {
         return ApiResponse.success(authUrl);
     }
 
-    /**
-     * GitHub OAuth 回调
-     */
+    /** GitHub OAuth 回调 */
     @GetMapping("/github/callback")
     public ApiResponse<OAuthCallbackResponse> githubCallback(
             @RequestParam String code,
             @RequestParam(required = false) String state,
-            @RequestParam(required = false) String redirectUri
-    ) {
+            @RequestParam(required = false) String redirectUri) {
         try {
             TokenResponse token = oAuth2UserService.handleGitHubCallback(code, redirectUri);
-            User user = userRepository.findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))
-                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            User user =
+                    userRepository
+                            .findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))
+                            .orElseThrow(() -> new RuntimeException("用户不存在"));
 
             return ApiResponse.success(new OAuthCallbackResponse(token, UserInfoVO.from(user)));
         } catch (Exception e) {
             log.error("GitHub OAuth 回调处理失败", e);
-            return ApiResponse.error(ErrorCode.OAUTH_FAILED.getCode(), "GitHub 登录失败: " + e.getMessage());
+            return ApiResponse.error(
+                    ErrorCode.OAUTH_FAILED.getCode(), "GitHub 登录失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 获取 GitLab 授权 URL
-     */
+    /** 获取 GitLab 授权 URL */
     @GetMapping("/gitlab/url")
     public ApiResponse<String> getGitLabAuthUrl(
             @RequestParam(required = false) String redirectUri,
             @RequestParam(required = false) String state,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         if (state == null || state.isBlank()) {
             state = generateState();
         }
@@ -87,34 +112,31 @@ public class AuthController {
         return ApiResponse.success(authUrl);
     }
 
-    /**
-     * GitLab OAuth 回调
-     */
+    /** GitLab OAuth 回调 */
     @GetMapping("/gitlab/callback")
     public ApiResponse<OAuthCallbackResponse> gitlabCallback(
             @RequestParam String code,
             @RequestParam(required = false) String state,
-            @RequestParam(required = false) String redirectUri
-    ) {
+            @RequestParam(required = false) String redirectUri) {
         try {
             TokenResponse token = oAuth2UserService.handleGitLabCallback(code, redirectUri);
-            User user = userRepository.findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))
-                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            User user =
+                    userRepository
+                            .findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))
+                            .orElseThrow(() -> new RuntimeException("用户不存在"));
 
             return ApiResponse.success(new OAuthCallbackResponse(token, UserInfoVO.from(user)));
         } catch (Exception e) {
             log.error("GitLab OAuth 回调处理失败", e);
-            return ApiResponse.error(ErrorCode.OAUTH_FAILED.getCode(), "GitLab 登录失败: " + e.getMessage());
+            return ApiResponse.error(
+                    ErrorCode.OAUTH_FAILED.getCode(), "GitLab 登录失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 刷新 Token
-     */
+    /** 刷新 Token */
     @PostMapping("/refresh")
     public ApiResponse<TokenResponse> refreshToken(
-            @RequestBody @Validated RefreshTokenRequest request
-    ) {
+            @RequestBody @Validated RefreshTokenRequest request) {
         String refreshToken = request.refreshToken();
 
         if (!jwtTokenProvider.validateToken(refreshToken)) {
@@ -130,16 +152,14 @@ public class AuthController {
             return ApiResponse.error(ErrorCode.TOKEN_INVALID.getCode(), "无法解析用户信息");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        User user =
+                userRepository.findById(userId).orElseThrow(() -> new RuntimeException("用户不存在"));
 
         TokenResponse newToken = jwtTokenProvider.generateToken(user);
         return ApiResponse.success(newToken);
     }
 
-    /**
-     * 登出
-     */
+    /** 登出 */
     @PostMapping("/logout")
     public ApiResponse<Void> logout(Principal principal) {
         if (principal != null) {
@@ -149,9 +169,7 @@ public class AuthController {
         return ApiResponse.success(null);
     }
 
-    /**
-     * 获取当前用户信息
-     */
+    /** 获取当前用户信息 */
     @GetMapping("/me")
     public ApiResponse<UserInfoVO> getCurrentUser(Principal principal) {
         if (principal == null) {
@@ -159,22 +177,18 @@ public class AuthController {
         }
 
         String userId = principal.getName();
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        User user =
+                userRepository.findById(userId).orElseThrow(() -> new RuntimeException("用户不存在"));
 
         return ApiResponse.success(UserInfoVO.from(user));
     }
 
-    /**
-     * 生成随机 state
-     */
+    /** 生成随机 state */
     private String generateState() {
         return java.util.UUID.randomUUID().toString().replace("-", "");
     }
 
-    /**
-     * 获取请求基础 URL
-     */
+    /** 获取请求基础 URL */
     private String getBaseUrl(HttpServletRequest request) {
         String scheme = request.getScheme();
         String serverName = request.getServerName();
@@ -183,8 +197,8 @@ public class AuthController {
         StringBuilder baseUrl = new StringBuilder();
         baseUrl.append(scheme).append("://").append(serverName);
 
-        if ((scheme.equals("http") && serverPort != 80) ||
-            (scheme.equals("https") && serverPort != 443)) {
+        if ((scheme.equals("http") && serverPort != 80)
+                || (scheme.equals("https") && serverPort != 443)) {
             baseUrl.append(":").append(serverPort);
         }
 
@@ -193,19 +207,9 @@ public class AuthController {
 
     // ========== 内部 DTO 类 ==========
 
-    /**
-     * OAuth 回调响应
-     */
-    public record OAuthCallbackResponse(
-            TokenResponse token,
-            UserInfoVO user
-    ) {}
+    /** OAuth 回调响应 */
+    public record OAuthCallbackResponse(TokenResponse token, UserInfoVO user) {}
 
-    /**
-     * 刷新令牌请求
-     */
-    public record RefreshTokenRequest(
-            @NotBlank(message = "刷新令牌不能为空")
-            String refreshToken
-    ) {}
+    /** 刷新令牌请求 */
+    public record RefreshTokenRequest(@NotBlank(message = "刷新令牌不能为空") String refreshToken) {}
 }

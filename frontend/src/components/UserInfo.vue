@@ -35,7 +35,7 @@ const handleCommand = async (command: string) => {
 
 <template>
   <el-dropdown trigger="click" @command="handleCommand">
-    <div class="user-info">
+    <div class="user-info" data-testid="user-info">
       <el-avatar :size="32" :src="user?.avatar" class="avatar">
         {{ user?.username?.charAt(0).toUpperCase() }}
       </el-avatar>
@@ -53,7 +53,7 @@ const handleCommand = async (command: string) => {
           <el-icon><Setting /></el-icon>
           管理后台
         </el-dropdown-item>
-        <el-dropdown-item divided command="logout">
+        <el-dropdown-item divided command="logout" data-testid="logout-button">
           <el-icon><SwitchButton /></el-icon>
           退出登录
         </el-dropdown-item>

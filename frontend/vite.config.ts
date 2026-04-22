@@ -54,7 +54,7 @@ export default defineConfig({
      * 代理配置
      *
      * 为什么需要代理？
-     * - 前端运行在 localhost:3000
+     * - 前端运行在 localhost:5173
      * - 后端运行在 localhost:8082
      * - 浏览器同源策略阻止跨域请求
      *
@@ -70,7 +70,7 @@ export default defineConfig({
         // 后端服务地址
         target: 'http://localhost:8082',
         // 修改请求头的 Origin 为目标地址
-        // 后端看到的是 localhost:8082 而不是 localhost:3000
+        // 后端看到的是 localhost:8082 而不是 localhost:5173
         changeOrigin: true,
         // 可选：重写路径
         // rewrite: (path) => path.replace(/^\/api/, '')

@@ -1,17 +1,11 @@
 package com.jonychen.auth;
 
-/**
- * 用户角色枚举
- */
+/** 用户角色枚举 */
 public enum UserRole {
-    /**
-     * 普通用户
-     */
+    /** 普通用户 */
     USER("普通用户"),
 
-    /**
-     * 管理员
-     */
+    /** 管理员 */
     ADMIN("管理员");
 
     private final String displayName;

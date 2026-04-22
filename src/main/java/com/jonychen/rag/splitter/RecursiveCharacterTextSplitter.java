@@ -1,21 +1,19 @@
 package com.jonychen.rag.splitter;
 
-import com.jonychen.rag.*;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.stereotype.Component;
+
+import com.jonychen.rag.Document;
+import com.jonychen.rag.DocumentChunk;
+import com.jonychen.rag.TextSplitter;
+
 /**
  * 递归字符文本分割器
  *
- * 按优先级依次尝试分割：
- * 1. 按段落分割（双换行）
- * 2. 按句子分割（单换行）
- * 3. 按句子分割（句号、问号、感叹号）
- * 4. 按词分割（空格）
- * 5. 按字符分割
+ * <p>按优先级依次尝试分割： 1. 按段落分割（双换行） 2. 按句子分割（单换行） 3. 按句子分割（句号、问号、感叹号） 4. 按词分割（空格） 5. 按字符分割
  *
  * @author jonychen
  */
@@ -25,36 +23,31 @@ public class RecursiveCharacterTextSplitter implements TextSplitter {
     private final int chunkSize;
     private final int overlap;
 
-    /**
-     * 分割优先级顺序
-     */
-    private static final List<String> SEPARATORS = List.of(
-            "\n\n",     // 段落
-            "\n",       // 行
-            "。",       // 中文句号
-            ".",        // 英文句号
-            "？",       // 中文问号
-            "?",        // 英文问号
-            "！",       // 中文感叹号
-            "!",        // 英文感叹号
-            "；",       // 中文分号
-            ";",        // 英文分号
-            "，",       // 中文逗号
-            ",",        // 英文逗号
-            " ",        // 空格
-            ""          // 字符
-    );
+    /** 分割优先级顺序 */
+    private static final List<String> SEPARATORS =
+            List.of(
+                    "\n\n", // 段落
+                    "\n", // 行
+                    "。", // 中文句号
+                    ".", // 英文句号
+                    "？", // 中文问号
+                    "?", // 英文问号
+                    "！", // 中文感叹号
+                    "!", // 英文感叹号
+                    "；", // 中文分号
+                    ";", // 英文分号
+                    "，", // 中文逗号
+                    ",", // 英文逗号
+                    " ", // 空格
+                    "" // 字符
+                    );
 
-    /**
-     * 默认构造器（块大小 500，重叠 100）
-     */
+    /** 默认构造器（块大小 500，重叠 100） */
     public RecursiveCharacterTextSplitter() {
         this(500, 100);
     }
 
-    /**
-     * 自定义构造器
-     */
+    /** 自定义构造器 */
     public RecursiveCharacterTextSplitter(int chunkSize, int overlap) {
         this.chunkSize = chunkSize;
         this.overlap = overlap;
@@ -70,19 +63,20 @@ public class RecursiveCharacterTextSplitter implements TextSplitter {
             String chunkContent = textChunks.get(i);
             int endIndex = startIndex + chunkContent.length();
 
-            DocumentChunk chunk = DocumentChunk.create(
-                    UUID.randomUUID().toString(),
-                    document.id(),
-                    chunkContent,
-                    i,
-                    startIndex,
-                    endIndex
-            );
+            DocumentChunk chunk =
+                    DocumentChunk.create(
+                            UUID.randomUUID().toString(),
+                            document.id(),
+                            chunkContent,
+                            i,
+                            startIndex,
+                            endIndex);
 
-            chunk = chunk.withMetadata(java.util.Map.of(
-                    "documentFilename", document.filename(),
-                    "documentType", document.type().name()
-            ));
+            chunk =
+                    chunk.withMetadata(
+                            java.util.Map.of(
+                                    "documentFilename", document.filename(),
+                                    "documentType", document.type().name()));
 
             chunks.add(chunk);
             startIndex = endIndex;
@@ -114,9 +108,7 @@ public class RecursiveCharacterTextSplitter implements TextSplitter {
         return overlap;
     }
 
-    /**
-     * 递归分割
-     */
+    /** 递归分割 */
     private void splitRecursive(String text, List<String> separators, List<String> chunks) {
         if (text.length() <= chunkSize) {
             if (!text.trim().isEmpty()) {
@@ -153,8 +145,9 @@ public class RecursiveCharacterTextSplitter implements TextSplitter {
 
                 if (part.length() > chunkSize) {
                     // 单个部分还是太长，递归分割
-                    List<String> nextSeparators = separators.subList(
-                            separators.indexOf(separator) + 1, separators.size());
+                    List<String> nextSeparators =
+                            separators.subList(
+                                    separators.indexOf(separator) + 1, separators.size());
                     splitRecursive(part, nextSeparators, chunks);
                 } else {
                     currentChunk = new StringBuilder(part);
@@ -170,9 +163,7 @@ public class RecursiveCharacterTextSplitter implements TextSplitter {
         }
     }
 
-    /**
-     * 找到最佳分隔符
-     */
+    /** 找到最佳分隔符 */
     private String findBestSeparator(String text, List<String> separators) {
         for (String separator : separators) {
             if (text.contains(separator)) {
@@ -182,9 +173,7 @@ public class RecursiveCharacterTextSplitter implements TextSplitter {
         return "";
     }
 
-    /**
-     * 按字符切分
-     */
+    /** 按字符切分 */
     private void splitByCharacter(String text, List<String> chunks) {
         int length = text.length();
         for (int i = 0; i < length; i += chunkSize) {
@@ -196,9 +185,7 @@ public class RecursiveCharacterTextSplitter implements TextSplitter {
         }
     }
 
-    /**
-     * 应用重叠
-     */
+    /** 应用重叠 */
     private List<String> applyOverlap(List<String> originalChunks) {
         if (overlap <= 0 || originalChunks.size() <= 1) {
             return originalChunks;

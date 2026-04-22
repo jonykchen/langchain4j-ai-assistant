@@ -1,5 +1,7 @@
 import http from '@/utils/http'
-import type { ApiResponse } from '@/types'
+
+// 注意：http 拦截器已处理 ApiResponse 格式，直接返回 data
+// 业务错误（code !== 200）会作为 Promise reject 抛出
 
 // 管理员 API
 
@@ -83,103 +85,49 @@ export interface UserCostRanking {
   cost: number
 }
 
-/**
- * 提取 ApiResponse 中的 data 字段
- */
-function extractData<T>(response: ApiResponse<T>): T {
-  if (response.code !== 200) {
-    throw new Error(response.message || '请求失败')
-  }
-  return response.data as T
-}
-
 export const adminApi = {
   // 仪表盘
-  async getMetrics(): Promise<DashboardMetrics> {
-    const response = await http.get<ApiResponse<DashboardMetrics>>('/api/admin/dashboard/metrics')
-    return extractData(response)
-  },
+  getMetrics: () => http.get<DashboardMetrics>('/api/admin/dashboard/metrics'),
 
-  async getTrend(params: { days: number }): Promise<TrendData> {
-    const response = await http.get<ApiResponse<TrendData>>('/api/admin/dashboard/trend', { params })
-    return extractData(response)
-  },
+  getTrend: (params: { days: number }) => http.get<TrendData>('/api/admin/dashboard/trend', { params }),
 
-  async getModelDistribution(): Promise<ModelDistribution[]> {
-    const response = await http.get<ApiResponse<ModelDistribution[]>>('/api/admin/dashboard/model-distribution')
-    return extractData(response)
-  },
+  getModelDistribution: () => http.get<ModelDistribution[]>('/api/admin/dashboard/model-distribution'),
 
   // 用户管理
-  async getUsers(params: {
+  getUsers: (params: {
     page: number
     size: number
     search?: string
     role?: string
     provider?: string
-  }): Promise<PageResponse<UserAdminVO>> {
-    const response = await http.get<ApiResponse<PageResponse<UserAdminVO>>>('/api/admin/users', { params })
-    return extractData(response)
-  },
+  }) => http.get<PageResponse<UserAdminVO>>('/api/admin/users', { params }),
 
-  async getUserDetail(userId: string): Promise<UserAdminVO> {
-    const response = await http.get<ApiResponse<UserAdminVO>>(`/api/admin/users/${userId}`)
-    return extractData(response)
-  },
+  getUserDetail: (userId: string) => http.get<UserAdminVO>(`/api/admin/users/${userId}`),
 
-  async getUserUsageStats(userId: string): Promise<{
+  getUserUsageStats: (userId: string) => http.get<{
     todayTokens: number
     todayCost: number
     monthTokens: number
     monthCost: number
-  }> {
-    const response = await http.get<ApiResponse<{
-      todayTokens: number
-      todayCost: number
-      monthTokens: number
-      monthCost: number
-    }>>(`/api/admin/users/${userId}/usage`)
-    return extractData(response)
-  },
+  }>(`/api/admin/users/${userId}/usage`),
 
-  async updateUserRole(userId: string, role: string): Promise<void> {
-    const response = await http.put<ApiResponse<void>>(`/api/admin/users/${userId}/role`, { role })
-    extractData(response)
-  },
+  updateUserRole: (userId: string, role: string) => http.put<void>(`/api/admin/users/${userId}/role`, { role }),
 
-  async updateUserQuota(userId: string, quota: {
+  updateUserQuota: (userId: string, quota: {
     dailyTokenLimit: number
     monthlyTokenLimit: number
-  }): Promise<void> {
-    const response = await http.put<ApiResponse<void>>(`/api/admin/users/${userId}/quota`, quota)
-    extractData(response)
-  },
+  }) => http.put<void>(`/api/admin/users/${userId}/quota`, quota),
 
-  async deleteUser(userId: string): Promise<void> {
-    const response = await http.delete<ApiResponse<void>>(`/api/admin/users/${userId}`)
-    extractData(response)
-  },
+  deleteUser: (userId: string) => http.delete<void>(`/api/admin/users/${userId}`),
 
   // 成本监控
-  async getBudget(): Promise<BudgetInfo> {
-    const response = await http.get<ApiResponse<BudgetInfo>>('/api/admin/cost/budget')
-    return extractData(response)
-  },
+  getBudget: () => http.get<BudgetInfo>('/api/admin/cost/budget'),
 
-  async getModelCostStatistics(): Promise<CostStatistics[]> {
-    const response = await http.get<ApiResponse<CostStatistics[]>>('/api/admin/cost/model-statistics')
-    return extractData(response)
-  },
+  getModelCostStatistics: () => http.get<CostStatistics[]>('/api/admin/cost/model-statistics'),
 
-  async getTopUsers(params: { limit: number }): Promise<UserCostRanking[]> {
-    const response = await http.get<ApiResponse<UserCostRanking[]>>('/api/admin/cost/top-users', { params })
-    return extractData(response)
-  },
+  getTopUsers: (params: { limit: number }) => http.get<UserCostRanking[]>('/api/admin/cost/top-users', { params }),
 
-  async getCostTrend(params: { days: number }): Promise<TrendData> {
-    const response = await http.get<ApiResponse<TrendData>>('/api/admin/cost/trend', { params })
-    return extractData(response)
-  }
+  getCostTrend: (params: { days: number }) => http.get<TrendData>('/api/admin/cost/trend', { params })
 }
 
 // ==================== 测试管理 API ====================
@@ -243,71 +191,155 @@ export interface TestStatsSummary {
   avgResponseTime: number
 }
 
+// ==================== 新增：历史查询和导出 ====================
+
+export interface TestJobHistory {
+  id: string
+  testType: 'E2E' | 'PERFORMANCE' | 'AI_MODEL'
+  status: string
+  startTime: string
+  endTime: string
+  message: string
+  progress: number
+  triggeredBy: string
+  createdAt: string
+}
+
+export interface TestResultHistoryQuery {
+  type?: string
+  status?: string
+  from?: string
+  to?: string
+  category?: string
+  passed?: boolean
+  page?: number
+  size?: number
+}
+
+export interface TestComparisonResult {
+  job1: { jobId: string; testType: string; startTime: string; status: string }
+  job2: { jobId: string; testType: string; startTime: string; status: string }
+  testType: string
+  diffs: Array<{
+    testName: string
+    field: string
+    value1: any
+    value2: any
+    changed: boolean
+    changeDirection: string
+  }>
+  summary: { totalTests: number; improved: number; degraded: number; unchanged: number }
+}
+
+export interface E2ETestResultDetail {
+  id: number
+  jobId: string
+  testName: string
+  status: string
+  durationMs: number
+  assertionsPassed: number
+  assertionsFailed: number
+  errorMessage: string
+  createdAt: string
+}
+
+export interface PerformanceTestResultDetail {
+  id: number
+  jobId: string
+  simulation: string
+  requests: number
+  successRate: number
+  avgResponseTime: number
+  maxResponseTime: number
+  p95ResponseTime: number
+  p99ResponseTime: number
+  startTime: string
+  endTime: string
+  createdAt: string
+}
+
+export interface AIModelTestResultDetail {
+  id: number
+  jobId: string
+  testCaseId: string
+  testName: string
+  category: string
+  score: number
+  passed: boolean
+  details: any[]
+  responseTime: number
+  actualOutput: string
+  createdAt: string
+}
+
 export const testApi = {
   // E2E 测试
-  async runE2ETests(): Promise<{ jobId: string }> {
-    const response = await http.post<ApiResponse<{ jobId: string }>>('/api/admin/test/e2e/run')
-    return extractData(response)
-  },
+  runE2ETests: () => http.post<{ jobId: string }>('/api/admin/test/e2e/run'),
 
-  async getE2EStatus(): Promise<TestResultSummary[]> {
-    const response = await http.get<ApiResponse<TestResultSummary[]>>('/api/admin/test/e2e/status')
-    return extractData(response)
-  },
+  getE2EStatus: () => http.get<TestResultSummary[]>('/api/admin/test/e2e/status'),
 
-  async getE2EReport(): Promise<string> {
-    const response = await http.get<ApiResponse<string>>('/api/admin/test/e2e/report')
-    return extractData(response)
-  },
+  getE2EReport: () => http.get<string>('/api/admin/test/e2e/report'),
 
   // 性能测试
-  async runPerformanceTest(simulation: string): Promise<{ jobId: string }> {
-    const response = await http.post<ApiResponse<{ jobId: string }>>('/api/admin/test/performance/run', { simulation })
-    return extractData(response)
-  },
+  runPerformanceTest: (simulation: string) => http.post<{ jobId: string }>('/api/admin/test/performance/run', { simulation }),
 
-  async getPerformanceResults(): Promise<PerformanceResultSummary[]> {
-    const response = await http.get<ApiResponse<PerformanceResultSummary[]>>('/api/admin/test/performance/results')
-    return extractData(response)
-  },
+  getPerformanceResults: () => http.get<PerformanceResultSummary[]>('/api/admin/test/performance/results'),
 
-  async getAvailableSimulations(): Promise<string[]> {
-    const response = await http.get<ApiResponse<string[]>>('/api/admin/test/performance/simulations')
-    return extractData(response)
-  },
+  getAvailableSimulations: () => http.get<string[]>('/api/admin/test/performance/simulations'),
 
   // AI 模型测试
-  async runAIModelTests(category?: string): Promise<{ jobId: string }> {
-    const response = await http.post<ApiResponse<{ jobId: string }>>('/api/admin/test/ai/run', { category })
-    return extractData(response)
-  },
+  runAIModelTests: (category?: string) => http.post<{ jobId: string }>('/api/admin/test/ai/run', { category }),
 
-  async getAIModelResults(): Promise<AIModelTestSummary[]> {
-    const response = await http.get<ApiResponse<AIModelTestSummary[]>>('/api/admin/test/ai/results')
-    return extractData(response)
-  },
+  getAIModelResults: () => http.get<AIModelTestSummary[]>('/api/admin/test/ai/results'),
 
-  async getAICategories(): Promise<string[]> {
-    const response = await http.get<ApiResponse<string[]>>('/api/admin/test/ai/categories')
-    return extractData(response)
-  },
+  getAICategories: () => http.get<string[]>('/api/admin/test/ai/categories'),
 
   // 任务管理
-  async getJobStatus(jobId: string): Promise<TestJobStatus> {
-    const response = await http.get<ApiResponse<TestJobStatus>>(`/api/admin/test/job/${jobId}/status`)
-    return extractData(response)
-  },
+  getJobStatus: (jobId: string) => http.get<TestJobStatus>(`/api/admin/test/job/${jobId}/status`),
 
-  async cancelJob(jobId: string): Promise<void> {
-    const response = await http.delete<ApiResponse<void>>(`/api/admin/test/job/${jobId}`)
-    extractData(response)
-  },
+  cancelJob: (jobId: string) => http.delete<void>(`/api/admin/test/job/${jobId}`),
 
   // 测试统计
-  async getStatsSummary(): Promise<TestStatsSummary> {
-    const response = await http.get<ApiResponse<TestStatsSummary>>('/api/admin/test/stats/summary')
-    return extractData(response)
-  }
+  getStatsSummary: () => http.get<TestStatsSummary>('/api/admin/test/stats/summary'),
+
+  // ==================== 历史查询 ====================
+
+  getTestJobHistory: (params: TestResultHistoryQuery) =>
+    http.get<PageResponse<TestJobHistory>>('/api/admin/test/jobs', { params }),
+
+  getTestJobDetail: (jobId: string) =>
+    http.get<TestJobHistory>(`/api/admin/test/jobs/${jobId}`),
+
+  getTestJobResults: (jobId: string) =>
+    http.get<{
+      e2e: E2ETestResultDetail[]
+      performance: PerformanceTestResultDetail[]
+      aiModel: AIModelTestResultDetail[]
+    }>(`/api/admin/test/jobs/${jobId}/results`),
+
+  getE2EHistory: (params: { jobId?: string; status?: string; page?: number; size?: number }) =>
+    http.get<E2ETestResultDetail[]>('/api/admin/test/results/e2e', { params }),
+
+  getPerformanceHistory: (params: { jobId?: string; page?: number; size?: number }) =>
+    http.get<PerformanceTestResultDetail[]>('/api/admin/test/results/performance', { params }),
+
+  getAIModelHistory: (params: { jobId?: string; category?: string; passed?: boolean; page?: number; size?: number }) =>
+    http.get<AIModelTestResultDetail[]>('/api/admin/test/results/ai', { params }),
+
+  // ==================== 导出 ====================
+
+  exportTestResults: (params: { type: string; format: string; from?: string; to?: string }) =>
+    http.get<Blob>('/api/admin/test/export', { params, responseType: 'blob' }),
+
+  // ==================== 对比 ====================
+
+  compareTestResults: (jobId1: string, jobId2: string) =>
+    http.post<TestComparisonResult>('/api/admin/test/compare', { jobId1, jobId2 }),
+
+  // ==================== 清理 ====================
+
+  cleanupTestJobs: (retentionDays: number = 90) =>
+    http.delete<{ deleted: number }>('/api/admin/test/cleanup', { params: { retentionDays } })
 }
 
 export default adminApi

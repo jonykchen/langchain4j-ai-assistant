@@ -1,15 +1,15 @@
 package com.jonychen.tool.resilience;
 
-import com.jonychen.tool.ToolCategory;
-import com.jonychen.tool.ToolDefinition;
+import java.time.Duration;
+
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
+import com.jonychen.tool.ToolDefinition;
 
 /**
  * 工具执行配置解析器
  *
- * 根据工具定义解析合适的执行配置
+ * <p>根据工具定义解析合适的执行配置
  *
  * @author jonychen
  */
@@ -46,21 +46,17 @@ public class ToolExecutionConfigResolver {
         };
     }
 
-    /**
-     * 根据工具分类获取熔断阈值
-     */
+    /** 根据工具分类获取熔断阈值 */
     private double getCircuitBreakerThreshold(ToolDefinition tool) {
         return switch (tool.category()) {
-            case DATABASE -> 0.3;  // 数据库操作更敏感
-            case FILE -> 0.3;      // 文件操作更敏感
-            case EXTERNAL -> 0.4;  // 外部服务
-            default -> 0.5;       // 其他
+            case DATABASE -> 0.3; // 数据库操作更敏感
+            case FILE -> 0.3; // 文件操作更敏感
+            case EXTERNAL -> 0.4; // 外部服务
+            default -> 0.5; // 其他
         };
     }
 
-    /**
-     * 根据工具分类获取降级结果
-     */
+    /** 根据工具分类获取降级结果 */
     private String getFallbackResult(ToolDefinition tool) {
         return switch (tool.category()) {
             case DATABASE -> "{\"error\": \"数据库服务暂时不可用\"}";

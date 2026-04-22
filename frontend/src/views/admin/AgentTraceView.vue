@@ -238,12 +238,14 @@ const filters = reactive({
 const loadTraces = async () => {
   loading.value = true
   try {
-    traces.value = await observabilityApi.getTraces({
+    const result = await observabilityApi.getTraces({
       status: filters.status,
       agentType: filters.agentType,
       userId: filters.userId,
       limit: 50
     })
+    // 兼容后端返回分页对象 {data: [...], total, ...} 或直接返回数组的情况
+    traces.value = Array.isArray(result) ? result : Array.isArray((result as any)?.data) ? (result as any).data : []
   } catch (error) {
     ElMessage.error('加载追踪列表失败')
   } finally {
@@ -253,7 +255,8 @@ const loadTraces = async () => {
 
 const loadActiveTraces = async () => {
   try {
-    activeTraces.value = await observabilityApi.getActiveTraces()
+    const result = await observabilityApi.getActiveTraces()
+    activeTraces.value = Array.isArray(result) ? result : []
   } catch (error) {
     console.error('加载活跃追踪失败', error)
   }
@@ -275,7 +278,8 @@ const showDetail = (trace: AgentTrace) => {
 const showSpanView = async (trace: AgentTrace) => {
   selectedTrace.value = trace
   try {
-    spans.value = await observabilityApi.getTraceSpans(trace.traceId)
+    const result = await observabilityApi.getTraceSpans(trace.traceId)
+    spans.value = Array.isArray(result) ? result : Array.isArray((result as any)?.data) ? (result as any).data : []
     spanViewVisible.value = true
   } catch (error) {
     ElMessage.error('加载追踪详情失败')

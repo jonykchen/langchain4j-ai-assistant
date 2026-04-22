@@ -1,29 +1,26 @@
 package com.jonychen.config;
 
-import com.jonychen.assistant.ChatAssistant;
-import com.jonychen.model.LoadBalancedChatModel;
-import com.jonychen.model.LoadBalancedStreamingChatModel;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.service.AiServices;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.jonychen.assistant.ChatAssistant;
+import com.jonychen.model.LoadBalancedChatModel;
+import com.jonychen.model.LoadBalancedStreamingChatModel;
+
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.service.AiServices;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
+
 /**
  * AI 配置类
  *
- * 职责：
- * 1. 配置 ChatAssistant Bean（核心 AI 服务）
- * 2. 设置对话记忆（ChatMemory）
- * 3. 构建负载均衡模型（多模型高可用）
+ * <p>职责： 1. 配置 ChatAssistant Bean（核心 AI 服务） 2. 设置对话记忆（ChatMemory） 3. 构建负载均衡模型（多模型高可用）
  *
- * 高可用架构：
- * - LoadBalancedChatModel: 多模型负载均衡 + 故障转移
- * - LoadBalancedStreamingChatModel: 流式模型负载均衡
- * - 模型级熔断器: 每个模型独立熔断
+ * <p>高可用架构： - LoadBalancedChatModel: 多模型负载均衡 + 故障转移 - LoadBalancedStreamingChatModel: 流式模型负载均衡 -
+ * 模型级熔断器: 每个模型独立熔断
  *
  * @author 30240
  */
@@ -35,9 +32,9 @@ public class AiConfig {
     /**
      * 构建负载均衡聊天模型
      *
-     * @param modelProperties   模型配置属性
+     * @param modelProperties 模型配置属性
      * @param circuitBreakerRegistry 熔断器注册表
-     * @param meterRegistry     指标注册表
+     * @param meterRegistry 指标注册表
      * @return LoadBalancedChatModel 实例
      */
     @Bean
@@ -61,9 +58,9 @@ public class AiConfig {
     /**
      * 构建负载均衡流式聊天模型
      *
-     * @param modelProperties   模型配置属性
+     * @param modelProperties 模型配置属性
      * @param circuitBreakerRegistry 熔断器注册表
-     * @param meterRegistry     指标注册表
+     * @param meterRegistry 指标注册表
      * @return LoadBalancedStreamingChatModel 实例
      */
     @Bean
@@ -87,7 +84,7 @@ public class AiConfig {
     /**
      * 构建 ChatAssistant Bean
      *
-     * 使用负载均衡模型替代单一模型，实现高可用。
+     * <p>使用负载均衡模型替代单一模型，实现高可用。
      *
      * @param loadBalancedChatModel 负载均衡同步模型
      * @param loadBalancedStreamingChatModel 负载均衡流式模型

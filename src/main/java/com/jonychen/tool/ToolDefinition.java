@@ -6,14 +6,14 @@ import java.util.List;
 /**
  * 工具定义
  *
- * @param name              工具名称
- * @param description       功能描述
- * @param category          分类
- * @param parameters        参数 Schema
- * @param executor          执行器
+ * @param name 工具名称
+ * @param description 功能描述
+ * @param category 分类
+ * @param parameters 参数 Schema
+ * @param executor 执行器
  * @param requiredPermissions 所需权限
- * @param timeout           超时时间
- * @param maxRetries        最大重试次数
+ * @param timeout 超时时间
+ * @param maxRetries 最大重试次数
  * @author jonychen
  */
 public record ToolDefinition(
@@ -24,33 +24,35 @@ public record ToolDefinition(
         ToolExecutor executor,
         List<String> requiredPermissions,
         Duration timeout,
-        int maxRetries
-) {
-    /**
-     * 创建简单工具定义
-     */
+        int maxRetries) {
+    /** 创建简单工具定义 */
     public static ToolDefinition of(String name, String description, ToolExecutor executor) {
         return new ToolDefinition(
-                name, description, ToolCategory.CUSTOM,
-                new ToolParameterSchema(), executor,
-                List.of(), Duration.ofSeconds(30), 2
-        );
+                name,
+                description,
+                ToolCategory.CUSTOM,
+                new ToolParameterSchema(),
+                executor,
+                List.of(),
+                Duration.ofSeconds(30),
+                2);
     }
 
-    /**
-     * 创建带分类的工具定义
-     */
-    public static ToolDefinition of(String name, String description, ToolCategory category, ToolExecutor executor) {
+    /** 创建带分类的工具定义 */
+    public static ToolDefinition of(
+            String name, String description, ToolCategory category, ToolExecutor executor) {
         return new ToolDefinition(
-                name, description, category,
-                new ToolParameterSchema(), executor,
-                List.of(), Duration.ofSeconds(30), 2
-        );
+                name,
+                description,
+                category,
+                new ToolParameterSchema(),
+                executor,
+                List.of(),
+                Duration.ofSeconds(30),
+                2);
     }
 
-    /**
-     * 构建器
-     */
+    /** 构建器 */
     public static Builder builder() {
         return new Builder();
     }
@@ -115,8 +117,15 @@ public record ToolDefinition(
             if (executor == null) {
                 throw new IllegalArgumentException("Tool executor is required");
             }
-            return new ToolDefinition(name, description, category, parameters, executor,
-                    requiredPermissions, timeout, maxRetries);
+            return new ToolDefinition(
+                    name,
+                    description,
+                    category,
+                    parameters,
+                    executor,
+                    requiredPermissions,
+                    timeout,
+                    maxRetries);
         }
     }
 }

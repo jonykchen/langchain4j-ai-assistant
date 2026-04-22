@@ -3,49 +3,29 @@ package com.jonychen.prompt;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Prompt 模板定义
- */
+/** Prompt 模板定义 */
 public record PromptTemplate(
-    /**
-     * 模板名称
-     */
-    String name,
+        /** 模板名称 */
+        String name,
 
-    /**
-     * 版本号
-     */
-    String version,
+        /** 版本号 */
+        String version,
 
-    /**
-     * 描述
-     */
-    String description,
+        /** 描述 */
+        String description,
 
-    /**
-     * 模板内容
-     */
-    String template,
+        /** 模板内容 */
+        String template,
 
-    /**
-     * 变量定义列表
-     */
-    List<TemplateVariable> variables,
+        /** 变量定义列表 */
+        List<TemplateVariable> variables,
 
-    /**
-     * Few-shot 示例
-     */
-    List<FewShotExample> examples,
+        /** Few-shot 示例 */
+        List<FewShotExample> examples,
 
-    /**
-     * 元数据
-     */
-    PromptMetadata metadata
-) {
-    /**
-     * 渲染模板
-     * 将变量值替换到模板中
-     */
+        /** 元数据 */
+        PromptMetadata metadata) {
+    /** 渲染模板 将变量值替换到模板中 */
     public String render(Map<String, Object> variables) {
         String result = template;
 
@@ -69,9 +49,7 @@ public record PromptTemplate(
         return result;
     }
 
-    /**
-     * 验证变量是否满足要求
-     */
+    /** 验证变量是否满足要求 */
     public boolean validateVariables(Map<String, Object> variables) {
         if (this.variables == null) {
             return true;

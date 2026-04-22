@@ -27,7 +27,7 @@ public interface VectorStore {
      * 相似度搜索
      *
      * @param queryVector 查询向量
-     * @param topK        返回数量
+     * @param topK 返回数量
      * @return 相似的文档块列表
      */
     List<DocumentChunk> search(float[] queryVector, int topK);
@@ -36,7 +36,7 @@ public interface VectorStore {
      * 带分数的相似度搜索
      *
      * @param queryVector 查询向量
-     * @param topK        返回数量
+     * @param topK 返回数量
      * @return 搜索结果列表（包含分数）
      */
     List<SearchResult> searchWithScore(float[] queryVector, int topK);
@@ -78,9 +78,7 @@ public interface VectorStore {
      */
     long countByDocumentId(String documentId);
 
-    /**
-     * 清空所有数据
-     */
+    /** 清空所有数据 */
     void clear();
 
     /**
@@ -98,9 +96,7 @@ public interface VectorStore {
      * @param score 相似度分数
      */
     record SearchResult(DocumentChunk chunk, double score) {
-        /**
-         * 创建搜索结果
-         */
+        /** 创建搜索结果 */
         public static SearchResult of(DocumentChunk chunk, double score) {
             return new SearchResult(chunk, score);
         }

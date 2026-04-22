@@ -1,18 +1,20 @@
 package com.jonychen.admin.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jonychen.admin.entity.TokenUsageLog;
 import com.jonychen.admin.repository.TokenUsageRepository;
 import com.jonychen.config.ModelProperties;
 import com.jonychen.metrics.BusinessMetricsService;
+
 import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Token 使用记录服务
@@ -28,10 +30,7 @@ public class TokenUsageService {
     private final ModelProperties modelProperties;
     private final BusinessMetricsService businessMetricsService;
 
-    /**
-     * 模型定价（每千 Token 价格，USD）
-     * 参考：https://openai.com/pricing
-     */
+    /** 模型定价（每千 Token 价格，USD） 参考：https://openai.com/pricing */
     private static final Map<String, Pricing> MODEL_PRICING = new HashMap<>();
 
     static {
@@ -62,27 +61,33 @@ public class TokenUsageService {
     /**
      * 记录 Token 使用
      *
-     * @param userId      用户 ID
-     * @param sessionId   会话 ID（可选）
-     * @param modelName   模型名称
-     * @param response    LangChain4j 响应对象
+     * @param userId 用户 ID
+     * @param sessionId 会话 ID（可选）
+     * @param modelName 模型名称
+     * @param response LangChain4j 响应对象
      */
     @Transactional
-    public void recordUsage(String userId, String sessionId, String modelName, ChatResponse response) {
+    public void recordUsage(
+            String userId, String sessionId, String modelName, ChatResponse response) {
         recordUsage(userId, sessionId, null, modelName, response);
     }
 
     /**
      * 记录 Token 使用（带 Trace ID）
      *
-     * @param userId      用户 ID
-     * @param sessionId   会话 ID（可选）
-     * @param traceId     Trace ID（可选）
-     * @param modelName   模型名称
-     * @param response    LangChain4j 响应对象
+     * @param userId 用户 ID
+     * @param sessionId 会话 ID（可选）
+     * @param traceId Trace ID（可选）
+     * @param modelName 模型名称
+     * @param response LangChain4j 响应对象
      */
     @Transactional
-    public void recordUsage(String userId, String sessionId, String traceId, String modelName, ChatResponse response) {
+    public void recordUsage(
+            String userId,
+            String sessionId,
+            String traceId,
+            String modelName,
+            ChatResponse response) {
         if (response == null || response.tokenUsage() == null) {
             log.warn("响应或 Token 使用信息为空，跳过记录");
             return;
@@ -95,14 +100,9 @@ public class TokenUsageService {
 
         double cost = calculateCost(modelName, promptTokens, completionTokens);
 
-        TokenUsageLog logEntry = TokenUsageLog.create(
-                userId,
-                sessionId,
-                modelName,
-                promptTokens,
-                completionTokens,
-                cost
-        );
+        TokenUsageLog logEntry =
+                TokenUsageLog.create(
+                        userId, sessionId, modelName, promptTokens, completionTokens, cost);
         logEntry.setTraceId(traceId);
 
         tokenUsageRepository.save(logEntry);
@@ -112,32 +112,37 @@ public class TokenUsageService {
         businessMetricsService.recordUserTokenUsage(userId, totalTokens);
         businessMetricsService.recordCost(cost);
 
-        log.info("Token 使用记录: userId={}, model={}, prompt={}, completion={}, total={}, cost=${}",
-                userId, modelName, promptTokens, completionTokens, totalTokens, cost);
+        log.info(
+                "Token 使用记录: userId={}, model={}, prompt={}, completion={}, total={}, cost=${}",
+                userId,
+                modelName,
+                promptTokens,
+                completionTokens,
+                totalTokens,
+                cost);
     }
 
     /**
      * 记录流式 Token 使用（流式响应完成后）
      *
-     * @param userId           用户 ID
-     * @param sessionId        会话 ID
-     * @param modelName        模型名称
-     * @param promptTokens     输入 Token 数
+     * @param userId 用户 ID
+     * @param sessionId 会话 ID
+     * @param modelName 模型名称
+     * @param promptTokens 输入 Token 数
      * @param completionTokens 输出 Token 数
      */
     @Transactional
-    public void recordStreamingUsage(String userId, String sessionId, String modelName,
-                                      int promptTokens, int completionTokens) {
+    public void recordStreamingUsage(
+            String userId,
+            String sessionId,
+            String modelName,
+            int promptTokens,
+            int completionTokens) {
         double cost = calculateCost(modelName, promptTokens, completionTokens);
 
-        TokenUsageLog logEntry = TokenUsageLog.create(
-                userId,
-                sessionId,
-                modelName,
-                promptTokens,
-                completionTokens,
-                cost
-        );
+        TokenUsageLog logEntry =
+                TokenUsageLog.create(
+                        userId, sessionId, modelName, promptTokens, completionTokens, cost);
 
         tokenUsageRepository.save(logEntry);
 
@@ -146,13 +151,16 @@ public class TokenUsageService {
         businessMetricsService.recordUserTokenUsage(userId, promptTokens + completionTokens);
         businessMetricsService.recordCost(cost);
 
-        log.info("流式 Token 使用记录: userId={}, model={}, prompt={}, completion={}, cost=${}",
-                userId, modelName, promptTokens, completionTokens, cost);
+        log.info(
+                "流式 Token 使用记录: userId={}, model={}, prompt={}, completion={}, cost=${}",
+                userId,
+                modelName,
+                promptTokens,
+                completionTokens,
+                cost);
     }
 
-    /**
-     * 计算费用
-     */
+    /** 计算费用 */
     private double calculateCost(String modelName, int promptTokens, int completionTokens) {
         Pricing pricing = MODEL_PRICING.getOrDefault(modelName, new Pricing(0.001, 0.002));
 
@@ -162,9 +170,7 @@ public class TokenUsageService {
         return promptCost + completionCost;
     }
 
-    /**
-     * 获取用户今日使用统计
-     */
+    /** 获取用户今日使用统计 */
     public TokenUsageSummary getTodaySummary(String userId) {
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalDateTime start = today.atStartOfDay();
@@ -172,10 +178,9 @@ public class TokenUsageService {
         return getRangeSummary(userId, start, end);
     }
 
-    /**
-     * 获取用户指定日期范围统计
-     */
-    public TokenUsageSummary getRangeSummary(String userId, java.time.LocalDateTime start, java.time.LocalDateTime end) {
+    /** 获取用户指定日期范围统计 */
+    public TokenUsageSummary getRangeSummary(
+            String userId, java.time.LocalDateTime start, java.time.LocalDateTime end) {
         List<Object[]> results;
         if (userId != null) {
             results = tokenUsageRepository.getUserUsage(userId, start, end);
@@ -192,20 +197,15 @@ public class TokenUsageService {
                 ((Number) row[0]).longValue(),
                 ((Number) row[1]) != null ? ((Number) row[1]).longValue() : 0,
                 ((Number) row[2]) != null ? ((Number) row[2]).longValue() : 0,
-                ((Number) row[3]) != null ? ((Number) row[3]).doubleValue() : 0.0
-        );
+                ((Number) row[3]) != null ? ((Number) row[3]).doubleValue() : 0.0);
     }
 
-    /**
-     * 获取全局统计
-     */
+    /** 获取全局统计 */
     public TokenUsageSummary getGlobalSummary(java.time.LocalDate start, java.time.LocalDate end) {
         return getRangeSummary(null, start.atStartOfDay(), end.plusDays(1).atStartOfDay());
     }
 
-    /**
-     * 检查用户预算
-     */
+    /** 检查用户预算 */
     public BudgetCheckResult checkBudget(String userId, double monthlyLimit) {
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalDateTime monthStart = today.withDayOfMonth(1).atStartOfDay();
@@ -216,7 +216,8 @@ public class TokenUsageService {
         boolean withinBudget = monthSummary.totalCost() < monthlyLimit;
         double remaining = monthlyLimit - monthSummary.totalCost();
 
-        return new BudgetCheckResult(withinBudget, monthSummary.totalCost(), monthlyLimit, remaining);
+        return new BudgetCheckResult(
+                withinBudget, monthSummary.totalCost(), monthlyLimit, remaining);
     }
 
     /**
@@ -244,32 +245,31 @@ public class TokenUsageService {
         }
 
         return grouped.entrySet().stream()
-                .map(e -> new DailyUsage(
-                        e.getKey(),
-                        e.getValue().stream().mapToLong(TokenUsageLog::getTotalTokens).sum(),
-                        e.getValue().stream().mapToDouble(r -> r.getCost().doubleValue()).sum()
-                ))
+                .map(
+                        e ->
+                                new DailyUsage(
+                                        e.getKey(),
+                                        e.getValue().stream()
+                                                .mapToLong(TokenUsageLog::getTotalTokens)
+                                                .sum(),
+                                        e.getValue().stream()
+                                                .mapToDouble(r -> r.getCost().doubleValue())
+                                                .sum()))
                 .sorted(java.util.Comparator.comparing(DailyUsage::date))
                 .toList();
     }
 
-    /**
-     * Token 使用统计摘要
-     */
-    public record TokenUsageSummary(long totalTokens, long promptTokens, long completionTokens, double totalCost) {}
+    /** Token 使用统计摘要 */
+    public record TokenUsageSummary(
+            long totalTokens, long promptTokens, long completionTokens, double totalCost) {}
 
-    /**
-     * 预算检查结果
-     */
-    public record BudgetCheckResult(boolean withinBudget, double usedAmount, double budgetLimit, double remaining) {}
+    /** 预算检查结果 */
+    public record BudgetCheckResult(
+            boolean withinBudget, double usedAmount, double budgetLimit, double remaining) {}
 
-    /**
-     * 每日使用量
-     */
+    /** 每日使用量 */
     public record DailyUsage(java.time.LocalDate date, long totalTokens, double totalCost) {}
 
-    /**
-     * 模型定价
-     */
+    /** 模型定价 */
     private record Pricing(double promptPricePer1k, double completionPricePer1k) {}
 }

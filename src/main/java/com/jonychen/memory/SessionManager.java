@@ -3,10 +3,7 @@ package com.jonychen.memory;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * 会话管理器接口
- * 管理用户会话的创建、查询、更新、删除
- */
+/** 会话管理器接口 管理用户会话的创建、查询、更新、删除 */
 public interface SessionManager {
 
     /**
@@ -19,8 +16,7 @@ public interface SessionManager {
     SessionInfo createSession(String userId, String title);
 
     /**
-     * 获取或创建会话
-     * 如果会话不存在则创建新会话
+     * 获取或创建会话 如果会话不存在则创建新会话
      *
      * @param sessionId 会话 ID（可为空）
      * @param userId 用户 ID

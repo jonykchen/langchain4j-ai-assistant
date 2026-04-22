@@ -1,12 +1,14 @@
 package com.jonychen.planning;
 
-import com.jonychen.tool.ToolRegistry;
-import com.jonychen.tool.ToolResult;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
+import com.jonychen.tool.ToolRegistry;
+import com.jonychen.tool.ToolResult;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 任务执行器
@@ -23,7 +25,7 @@ public class TaskExecutor {
     /**
      * 执行单个步骤
      *
-     * @param step    步骤定义
+     * @param step 步骤定义
      * @param context 任务上下文
      * @return 步骤结果
      */
@@ -68,26 +70,19 @@ public class TaskExecutor {
                         task.taskId(),
                         "步骤 " + step.order() + " 执行失败: " + result.error(),
                         stepResults,
-                        System.currentTimeMillis() - startTime
-                );
+                        System.currentTimeMillis() - startTime);
             }
         }
 
         // 所有步骤成功完成
-        Object finalOutput = stepResults.isEmpty() ? null :
-                stepResults.get(stepResults.size() - 1).output();
+        Object finalOutput =
+                stepResults.isEmpty() ? null : stepResults.get(stepResults.size() - 1).output();
 
         return TaskResult.success(
-                task.taskId(),
-                finalOutput,
-                stepResults,
-                System.currentTimeMillis() - startTime
-        );
+                task.taskId(), finalOutput, stepResults, System.currentTimeMillis() - startTime);
     }
 
-    /**
-     * 执行工具步骤
-     */
+    /** 执行工具步骤 */
     private StepResult executeToolStep(Step step, TaskContext context) {
         try {
             // 合并上下文变量到参数

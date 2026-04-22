@@ -1,6 +1,7 @@
 package com.jonychen.integration;
 
-import com.jonychen.test.TestcontainersConfig;
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,18 +10,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static org.junit.jupiter.api.Assertions.*;
+import com.jonychen.test.TestcontainersConfig;
 
-/**
- * 使用 Testcontainers 的数据库集成测试
- */
+/** 使用 Testcontainers 的数据库集成测试 */
 @SpringBootTest
 @ActiveProfiles("test")
 @Testcontainers
 class DatabaseIntegrationTest extends TestcontainersConfig {
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Test
     @DisplayName("数据库连接测试")
@@ -60,8 +58,9 @@ class DatabaseIntegrationTest extends TestcontainersConfig {
         String json = "{\"test\": \"value\"}";
         jdbcTemplate.update("CREATE TABLE IF NOT EXISTS test_jsonb (id SERIAL, data JSONB)");
         jdbcTemplate.update("INSERT INTO test_jsonb (data) VALUES (?::jsonb)", json);
-        String result = jdbcTemplate.queryForObject(
-                "SELECT data::text FROM test_jsonb LIMIT 1", String.class);
+        String result =
+                jdbcTemplate.queryForObject(
+                        "SELECT data::text FROM test_jsonb LIMIT 1", String.class);
         assertTrue(result.contains("test"));
         jdbcTemplate.update("DROP TABLE IF EXISTS test_jsonb");
     }

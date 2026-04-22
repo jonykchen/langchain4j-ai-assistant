@@ -5,7 +5,7 @@ import com.jonychen.model.ErrorCode;
 /**
  * 所有模型不可用异常
  *
- * 当所有配置的模型提供者都不可用时抛出此异常。
+ * <p>当所有配置的模型提供者都不可用时抛出此异常。
  */
 public class AllModelsUnavailableException extends BusinessException {
 

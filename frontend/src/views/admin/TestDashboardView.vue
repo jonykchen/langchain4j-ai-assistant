@@ -20,6 +20,8 @@ const e2eLoading = ref(false)
 const perfLoading = ref(false)
 const aiLoading = ref(false)
 const allLoading = ref(false)
+const statsLoading = ref(false)
+const loadError = ref<string | null>(null)
 
 const currentJobId = ref<string | null>(null)
 const jobStatus = ref<TestJobStatus | null>(null)
@@ -58,10 +60,16 @@ const statsCards = computed(() => [
 
 // 加载统计数据
 const loadStats = async () => {
+  statsLoading.value = true
+  loadError.value = null
   try {
     stats.value = await testApi.getStatsSummary()
-  } catch (error) {
+  } catch (error: any) {
     console.error('加载统计数据失败', error)
+    loadError.value = error.message || '加载失败，请检查网络连接或登录状态'
+    ElMessage.warning('加载统计数据失败，可能需要重新登录')
+  } finally {
+    statsLoading.value = false
   }
 }
 
@@ -73,8 +81,8 @@ const runE2ETests = async () => {
     currentJobId.value = result.jobId
     ElMessage.success('E2E 测试已启动')
     pollJobStatus(result.jobId)
-  } catch (error) {
-    ElMessage.error('启动 E2E 测试失败')
+  } catch (error: any) {
+    ElMessage.error('启动 E2E 测试失败: ' + (error.message || '请检查登录状态'))
   } finally {
     e2eLoading.value = false
   }
@@ -88,8 +96,8 @@ const runPerformanceTest = async () => {
     currentJobId.value = result.jobId
     ElMessage.success('性能测试已启动')
     pollJobStatus(result.jobId)
-  } catch (error) {
-    ElMessage.error('启动性能测试失败')
+  } catch (error: any) {
+    ElMessage.error('启动性能测试失败: ' + (error.message || '请检查登录状态'))
   } finally {
     perfLoading.value = false
   }
@@ -103,8 +111,8 @@ const runAIModelTests = async () => {
     currentJobId.value = result.jobId
     ElMessage.success('AI 模型测试已启动')
     pollJobStatus(result.jobId)
-  } catch (error) {
-    ElMessage.error('启动 AI 模型测试失败')
+  } catch (error: any) {
+    ElMessage.error('启动 AI 模型测试失败: ' + (error.message || '请检查登录状态'))
   } finally {
     aiLoading.value = false
   }
@@ -120,8 +128,8 @@ const runAllTests = async () => {
       testApi.runAIModelTests()
     ])
     ElMessage.success('全部测试已启动')
-  } catch (error) {
-    ElMessage.error('启动测试失败')
+  } catch (error: any) {
+    ElMessage.error('启动测试失败: ' + (error.message || '请检查登录状态'))
   } finally {
     allLoading.value = false
   }
@@ -169,6 +177,11 @@ const updateStats = (newStats: Partial<TestStatsSummary>) => {
   stats.value = { ...stats.value, ...newStats }
 }
 
+// 刷新数据
+const refreshData = async () => {
+  await loadStats()
+}
+
 onMounted(() => {
   loadStats()
 })
@@ -177,7 +190,7 @@ onMounted(() => {
 <template>
   <div class="test-dashboard p-6">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="mb-6">
+    <el-row :gutter="20" class="mb-6" v-loading="statsLoading">
       <el-col :span="6" v-for="card in statsCards" :key="card.label">
         <el-card shadow="hover" :body-style="{ padding: '20px' }">
           <div class="stat-card">
@@ -194,6 +207,23 @@ onMounted(() => {
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 加载错误提示 -->
+    <el-alert
+      v-if="loadError"
+      :title="loadError"
+      type="warning"
+      show-icon
+      class="mb-6"
+      :closable="false"
+    >
+      <template #default>
+        <div class="flex items-center gap-2">
+          <span>可能是登录状态已过期，请尝试</span>
+          <el-button type="primary" size="small" @click="refreshData">刷新</el-button>
+        </div>
+      </template>
+    </el-alert>
 
     <!-- 任务状态 -->
     <el-card v-if="jobStatus" class="mb-6">

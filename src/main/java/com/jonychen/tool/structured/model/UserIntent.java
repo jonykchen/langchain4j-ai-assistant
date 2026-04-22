@@ -5,10 +5,10 @@ import java.util.List;
 /**
  * 用户意图识别结果
  *
- * @param intent      意图类型
- * @param confidence  确信度（0-1）
- * @param entities    提取的实体
- * @param subIntents  子意图列表
+ * @param intent 意图类型
+ * @param confidence 确信度（0-1）
+ * @param entities 提取的实体
+ * @param subIntents 子意图列表
  * @param requiresTool 是否需要工具调用
  * @param suggestedTool 建议使用的工具
  * @param responseStrategy 响应策略
@@ -21,22 +21,12 @@ public record UserIntent(
         List<String> subIntents,
         boolean requiresTool,
         String suggestedTool,
-        String responseStrategy
-) {
-    /**
-     * 提取的实体
-     */
+        String responseStrategy) {
+    /** 提取的实体 */
     public record Entity(
-            String type,
-            String value,
-            int startIndex,
-            int endIndex,
-            double confidence
-    ) {}
+            String type, String value, int startIndex, int endIndex, double confidence) {}
 
-    /**
-     * 意图类型枚举
-     */
+    /** 意图类型枚举 */
     public enum IntentType {
         QUESTION("question", "用户提问"),
         COMMAND("command", "执行命令"),
@@ -62,9 +52,7 @@ public record UserIntent(
         }
     }
 
-    /**
-     * 创建默认意图
-     */
+    /** 创建默认意图 */
     public static UserIntent unknown() {
         return new UserIntent(
                 IntentType.UNKNOWN.getValue(),
@@ -73,13 +61,10 @@ public record UserIntent(
                 List.of(),
                 false,
                 null,
-                "direct_response"
-        );
+                "direct_response");
     }
 
-    /**
-     * 创建问题意图
-     */
+    /** 创建问题意图 */
     public static UserIntent question(double confidence) {
         return new UserIntent(
                 IntentType.QUESTION.getValue(),
@@ -88,22 +73,12 @@ public record UserIntent(
                 List.of(),
                 false,
                 null,
-                "informational_response"
-        );
+                "informational_response");
     }
 
-    /**
-     * 创建需要工具的意图
-     */
+    /** 创建需要工具的意图 */
     public static UserIntent withTool(String intent, String toolName, double confidence) {
         return new UserIntent(
-                intent,
-                confidence,
-                List.of(),
-                List.of(),
-                true,
-                toolName,
-                "tool_execution"
-        );
+                intent, confidence, List.of(), List.of(), true, toolName, "tool_execution");
     }
 }

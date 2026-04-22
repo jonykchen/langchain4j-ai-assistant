@@ -20,7 +20,7 @@ public interface DocumentLoader {
      * 加载文档
      *
      * @param inputStream 输入流
-     * @param filename    文件名
+     * @param filename 文件名
      * @return 文档对象
      * @throws DocumentLoadException 加载异常
      */

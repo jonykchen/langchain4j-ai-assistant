@@ -91,6 +91,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * 用户名密码登录
+   */
+  async function login(username: string, password: string): Promise<void> {
+    const data = await authApi.login(username, password)
+    saveAuth(data.token, data.user)
+  }
+
+  /**
    * 获取 OAuth 授权 URL 并跳转
    */
   async function redirectToOAuth(provider: 'github' | 'gitlab'): Promise<void> {
@@ -104,10 +112,8 @@ export const useAuthStore = defineStore('auth', () => {
     sessionStorage.setItem('oauth_redirect_uri', redirectUri)
     const getAuthUrl = provider === 'github' ? authApi.getGitHubAuthUrl : authApi.getGitLabAuthUrl
 
-    const response = await getAuthUrl(redirectUri, state)
-
     // 跳转到授权页面
-    window.location.href = response.data
+    window.location.href = await getAuthUrl(redirectUri, state)
   }
 
   /**
@@ -117,18 +123,13 @@ export const useAuthStore = defineStore('auth', () => {
     const handleCallback = provider === 'github' ? authApi.handleGitHubCallback : authApi.handleGitLabCallback
     const redirectUri = sessionStorage.getItem('oauth_redirect_uri') || undefined
 
-    const response = await handleCallback(code, state, redirectUri)
+    const data = await handleCallback(code, state, redirectUri)
+    saveAuth(data.token, data.user)
 
-    if (response.code === 200 && response.data) {
-      saveAuth(response.data.token, response.data.user)
-
-      // 清理临时数据
-      sessionStorage.removeItem('oauth_state')
-      sessionStorage.removeItem('oauth_provider')
-      sessionStorage.removeItem('oauth_redirect_uri')
-    } else {
-      throw new Error(response.message || 'OAuth 认证失败')
-    }
+    // 清理临时数据
+    sessionStorage.removeItem('oauth_state')
+    sessionStorage.removeItem('oauth_provider')
+    sessionStorage.removeItem('oauth_redirect_uri')
   }
 
   /**
@@ -141,25 +142,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     try {
-      const response = await authApi.refreshToken({ refreshToken: refreshToken.value })
+      const data = await authApi.refreshToken({ refreshToken: refreshToken.value })
 
-      if (response.code === 200 && response.data) {
-        token.value = response.data.accessToken
-        tokenExpiry.value = Date.now() + response.data.expiresIn * 1000
+      token.value = data.accessToken
+      tokenExpiry.value = Date.now() + data.expiresIn * 1000
 
-        localStorage.setItem('access_token', response.data.accessToken)
-        localStorage.setItem('token_expiry', String(tokenExpiry.value))
+      localStorage.setItem('access_token', data.accessToken)
+      localStorage.setItem('token_expiry', String(tokenExpiry.value))
 
-        if (response.data.refreshToken) {
-          refreshToken.value = response.data.refreshToken
-          localStorage.setItem('refresh_token', response.data.refreshToken)
-        }
-
-        return true
+      if (data.refreshToken) {
+        refreshToken.value = data.refreshToken
+        localStorage.setItem('refresh_token', data.refreshToken)
       }
 
-      clearAuth()
-      return false
+      return true
     } catch (error) {
       clearAuth()
       return false
@@ -198,12 +194,8 @@ export const useAuthStore = defineStore('auth', () => {
    * 获取当前用户信息
    */
   async function fetchUser(): Promise<void> {
-    const response = await authApi.getCurrentUser()
-
-    if (response.code === 200 && response.data) {
-      user.value = response.data
-      localStorage.setItem('user_info', JSON.stringify(response.data))
-    }
+    user.value = await authApi.getCurrentUser()
+    localStorage.setItem('user_info', JSON.stringify(user.value))
   }
 
   // ========== 辅助函数 ==========
@@ -227,6 +219,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Actions
     initAuth,
     saveAuth,
+    login,
     redirectToOAuth,
     handleOAuthCallback,
     refreshAccessToken,

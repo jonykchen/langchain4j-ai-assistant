@@ -15,11 +15,12 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.usernameInput = page.locator('[data-testid="username-input"], input[type="text"]').first();
-    this.passwordInput = page.locator('[data-testid="password-input"], input[type="password"]').first();
-    this.loginButton = page.locator('[data-testid="login-button"], button:has-text("登录")');
-    this.githubLoginButton = page.locator('[data-testid="github-login"], button:has-text("GitHub")');
-    this.gitlabLoginButton = page.locator('[data-testid="gitlab-login"], button:has-text("GitLab")');
+    this.usernameInput = page.locator('[data-testid="username-input"]').first();
+    this.passwordInput = page.locator('[data-testid="password-input"]').first();
+    // 登录按钮文本是 "登 录" (带空格)，使用 data-testid 优先
+    this.loginButton = page.locator('[data-testid="login-button"]');
+    this.githubLoginButton = page.locator('[data-testid="github-login"]');
+    this.gitlabLoginButton = page.locator('[data-testid="gitlab-login"]');
     this.errorMessage = page.locator('.el-message--error, .error-message');
     this.registerLink = page.locator('[data-testid="register-link"], a:has-text("注册")');
   }

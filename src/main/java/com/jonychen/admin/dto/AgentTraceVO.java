@@ -1,12 +1,13 @@
 package com.jonychen.admin.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Builder;
-import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import lombok.Builder;
+import lombok.Data;
 
 /**
  * Agent 追踪 VO
@@ -51,11 +52,11 @@ public class AgentTraceVO {
         private Long totalTokens;
     }
 
-    /**
-     * 从实体转换为 VO
-     */
+    /** 从实体转换为 VO */
     public static AgentTraceVO from(com.jonychen.observability.trace.AgentTrace trace) {
-        if (trace == null) return null;
+        if (trace == null) {
+            return null;
+        }
 
         return AgentTraceVO.builder()
                 .id(trace.getId())
@@ -71,13 +72,15 @@ public class AgentTraceVO {
                 .iterations(trace.getIterations())
                 .finalOutput(trace.getFinalOutput())
                 .errorMessage(trace.getErrorMessage())
-                .tokenUsage(trace.getTokenUsage() != null
-                        ? TokenUsageVO.builder()
-                                .promptTokens(trace.getTokenUsage().getPromptTokens())
-                                .completionTokens(trace.getTokenUsage().getCompletionTokens())
-                                .totalTokens(trace.getTokenUsage().getTotalTokens())
-                                .build()
-                        : null)
+                .tokenUsage(
+                        trace.getTokenUsage() != null
+                                ? TokenUsageVO.builder()
+                                        .promptTokens(trace.getTokenUsage().getPromptTokens())
+                                        .completionTokens(
+                                                trace.getTokenUsage().getCompletionTokens())
+                                        .totalTokens(trace.getTokenUsage().getTotalTokens())
+                                        .build()
+                                : null)
                 .spans(trace.getSpans())
                 .metadata(trace.getMetadata())
                 .createdAt(trace.getCreatedAt())

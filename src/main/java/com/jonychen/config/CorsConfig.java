@@ -7,8 +7,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 /**
- * CORS 跨域配置
- * 允许前端应用访问后端 API
+ * CORS 跨域配置 允许前端应用访问后端 API
  *
  * @author 30240
  */

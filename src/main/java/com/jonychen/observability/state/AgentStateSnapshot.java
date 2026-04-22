@@ -1,15 +1,22 @@
 package com.jonychen.observability.state;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Agent 状态快照
@@ -28,81 +35,57 @@ public class AgentStateSnapshot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 快照 ID
-     */
+    /** 快照 ID */
     @Column(name = "snapshot_id", unique = true, nullable = false, length = 36)
     private String snapshotId;
 
-    /**
-     * 关联的 Trace ID
-     */
+    /** 关联的 Trace ID */
     @Column(name = "trace_id", length = 36)
     private String traceId;
 
-    /**
-     * 会话 ID
-     */
+    /** 会话 ID */
     @Column(name = "session_id", length = 36)
     private String sessionId;
 
-    /**
-     * Agent 类型
-     */
+    /** Agent 类型 */
     @Column(name = "agent_type", length = 50)
     private String agentType;
 
-    /**
-     * 当前步骤索引
-     */
+    /** 当前步骤索引 */
     @Column(name = "current_step_index")
     @Builder.Default
     private Integer currentStepIndex = 0;
 
-    /**
-     * 总步骤数
-     */
+    /** 总步骤数 */
     @Column(name = "total_steps")
     @Builder.Default
     private Integer totalSteps = 0;
 
-    /**
-     * Agent 内部状态（JSON）
-     */
+    /** Agent 内部状态（JSON） */
     @Column(name = "internal_state", columnDefinition = "JSONB")
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private Map<String, Object> internalState;
 
-    /**
-     * 执行历史（JSON）
-     */
+    /** 执行历史（JSON） */
     @Column(name = "execution_history", columnDefinition = "JSONB")
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private List<Map<String, Object>> executionHistory;
 
-    /**
-     * 创建时间
-     */
+    /** 创建时间 */
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    /**
-     * 快照类型：CHECKPOINT, ERROR, PAUSE, STEP_COMPLETE
-     */
+    /** 快照类型：CHECKPOINT, ERROR, PAUSE, STEP_COMPLETE */
     @Column(name = "snapshot_type", length = 20)
     @Builder.Default
     private String snapshotType = "CHECKPOINT";
 
-    /**
-     * 可恢复标志
-     */
+    /** 可恢复标志 */
     @Column(name = "resumable")
     @Builder.Default
     private Boolean resumable = true;
 
-    /**
-     * 过期时间
-     */
+    /** 过期时间 */
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
@@ -128,9 +111,7 @@ public class AgentStateSnapshot {
         }
     }
 
-    /**
-     * 检查是否已过期
-     */
+    /** 检查是否已过期 */
     public boolean isExpired() {
         return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
     }
