@@ -70,6 +70,19 @@ function escapeHtml(str: string): string {
 }
 
 /**
+ * 转义 HTML 属性值中的特殊字符
+ * 用于 data-xxx 属性中，确保引号不会逃逸出属性
+ */
+function escapeAttr(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
  * MarkdownIt 实例配置
  *
  * 配置项说明：
@@ -107,12 +120,14 @@ const md = new MarkdownIt({
     // 构建代码块 HTML
     // data-lang: 语言标签，用于显示和编辑
     // data-raw: 原始代码（转义后），用于复制和编辑
+    // 注意：属性值需要转义引号，防止 XSS 攻击逃逸出属性
     const langLabel = language || 'text'
-    const rawData = escapeHtml(str)
+    const langLabelAttr = escapeAttr(langLabel)
+    const rawDataAttr = escapeAttr(str)
 
     // 返回完整的代码块 HTML
     // 包含：语言标签 + 操作按钮（复制/编辑/主题/折叠）+ 代码内容
-    return `<pre class="code-block-wrapper" data-testid="code-block" data-lang="${langLabel}" data-raw="${rawData}">
+    return `<pre class="code-block-wrapper" data-testid="code-block" data-lang="${langLabelAttr}" data-raw="${rawDataAttr}">
       <div class="code-block-header">
         <span class="code-lang">${langLabel}</span>
         <div class="code-actions">

@@ -48,11 +48,15 @@ const runTest = async () => {
 }
 
 const loadResults = async () => {
+  loading.value = true
   try {
     results.value = await testApi.getPerformanceResults()
     emit('stats-update', calculateStats())
   } catch (error) {
     console.error('加载性能测试结果失败', error)
+    ElMessage.error('加载性能测试结果失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -61,6 +65,7 @@ const loadSimulations = async () => {
     availableSimulations.value = await testApi.getAvailableSimulations()
   } catch (error) {
     console.error('加载模拟列表失败', error)
+    ElMessage.warning('加载模拟场景列表失败')
   }
 }
 
