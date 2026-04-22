@@ -25,7 +25,7 @@ const STORAGE_KEY = 'chat-conversations'
  * 使用时间戳 + 随机数
  */
 function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2)
+  return Date.now().toString(36) + Math.random().toString(36).substring(2)
 }
 
 /**

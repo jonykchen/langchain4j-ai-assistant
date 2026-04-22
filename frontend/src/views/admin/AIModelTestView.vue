@@ -50,24 +50,29 @@ const runTests = async () => {
 }
 
 const loadResults = async () => {
+  loading.value = true
   try {
     results.value = await testApi.getAIModelResults()
     emit('stats-update', calculateStats())
   } catch (error) {
     console.error('加载测试结果失败', error)
+    ElMessage.error('加载测试结果失败')
+  } finally {
+    loading.value = false
   }
 }
 
 const calculateStats = () => {
   const passed = results.value.filter(r => r.passed).length
+  const count = results.value.length
   return {
     passed,
-    failed: results.value.length - passed,
+    failed: count - passed,
     running: 0,
-    totalTests: results.value.length,
-    avgResponseTime: Math.round(
-      results.value.reduce((sum, r) => sum + r.responseTime, 0) / results.value.length || 0
-    )
+    totalTests: count,
+    avgResponseTime: count > 0
+      ? Math.round(results.value.reduce((sum, r) => sum + r.responseTime, 0) / count)
+      : 0
   }
 }
 
@@ -121,7 +126,7 @@ onMounted(() => {
           <div class="text-lg font-bold">
             {{ stat.passed }}/{{ stat.total }}
             <span class="text-sm font-normal text-gray-400">
-              ({{ Math.round(stat.passed / stat.total * 100) }}%)
+              ({{ stat.total > 0 ? Math.round(stat.passed / stat.total * 100) : 0 }}%)
             </span>
           </div>
         </el-card>

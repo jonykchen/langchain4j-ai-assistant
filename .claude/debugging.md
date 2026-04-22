@@ -96,6 +96,52 @@ curl http://localhost:8082/actuator/metrics/model_failover_total
 
 ## 前端问题
 
+### Token 刷新失败
+
+**症状：** 登录过期后跳转登录页异常，或 Token 刷新请求 404
+
+**诊断：**
+```ts
+// 检查 refresh 请求 URL 是否正确
+// 错误的字符串拼接：'' + '/auth/refresh' 会得到 '/auth/refresh'
+// 但如果 VITE_API_BASE_URL 未设置，import.meta.env.VITE_API_BASE_URL 是 undefined
+// undefined + '/auth/refresh' 会得到 'undefined/auth/refresh' ❌
+```
+
+**解决：**
+```ts
+// 正确做法：先获取 baseUrl，再拼接
+const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
+const res = await axios.post(baseUrl + '/auth/refresh', { refreshToken })
+
+// 使用 Vue Router 跳转而非 window.location
+import router from '@/router'
+router.push('/login')
+```
+
+### 管理后台加载无反馈
+
+**症状：** 数据加载失败时页面无任何提示
+
+**诊断：**
+- 检查 `catch` 块中是否有 `ElMessage.error` 提示
+- 检查 `loading` 状态是否正确设置
+
+**解决：**
+```ts
+const loadResults = async () => {
+  loading.value = true  // 开始加载
+  try {
+    results.value = await testApi.getResults()
+  } catch (error) {
+    console.error('加载失败', error)
+    ElMessage.error('加载失败')  // 错误提示
+  } finally {
+    loading.value = false  // 结束加载
+  }
+}
+```
+
 ### 响应式失效
 
 **症状：** 数据变化但视图不更新
@@ -230,6 +276,139 @@ logging.level.dev.langchain4j=DEBUG
 | 401 Unauthorized | API Key 无效 | 检查配置 |
 | 429 Too Many Requests | 限流 | 添加重试 |
 | Connection timeout | 网络问题 | 检查代理 |
+
+## 测试管理问题
+
+### E2E 测试结果解析为空
+
+**症状：** E2E 测试运行完成但结果列表为空
+
+**诊断：**
+```bash
+# 检查 JSON 报告文件是否存在
+ls frontend/test-results/report.json
+
+# 检查报告内容
+cat frontend/test-results/report.json | head -100
+```
+
+**常见原因：**
+| 原因 | 解决 |
+|------|------|
+| JSON 报告文件不存在 | 检查 playwright.config.ts 是否配置了 json reporter |
+| Playwright 未正常完成 | 检查进程退出码和日志 |
+| 报告路径不匹配 | 确认配置 `outputFile: 'test-results/report.json'` |
+
+**解决：**
+- 确保 `playwright.config.ts` 中包含 `['json', { outputFile: 'test-results/report.json' }]`
+- 不传 `--reporter` 参数给 `npx playwright test`，使用配置文件中的 reporters
+- 检查后端 `TestExecutionService.parseJsonReport()` 日志
+
+### E2E 测试日志包含乱码
+
+**症状：** 后端日志中 E2E 测试输出包含 ANSI 转义码（如颜色代码）
+
+**解决：**
+```java
+// TestExecutionService 中已使用 stripAnsiCodes 剥离 ANSI 码
+String cleanLine = stripAnsiCodes(line);
+log.info("[E2E] {}", cleanLine);
+```
+
+### 测试任务轮询不停止
+
+**症状：** 测试完成后轮询继续，或组件切换后定时器未清理
+
+**诊断：**
+```ts
+// 检查是否有未清理的定时器
+console.log('Active timeouts:', pollingTimeouts.size)
+```
+
+**解决：**
+- 确保使用 `Set` 管理所有定时器
+- `onUnmounted` 中清理所有定时器
+- 设置最大轮询次数限制（`MAX_POLLING_ATTEMPTS = 150`）
+
+### 管理后台页面切换后数据不刷新
+
+**症状：** 从其他标签页切回管理后台后数据不更新
+
+**诊断：**
+```ts
+// 检查 visibilitychange 事件
+document.addEventListener('visibilitychange', () => {
+  console.log('Visibility:', document.visibilityState)
+})
+```
+
+**解决：**
+- 使用 `document.visibilityState !== 'visible'` 跳过后台轮询
+- 返回前台时在下一次轮询周期自动刷新
+
+## 安全问题
+
+### 前端 XSS 攻击
+
+**症状：** 代码块属性值中的引号逃逸，可能导致脚本注入
+
+**诊断：**
+```ts
+// 检查 data-raw 属性中是否有未转义的引号
+const pre = document.querySelector('[data-raw]')
+console.log('Raw attribute:', pre?.dataset.raw)
+```
+
+**常见原因：**
+| 原因 | 解决 |
+|------|------|
+| 使用 `escapeHtml` 代替 `escapeAttr` | 属性值需额外转义引号（`"` → `&quot;`） |
+| innerHTML 中直接插入用户内容 | 使用 `escapeHtml` 转义 |
+| ElMessageBox 中使用 `dangerouslyUseHTMLString` | 转义后再插入 |
+
+**解决：**
+```ts
+// 属性值使用 escapeAttr
+return `<pre data-lang="${escapeAttr(lang)}" data-raw="${escapeAttr(code)}">...</pre>`
+
+// HTML 内容使用 escapeHtml
+ElMessageBox.alert(
+  `<pre>${escapeHtml(content)}</pre>`,
+  '内容',
+  { dangerouslyUseHTMLString: true }
+)
+```
+
+### 前端显示 NaN 或 undefined
+
+**症状：** 管理后台数值显示为 NaN 或 undefined
+
+**诊断：**
+```ts
+// 检查数据是否可能为 null/undefined
+console.log('Budget data:', budget.value)
+console.log('Daily used:', budget.value?.dailyUsed)
+```
+
+**常见原因：**
+| 原因 | 解决 |
+|------|------|
+| API 返回 null 值 | 使用 `?? 0` 空值合并 |
+| 数组为空时计算平均值 | 先检查 `count > 0` |
+| 对象属性不存在 | 使用 `v-if` 条件渲染 |
+
+**解决：**
+```vue
+<!-- 使用空值合并 -->
+<span>${{ (row.totalCost ?? 0).toFixed(2) }}</span>
+
+<!-- 条件渲染 -->
+<div v-if="row.assertions">{{ row.assertions.passed }}</div>
+<span v-else>-</span>
+
+<!-- 计算属性中检查 -->
+avgResponseTime: count > 0 ? Math.round(sum / count) : 0
+```
 
 ## 性能问题
 

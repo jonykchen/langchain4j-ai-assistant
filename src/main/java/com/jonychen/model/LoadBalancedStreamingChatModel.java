@@ -103,10 +103,12 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
         LOG.trace("选择流式模型: {}", selectedName);
 
         try {
+            CircuitBreaker cb = circuitBreakers.get(selectedName);
             selected.streamingModel.chat(
-                    request, new FaultTolerantHandler(handler, request, selectedName));
+                    request, new FaultTolerantHandler(handler, request, selectedName, cb));
         } catch (Exception e) {
             LOG.warn("流式模型 {} 启动失败: {}", selectedName, e.getMessage());
+            markFailure(selectedName);
             handleFailover(request, handler, selectedName);
         }
     }
@@ -127,10 +129,13 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
             LOG.info("流式故障转移: 尝试模型 {}", modelName);
 
             try {
-                model.streamingModel.chat(request, handler);
+                CircuitBreaker cb = circuitBreakers.get(modelName);
+                model.streamingModel.chat(
+                        request, new FaultTolerantHandler(handler, request, modelName, cb));
                 return;
             } catch (Exception e) {
-                LOG.warn("流式模型 {} 失败: {}", modelName, e.getMessage());
+                LOG.warn("流式模型 {} 启动失败: {}", modelName, e.getMessage());
+                markFailure(modelName);
             }
         }
 
@@ -177,6 +182,23 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
         return new ArrayList<>(healthStatuses.values());
     }
 
+    private void markSuccess(String modelName) {
+        ModelHealthStatus status = healthStatuses.get(modelName);
+        if (status != null) {
+            status.setHealthy(true);
+            status.setLastError(null);
+            status.setSuccessCount(status.getSuccessCount() + 1);
+        }
+    }
+
+    private void markFailure(String modelName) {
+        ModelHealthStatus status = healthStatuses.get(modelName);
+        if (status != null) {
+            status.setHealthy(false);
+            status.setFailureCount(status.getFailureCount() + 1);
+        }
+    }
+
     private static class StreamingModelInstance {
         final ModelProvider provider;
         final OpenAiStreamingChatModel streamingModel;
@@ -191,13 +213,20 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
         private final StreamingChatResponseHandler delegate;
         private final ChatRequest request;
         private final String modelName;
+        private final CircuitBreaker circuitBreaker;
+        private final long startTimeNanos;
         private volatile boolean completed = false;
 
         FaultTolerantHandler(
-                StreamingChatResponseHandler delegate, ChatRequest request, String modelName) {
+                StreamingChatResponseHandler delegate,
+                ChatRequest request,
+                String modelName,
+                CircuitBreaker circuitBreaker) {
             this.delegate = delegate;
             this.request = request;
             this.modelName = modelName;
+            this.circuitBreaker = circuitBreaker;
+            this.startTimeNanos = System.nanoTime();
         }
 
         @Override
@@ -208,12 +237,23 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
         @Override
         public void onCompleteResponse(ChatResponse completeResponse) {
             completed = true;
+            long durationMs =
+                    java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(
+                            System.nanoTime() - startTimeNanos);
+            circuitBreaker.onSuccess(durationMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+            markSuccess(modelName);
             delegate.onCompleteResponse(completeResponse);
         }
 
         @Override
         public void onError(Throwable error) {
             if (!completed) {
+                long durationMs =
+                        java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(
+                                System.nanoTime() - startTimeNanos);
+                circuitBreaker.onError(
+                        durationMs, java.util.concurrent.TimeUnit.MILLISECONDS, error);
+                markFailure(modelName);
                 LOG.warn("流式模型 {} 失败: {}", modelName, error.getMessage());
                 handleFailover(request, delegate, modelName);
             }

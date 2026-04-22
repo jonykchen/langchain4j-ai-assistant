@@ -4,6 +4,7 @@
  */
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '@/types'
+import router from '@/router'
 
 // 创建 Axios 实例
 const http: AxiosInstance = axios.create({
@@ -70,8 +71,9 @@ http.interceptors.response.use(
 
         try {
           // 调用刷新 Token 接口
+          const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
           const res = await axios.post(
-            import.meta.env.VITE_API_BASE_URL || '' + '/auth/refresh',
+            baseUrl + '/auth/refresh',
             { refreshToken },
             { headers: { 'Content-Type': 'application/json' } }
           )
@@ -94,7 +96,7 @@ http.interceptors.response.use(
           localStorage.removeItem('user_info')
 
           // 跳转到登录页
-          window.location.href = '/login'
+          router.push('/login')
           return Promise.reject(refreshError)
         }
       }
@@ -103,7 +105,7 @@ http.interceptors.response.use(
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user_info')
-      window.location.href = '/login'
+      router.push('/login')
       return Promise.reject(error)
     }
 

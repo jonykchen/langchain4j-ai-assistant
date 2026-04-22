@@ -223,6 +223,27 @@ messages.value = [...messages.value, newMsg]
 messages.value = []
 ```
 
+### 废弃 API 替换
+
+```ts
+// ❌ 废弃：substr 已不推荐使用
+return Date.now().toString(36) + Math.random().toString(36).substr(2)
+
+// ✅ 正确：使用 substring
+return Date.now().toString(36) + Math.random().toString(36).substring(2)
+```
+
+### Vue Router 导航
+
+```ts
+// ❌ 可能导致状态问题：直接修改 location
+window.location.href = '/login'
+
+// ✅ 正确：使用 Vue Router
+import router from '@/router'
+router.push('/login')
+```
+
 ## LangChain4j 模式
 
 ### AI 服务接口
@@ -407,5 +428,325 @@ const htmlContent = md.render(markdownText)
 // tailwind.config.js - 禁用 preflight 保留列表样式
 corePlugins: {
   preflight: false
+}
+```
+
+## 前端安全模式
+
+### XSS 防护 - 属性转义
+
+动态生成的 HTML 属性值必须转义：
+
+```ts
+/**
+ * 转义 HTML 属性值中的特殊字符
+ * 用于 data-xxx 属性中，确保引号不会逃逸出属性
+ */
+function escapeAttr(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+// 使用示例：代码块属性
+const langLabel = 'java'
+const rawData = 'System.out.println("Hello");'
+return `<pre data-lang="${escapeAttr(langLabel)}" data-raw="${escapeAttr(rawData)}">...</pre>`
+```
+
+### HTML 内容转义
+
+在 innerHTML/v-html 中显示用户内容时转义：
+
+```ts
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+// 在 ElMessageBox.alert 中显示模板内容
+ElMessageBox.alert(
+  `<pre style="...">${escapeHtml(version.content)}</pre>`,
+  '版本内容',
+  { dangerouslyUseHTMLString: true }
+)
+```
+
+## 前端性能优化模式
+
+### 轮询管理
+
+使用 Set 管理所有定时器，确保组件卸载时清理：
+
+```ts
+// 定义定时器集合
+const pollingTimeouts = new Set<ReturnType<typeof setTimeout>>()
+const MAX_POLLING_ATTEMPTS = 150 // 最大轮询次数（5分钟）
+let pollingAttempts = 0
+
+// 轮询函数
+const poll = async () => {
+  pollingAttempts++
+  if (pollingAttempts > MAX_POLLING_ATTEMPTS) {
+    ElMessage.warning('轮询超时，请手动刷新查看状态')
+    return
+  }
+  
+  try {
+    const status = await testApi.getJobStatus(jobId)
+    if (status.status === 'running') {
+      const timeout = setTimeout(poll, 2000)
+      pollingTimeouts.add(timeout)
+    } else {
+      // 完成
+    }
+  } catch (e) {
+    // 错误处理
+  }
+}
+
+// 组件卸载时清理所有定时器
+onUnmounted(() => {
+  pollingTimeouts.forEach(timeout => clearTimeout(timeout))
+  pollingTimeouts.clear()
+})
+```
+
+### 页面可见性检测
+
+后台页面跳过轮询以节省资源：
+
+```ts
+let refreshInterval: ReturnType<typeof setInterval> | undefined
+
+const startPolling = () => {
+  if (refreshInterval) return
+  refreshInterval = setInterval(() => {
+    // 页面不可见时跳过轮询，节省资源
+    if (document.visibilityState !== 'visible') return
+    loadActiveTraces()
+    loadStatistics()
+  }, 5000)
+}
+
+const stopPolling = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = undefined
+  }
+}
+
+onMounted(() => {
+  loadData()
+  startPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
+})
+```
+
+### 搜索防抖
+
+文本输入搜索使用防抖，选择器立即触发：
+
+```ts
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+// 搜索文本延迟 300ms
+watch([searchQuery], () => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadUsers()
+  }, 300)
+})
+
+// 选择器立即触发
+watch([roleFilter, providerFilter], () => {
+  currentPage.value = 1
+  loadUsers()
+})
+```
+
+## 空值安全处理模式
+
+### 模板中的空值处理
+
+```vue
+<template>
+  <!-- 使用空值合并运算符 -->
+  <span>${{ (budget.dailyUsed ?? 0).toFixed(2) }}</span>
+  
+  <!-- 条件渲染避免 NaN -->
+  <div v-if="row.assertions">
+    <el-tag>{{ row.assertions.passed }} 通过</el-tag>
+  </div>
+  <span v-else class="text-gray-400">-</span>
+  
+  <!-- 百分比计算防零 -->
+  <span>{{ stat.total > 0 ? Math.round(stat.passed / stat.total * 100) : 0 }}%</span>
+</template>
+```
+
+### 计算属性中的空值处理
+
+```ts
+const calculateStats = () => {
+  const passed = results.value.filter(r => r.passed).length
+  const count = results.value.length
+  return {
+    passed,
+    failed: count - passed,
+    totalTests: count,
+    // 先检查长度再计算，避免 NaN
+    avgResponseTime: count > 0
+      ? Math.round(results.value.reduce((sum, r) => sum + r.responseTime, 0) / count)
+      : 0
+  }
+}
+```
+
+## 后端测试解析模式
+
+### Playwright JSON 报告解析
+
+从 JSON 报告文件解析测试结果，替代日志行解析：
+
+```java
+/**
+ * 从 Playwright JSON 报告文件解析测试结果
+ */
+private List<TestResultSummary> parseJsonReport(Path jsonReportPath) {
+    List<TestResultSummary> results = new ArrayList<>();
+    if (!Files.exists(jsonReportPath)) {
+        log.warn("[E2E] JSON report file not found: {}", jsonReportPath);
+        return results;
+    }
+
+    try {
+        String content = Files.readString(jsonReportPath, StandardCharsets.UTF_8);
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(content);
+        JsonNode suites = root.get("suites");
+        if (suites != null) {
+            collectSpecs(suites, results);
+        }
+    } catch (Exception e) {
+        log.error("[E2E] Failed to parse JSON report", e);
+    }
+
+    return results;
+}
+
+/**
+ * 递归遍历 suites 树，提取每个 spec 的测试结果
+ */
+private void collectSpecs(JsonNode suites, List<TestResultSummary> results) {
+    for (JsonNode suite : suites) {
+        JsonNode specs = suite.get("specs");
+        if (specs != null) {
+            for (JsonNode spec : specs) {
+                extractSpecResult(spec, results);
+            }
+        }
+        // 递归处理嵌套 suites
+        JsonNode nested = suite.get("suites");
+        if (nested != null && nested.isArray()) {
+            collectSpecs(nested, results);
+        }
+    }
+}
+```
+
+### ANSI 转义码剥离
+
+子进程输出日志需剥离 ANSI 转义码：
+
+```java
+/**
+ * 剥离 ANSI 转义码（如颜色、光标移动控制字符）
+ */
+private String stripAnsiCodes(String text) {
+    if (text == null) {
+        return null;
+    }
+    // 匹配 ANSI 转义序列：ESC [ 或 ESC ] 开头的控制序列
+    // 常见模式：\u001B[...m (颜色), \u001B[...A/K/etc (光标控制)
+    return text.replaceAll("\u001B\\[[;\\d]*[ -/]*[@-~]", "");
+}
+
+// 使用示例
+try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(process.getInputStream()))) {
+    String line;
+    while ((line = reader.readLine()) != null) {
+        String cleanLine = stripAnsiCodes(line);
+        log.info("[Gatling] {}", cleanLine);
+    }
+}
+```
+
+## 流式模型熔断器模式
+
+### 熔断器状态同步
+
+流式模型通过 Handler 将请求结果同步到熔断器和健康状态：
+
+```java
+private static class FaultTolerantHandler implements StreamingChatResponseHandler {
+    private final StreamingChatResponseHandler delegate;
+    private final String modelName;
+    private final CircuitBreaker circuitBreaker;
+    private final long startTimeNanos;
+    private volatile boolean completed = false;
+
+    @Override
+    public void onCompleteResponse(ChatResponse completeResponse) {
+        completed = true;
+        // 记录响应时间并上报熔断器成功
+        long durationMs = TimeUnit.NANOSECONDS.toMillis(
+            System.nanoTime() - startTimeNanos);
+        circuitBreaker.onSuccess(durationMs, TimeUnit.MILLISECONDS);
+        markSuccess(modelName);
+        delegate.onCompleteResponse(completeResponse);
+    }
+
+    @Override
+    public void onError(Throwable error) {
+        if (!completed) {
+            // 上报熔断器失败，标记模型不可用，触发故障转移
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(
+                System.nanoTime() - startTimeNanos);
+            circuitBreaker.onError(durationMs, TimeUnit.MILLISECONDS, error);
+            markFailure(modelName);
+            handleFailover(request, delegate, modelName);
+        }
+    }
+}
+```
+
+### 启动失败处理
+
+流式模型启动失败也需标记：
+
+```java
+try {
+    CircuitBreaker cb = circuitBreakers.get(selectedName);
+    selected.streamingModel.chat(request, 
+        new FaultTolerantHandler(handler, request, selectedName, cb));
+} catch (Exception e) {
+    log.warn("流式模型 {} 启动失败: {}", selectedName, e.getMessage());
+    markFailure(selectedName); // 标记失败
+    handleFailover(request, handler, selectedName);
 }
 ```

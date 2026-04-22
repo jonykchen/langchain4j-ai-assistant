@@ -378,7 +378,7 @@ model.providers.dashscope.enabled=true    # 是否启用
 | 分布式限流 | Redis + Lua 脚本（滑动窗口、令牌桶） |
 | 流式传输 | WebFlux + SSE |
 | 部署 | Docker, Docker Compose, Nginx |
-| E2E 测试 | Playwright 1.40+, @axe-core/playwright |
+| E2E 测试 | Playwright 1.40+, @axe-core/playwright（支持 HTML/JUnit/JSON 报告） |
 | 性能测试 | Gatling 3.10+, Scala 2.13 |
 | 契约测试 | Spring Cloud Contract 4.0+ |
 | 测试容器 | Testcontainers 1.19+ |
@@ -475,6 +475,50 @@ stateService.saveCheckpoint(traceId, sessionId, "REACT", state, step, total);
 AgentResumeContext context = stateService.resumeFromSnapshot(snapshotId);
 ```
 
+#### 9. 流式模型熔断器状态同步
+流式模型通过 FaultTolerantHandler 将请求结果同步到熔断器和健康状态：
+```java
+// onCompleteResponse 时记录成功并上报熔断器
+circuitBreaker.onSuccess(durationMs, TimeUnit.MILLISECONDS);
+markSuccess(modelName);
+
+// onError 时记录失败并上报熔断器，触发故障转移
+circuitBreaker.onError(durationMs, TimeUnit.MILLISECONDS, error);
+markFailure(modelName);
+handleFailover(request, delegate, modelName);
+
+// 启动失败也标记为失败
+catch (Exception e) {
+    markFailure(selectedName);
+    handleFailover(request, handler, selectedName);
+}
+```
+
+#### 10. E2E 测试 JSON 报告解析
+从 Playwright JSON 报告文件解析测试结果，替代日志行解析：
+```java
+// 读取 JSON 报告
+Path jsonReportPath = new File("frontend/test-results/report.json").toPath();
+List<TestResultSummary> results = parseJsonReport(jsonReportPath);
+
+// 递归遍历 suites 树提取 spec 结果
+private void collectSpecs(JsonNode suites, List<TestResultSummary> results) {
+    for (JsonNode suite : suites) {
+        if (suite.has("specs")) extractSpecResults(suite.get("specs"), results);
+        if (suite.has("suites")) collectSpecs(suite.get("suites"), results);
+    }
+}
+```
+
+#### 11. ANSI 转义码剥离
+子进程输出日志需剥离 ANSI 转义码：
+```java
+private String stripAnsiCodes(String text) {
+    if (text == null) return null;
+    return text.replaceAll("\u001B\\[[;\\d]*[ -/]*[@-~]", "");
+}
+```
+
 ### 前端技术点
 
 #### 1. Vue 响应式更新
@@ -541,6 +585,92 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 ```
 
+#### 8. XSS 安全防护
+动态生成的 HTML 属性值必须转义，防止 XSS 攻击：
+```ts
+/**
+ * 转义 HTML 属性值中的特殊字符
+ * 用于 data-xxx 属性中，确保引号不会逃逸出属性
+ */
+function escapeAttr(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+// 使用示例：代码块属性
+return `<pre data-lang="${escapeAttr(lang)}" data-raw="${escapeAttr(code)}">...</pre>`
+```
+
+#### 9. 轮询管理与资源清理
+组件中的定时轮询需要正确管理，避免内存泄漏：
+```ts
+// 使用 Set 管理所有定时器
+const pollingTimeouts = new Set<ReturnType<typeof setTimeout>>()
+
+// 轮询时记录定时器
+const poll = async () => {
+  const timeout = setTimeout(poll, 2000)
+  pollingTimeouts.add(timeout)
+}
+
+// 组件卸载时清理
+onUnmounted(() => {
+  pollingTimeouts.forEach(timeout => clearTimeout(timeout))
+  pollingTimeouts.clear()
+})
+```
+
+#### 10. 页面可见性检测
+后台页面跳过轮询以节省资源：
+```ts
+const refreshInterval = setInterval(() => {
+  // 页面不可见时跳过轮询
+  if (document.visibilityState !== 'visible') return
+  loadActiveTraces()
+}, 5000)
+```
+
+#### 11. 搜索防抖
+文本输入搜索使用防抖优化：
+```ts
+// 搜索文本延迟 300ms
+watch([searchQuery], () => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadUsers()
+  }, 300)
+})
+
+// 选择器立即触发
+watch([roleFilter, providerFilter], () => {
+  currentPage.value = 1
+  loadUsers()
+})
+```
+
+#### 12. 空值安全处理
+模板中处理可能为 null/undefined 的数据：
+```vue
+<!-- 使用空值合并运算符 -->
+<span>${{ (budget.dailyUsed ?? 0).toFixed(2) }}</span>
+
+<!-- 条件渲染避免 NaN -->
+<span v-if="row.assertions">{{ row.assertions.passed }} 通过</span>
+<span v-else class="text-gray-400">-</span>
+
+<!-- 计算属性中检查长度 -->
+const avgResponseTime = count > 0
+  ? Math.round(results.reduce((sum, r) => sum + r.responseTime, 0) / count)
+  : 0
+```
+
 ## 模型配置参数
 
 | 参数 | 说明 | 示例 |
@@ -598,6 +728,18 @@ A: 确认 `prompt_templates` 表已创建，检查模板的 `active` 字段是�
 
 ### Q: Agent 状态无法恢复？
 A: 检查快照是否过期（默认 24 小时），确认 `resumable` 标志为 true。使用 `ResumableReActAgent` 替代直接调用 `ReActAgent`。
+
+### Q: E2E 测试结果解析为空？
+A: 检查 `frontend/test-results/report.json` 是否存在，Playwright 配置需包含 JSON reporter：`['json', { outputFile: 'test-results/report.json' }]`。
+
+### Q: 管理后台页面切换后数据不刷新？
+A: 使用 `document.visibilityState` 检测页面可见性，后台时跳过轮询，返回前台时立即刷新。
+
+### Q: 前端出现 NaN 或 undefined 显示？
+A: 模板中使用空值合并 `?? 0` 处理可能为 null 的数值，计算属性中先检查数组长度再计算平均值。
+
+### Q: 流式模型健康状态不准确？
+A: 确保 `FaultTolerantHandler` 正确调用 `circuitBreaker.onSuccess/onError`，启动失败时也需调用 `markFailure`。
 
 ## 扩展指南
 

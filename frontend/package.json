@@ -24,13 +24,13 @@
     "markdown-it": "^14.0.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.0",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.8.0",
     "@playwright/test": "^1.40.0",
     "@types/markdown-it": "^14.1.2",
-    "@types/node": "^25.6.0",
+    "@types/node": "^20.12.0",
     "@vitejs/plugin-vue": "^5.0.0",
     "@vue/eslint-config-prettier": "^9.0.0",
     "@vue/eslint-config-typescript": "^13.0.0",

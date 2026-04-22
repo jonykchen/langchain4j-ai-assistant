@@ -50,7 +50,7 @@
       <template #header>
         <span>可用评测器</span>
       </template>
-      <el-table :data="evaluators" stripe size="small">
+      <el-table :data="evaluators" stripe size="small" v-loading="loadingEvaluators">
         <el-table-column prop="name" label="名称" width="200" />
         <el-table-column prop="description" label="描述" />
       </el-table>
@@ -211,6 +211,7 @@ const results = ref<EvaluationResult[]>([])
 const report = ref<EvaluationReport | null>(null)
 const traceIdInput = ref('')
 const evaluating = ref(false)
+const loadingEvaluators = ref(false)
 const detailVisible = ref(false)
 const reportVisible = ref(false)
 const selectedResult = ref<EvaluationResult | null>(null)
@@ -228,10 +229,14 @@ const passRate = computed(() => {
 })
 
 const loadEvaluators = async () => {
+  loadingEvaluators.value = true
   try {
     evaluators.value = await observabilityApi.getEvaluators()
   } catch (error) {
     console.error('加载评测器列表失败', error)
+    ElMessage.error('加载评测器列表失败')
+  } finally {
+    loadingEvaluators.value = false
   }
 }
 

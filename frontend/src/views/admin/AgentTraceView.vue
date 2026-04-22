@@ -339,22 +339,34 @@ const truncate = (text: string, maxLength: number) => {
 }
 
 // 自动刷新活跃追踪
-let refreshInterval: ReturnType<typeof setInterval>
+let refreshInterval: ReturnType<typeof setInterval> | undefined
+
+const startPolling = () => {
+  if (refreshInterval) return
+  refreshInterval = setInterval(() => {
+    // 页面不可见时跳过轮询，节省资源
+    if (document.visibilityState !== 'visible') return
+    loadActiveTraces()
+    loadStatistics()
+  }, 5000)
+}
+
+const stopPolling = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = undefined
+  }
+}
 
 onMounted(() => {
   loadTraces()
   loadActiveTraces()
   loadStatistics()
-  refreshInterval = setInterval(() => {
-    loadActiveTraces()
-    loadStatistics()
-  }, 5000)
+  startPolling()
 })
 
 onUnmounted(() => {
-  if (refreshInterval) {
-    clearInterval(refreshInterval)
-  }
+  stopPolling()
 })
 </script>
 
