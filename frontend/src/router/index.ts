@@ -54,6 +54,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '成本监控' }
       },
       {
+        path: 'planning',
+        name: 'AdminPlanning',
+        component: () => import('@/views/admin/PlanningView.vue'),
+        meta: { title: '任务规划' }
+      },
+      {
         path: 'test',
         name: 'AdminTest',
         component: () => import('@/views/admin/TestDashboardView.vue'),
@@ -97,16 +103,13 @@ const router = createRouter({
  * 路由守卫
  * 检查认证状态，未登录用户跳转到登录页
  */
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
   // 初始化认证状态（首次访问时从 localStorage 恢复）
   if (!authStore.token) {
     authStore.initAuth()
   }
-
-  // 需要认证的页面
-  const requiresAuth = to.meta.requiresAuth !== false
 
   // 公开页面
   const publicPages = ['/login', '/auth/github/callback', '/auth/gitlab/callback']

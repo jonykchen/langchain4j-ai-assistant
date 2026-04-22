@@ -15,6 +15,7 @@ const menuItems = [
   { path: '/admin', icon: 'DataBoard', title: '仪表盘' },
   { path: '/admin/users', icon: 'User', title: '用户管理' },
   { path: '/admin/cost', icon: 'Money', title: '成本监控' },
+  { path: '/admin/planning', icon: 'Aim', title: '任务规划' },
   { path: '/admin/test', icon: 'Checked', title: '测试管理' },
   { path: '/admin/test-history', icon: 'Timer', title: '测试历史' },
   { path: '/admin/traces', icon: 'View', title: 'Agent 追踪' },
