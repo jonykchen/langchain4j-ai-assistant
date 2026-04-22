@@ -1,22 +1,26 @@
 package com.jonychen.memory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-/**
- * 基于 Redis 的会话管理器实现
- */
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/** 基于 Redis 的会话管理器实现 */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -31,22 +35,16 @@ public class RedisSessionManager implements SessionManager {
     private static final String SESSION_KEY_PREFIX = "session:";
     private static final String USER_SESSIONS_KEY_PREFIX = "user:sessions:";
 
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule());
+    private final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Override
     public SessionInfo createSession(String userId, String title) {
         String sessionId = generateSessionId();
         LocalDateTime now = LocalDateTime.now();
 
-        SessionInfo session = new SessionInfo(
-                sessionId,
-                userId,
-                title != null ? title : "新对话",
-                now,
-                now,
-                0
-        );
+        SessionInfo session =
+                new SessionInfo(sessionId, userId, title != null ? title : "新对话", now, now, 0);
 
         // 保存会话元数据
         saveSession(session);
@@ -118,14 +116,14 @@ public class RedisSessionManager implements SessionManager {
 
         try {
             SessionInfo session = objectMapper.readValue(json, SessionInfo.class);
-            SessionInfo updated = new SessionInfo(
-                    session.sessionId(),
-                    session.userId(),
-                    title,
-                    session.createdAt(),
-                    LocalDateTime.now(),
-                    session.messageCount()
-            );
+            SessionInfo updated =
+                    new SessionInfo(
+                            session.sessionId(),
+                            session.userId(),
+                            title,
+                            session.createdAt(),
+                            LocalDateTime.now(),
+                            session.messageCount());
 
             saveSession(updated);
             log.info("更新会话标题: sessionId={}, title={}", sessionId, title);
@@ -145,10 +143,11 @@ public class RedisSessionManager implements SessionManager {
         redisTemplate.delete(key);
 
         // 从用户会话列表中移除
-        sessionOpt.ifPresent(session -> {
-            String userSessionsKey = USER_SESSIONS_KEY_PREFIX + session.userId();
-            redisTemplate.opsForSet().remove(userSessionsKey, sessionId);
-        });
+        sessionOpt.ifPresent(
+                session -> {
+                    String userSessionsKey = USER_SESSIONS_KEY_PREFIX + session.userId();
+                    redisTemplate.opsForSet().remove(userSessionsKey, sessionId);
+                });
 
         // 删除会话消息
         String messagesKey = SESSION_KEY_PREFIX + sessionId + ":messages";
@@ -159,9 +158,7 @@ public class RedisSessionManager implements SessionManager {
 
     @Override
     public boolean isSessionOwner(String sessionId, String userId) {
-        return getSession(sessionId)
-                .map(session -> session.userId().equals(userId))
-                .orElse(false);
+        return getSession(sessionId).map(session -> session.userId().equals(userId)).orElse(false);
     }
 
     @Override
@@ -171,38 +168,38 @@ public class RedisSessionManager implements SessionManager {
         return size != null ? size : 0;
     }
 
-    /**
-     * 更新会话的消息数量
-     */
+    /** 更新会话的消息数量 */
     public void updateMessageCount(String sessionId, int messageCount) {
-        getSession(sessionId).ifPresent(session -> {
-            SessionInfo updated = new SessionInfo(
-                    session.sessionId(),
-                    session.userId(),
-                    session.title(),
-                    session.createdAt(),
-                    LocalDateTime.now(),
-                    messageCount
-            );
-            saveSession(updated);
-        });
+        getSession(sessionId)
+                .ifPresent(
+                        session -> {
+                            SessionInfo updated =
+                                    new SessionInfo(
+                                            session.sessionId(),
+                                            session.userId(),
+                                            session.title(),
+                                            session.createdAt(),
+                                            LocalDateTime.now(),
+                                            messageCount);
+                            saveSession(updated);
+                        });
     }
 
-    /**
-     * 更新会话最后更新时间
-     */
+    /** 更新会话最后更新时间 */
     public void touchSession(String sessionId) {
-        getSession(sessionId).ifPresent(session -> {
-            SessionInfo updated = new SessionInfo(
-                    session.sessionId(),
-                    session.userId(),
-                    session.title(),
-                    session.createdAt(),
-                    LocalDateTime.now(),
-                    session.messageCount()
-            );
-            saveSession(updated);
-        });
+        getSession(sessionId)
+                .ifPresent(
+                        session -> {
+                            SessionInfo updated =
+                                    new SessionInfo(
+                                            session.sessionId(),
+                                            session.userId(),
+                                            session.title(),
+                                            session.createdAt(),
+                                            LocalDateTime.now(),
+                                            session.messageCount());
+                            saveSession(updated);
+                        });
     }
 
     // ========== 私有方法 ==========

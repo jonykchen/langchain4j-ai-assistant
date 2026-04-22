@@ -1,19 +1,25 @@
 package com.jonychen.rag.store;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
 import com.jonychen.rag.DocumentChunk;
 import com.jonychen.rag.EmbeddingService;
 import com.jonychen.rag.VectorStore;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 内存向量存储实现
  *
- * 用于开发测试，生产环境建议使用 PgVectorStore
+ * <p>用于开发测试，生产环境建议使用 PgVectorStore
  *
  * @author jonychen
  */
@@ -51,8 +57,7 @@ public class InMemoryVectorStore implements VectorStore {
         chunks.put(chunk.id(), chunk);
 
         // 更新文档索引
-        documentChunks.computeIfAbsent(chunk.documentId(), k -> new ArrayList<>())
-                .add(chunk.id());
+        documentChunks.computeIfAbsent(chunk.documentId(), k -> new ArrayList<>()).add(chunk.id());
     }
 
     @Override
@@ -73,7 +78,8 @@ public class InMemoryVectorStore implements VectorStore {
 
         for (DocumentChunk chunk : chunks.values()) {
             if (chunk.embedding() != null) {
-                double similarity = embeddingService.cosineSimilarity(queryVector, chunk.embedding());
+                double similarity =
+                        embeddingService.cosineSimilarity(queryVector, chunk.embedding());
                 results.add(SearchResult.of(chunk, similarity));
             }
         }
@@ -82,9 +88,7 @@ public class InMemoryVectorStore implements VectorStore {
         results.sort((a, b) -> Double.compare(b.score(), a.score()));
 
         // 返回 TopK
-        return results.stream()
-                .limit(topK)
-                .collect(Collectors.toList());
+        return results.stream().limit(topK).collect(Collectors.toList());
     }
 
     @Override

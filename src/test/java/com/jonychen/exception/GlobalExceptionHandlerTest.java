@@ -1,17 +1,16 @@
 package com.jonychen.exception;
 
-import com.jonychen.model.ApiResponse;
-import com.jonychen.model.ErrorCode;
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import static org.junit.jupiter.api.Assertions.*;
+import com.jonychen.model.ApiResponse;
+import com.jonychen.model.ErrorCode;
 
-/**
- * GlobalExceptionHandler 单元测试
- */
+/** GlobalExceptionHandler 单元测试 */
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
@@ -32,7 +31,8 @@ class GlobalExceptionHandlerTest {
     @DisplayName("处理缺少参数异常 - 应返回参数错误")
     void handleMissingParamException_shouldReturnParamError() {
         org.springframework.web.bind.MissingServletRequestParameterException exception =
-                new org.springframework.web.bind.MissingServletRequestParameterException("message", "String");
+                new org.springframework.web.bind.MissingServletRequestParameterException(
+                        "message", "String");
 
         ResponseEntity<ApiResponse<Void>> response = handler.handleMissingParamException(exception);
 

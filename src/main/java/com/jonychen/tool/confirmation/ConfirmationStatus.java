@@ -6,28 +6,18 @@ package com.jonychen.tool.confirmation;
  * @author jonychen
  */
 public enum ConfirmationStatus {
-    /**
-     * 待确认
-     */
+    /** 待确认 */
     PENDING,
 
-    /**
-     * 已批准
-     */
+    /** 已批准 */
     APPROVED,
 
-    /**
-     * 已拒绝
-     */
+    /** 已拒绝 */
     REJECTED,
 
-    /**
-     * 已过期
-     */
+    /** 已过期 */
     EXPIRED,
 
-    /**
-     * 已取消
-     */
+    /** 已取消 */
     CANCELLED
 }

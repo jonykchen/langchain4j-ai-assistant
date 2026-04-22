@@ -1,11 +1,22 @@
 package com.jonychen.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
 import com.jonychen.admin.service.TokenUsageService;
 import com.jonychen.exception.BusinessException;
 import com.jonychen.metrics.BusinessMetricsService;
 import com.jonychen.model.ErrorCode;
 import com.jonychen.model.LoadBalancedChatModel;
 import com.jonychen.model.LoadBalancedStreamingChatModel;
+
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -15,27 +26,13 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * AI 服务层
  *
- * 职责：
- * 1. 封装聊天模型调用
- * 2. 记录 Token 使用量
- * 3. 管理对话记忆
- * 4. 处理业务逻辑
- * 5. 记录业务指标
+ * <p>职责： 1. 封装聊天模型调用 2. 记录 Token 使用量 3. 管理对话记忆 4. 处理业务逻辑 5. 记录业务指标
  */
 @Service
 public class AiService {
@@ -47,15 +44,12 @@ public class AiService {
     private final TokenUsageService tokenUsageService;
     private final BusinessMetricsService businessMetricsService;
 
-    /**
-     * 会话记忆存储（生产环境应使用 Redis）
-     */
+    /** 会话记忆存储（生产环境应使用 Redis） */
     private final ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(20);
 
-    /**
-     * 系统提示词
-     */
-    private static final String SYSTEM_PROMPT = """
+    /** 系统提示词 */
+    private static final String SYSTEM_PROMPT =
+            """
             你是一个友好的 AI 助手，专门帮助 Java 开发者学习 AI Agent 开发。
 
             ## 输出格式要求
@@ -69,10 +63,11 @@ public class AiService {
             - 提供可运行的代码示例
             """;
 
-    public AiService(LoadBalancedChatModel chatModel,
-                     LoadBalancedStreamingChatModel streamingChatModel,
-                     TokenUsageService tokenUsageService,
-                     BusinessMetricsService businessMetricsService) {
+    public AiService(
+            LoadBalancedChatModel chatModel,
+            LoadBalancedStreamingChatModel streamingChatModel,
+            TokenUsageService tokenUsageService,
+            BusinessMetricsService businessMetricsService) {
         this.chatModel = chatModel;
         this.streamingChatModel = streamingChatModel;
         this.tokenUsageService = tokenUsageService;
@@ -90,7 +85,7 @@ public class AiService {
         long startTime = System.currentTimeMillis();
 
         try {
-            LOG.debug("收到聊天请求: {}", truncateForLog(message));
+            LOG.trace("收到聊天请求: {}", truncateForLog(message));
 
             // 记录用户消息
             businessMetricsService.recordUserMessage(userId);
@@ -99,9 +94,7 @@ public class AiService {
             List<ChatMessage> messages = buildMessages(message);
 
             // 调用模型
-            ChatRequest request = ChatRequest.builder()
-                    .messages(messages)
-                    .build();
+            ChatRequest request = ChatRequest.builder().messages(messages).build();
 
             ChatResponse response = chatModel.chat(request);
 
@@ -118,7 +111,7 @@ public class AiService {
             // 记录 AI 响应
             businessMetricsService.recordAiResponse(getModelName(response));
 
-            LOG.debug("聊天完成, 回复长度: {}", reply != null ? reply.length() : 0);
+            LOG.trace("聊天完成, 回复长度: {}", reply != null ? reply.length() : 0);
             return reply;
 
         } catch (Exception e) {
@@ -134,7 +127,7 @@ public class AiService {
      * @return 响应式流，逐个 token 返回
      */
     public Flux<String> chatFlux(String message) {
-        LOG.debug("收到流式聊天请求: {}", truncateForLog(message));
+        LOG.trace("收到流式聊天请求: {}", truncateForLog(message));
 
         // 构建消息列表
         List<ChatMessage> messages = buildMessages(message);
@@ -152,72 +145,85 @@ public class AiService {
         // 保存用户消息到记忆
         chatMemory.add(UserMessage.from(message));
 
-        return Flux.<String>create(emitter -> {
-            StringBuilder fullResponse = new StringBuilder();
-            long[] startTime = {System.currentTimeMillis()};
-            boolean[] firstToken = {true};
+        return Flux.<String>create(
+                        emitter -> {
+                            StringBuilder fullResponse = new StringBuilder();
+                            long[] startTime = {System.currentTimeMillis()};
+                            boolean[] firstToken = {true};
 
-            ChatRequest request = ChatRequest.builder()
-                    .messages(messages)
-                    .build();
+                            ChatRequest request = ChatRequest.builder().messages(messages).build();
 
-            streamingChatModel.chat(request, new StreamingChatResponseHandler() {
-                @Override
-                public void onPartialResponse(String partialResponse) {
-                    // 记录首字延迟
-                    if (firstToken[0]) {
-                        long latency = System.currentTimeMillis() - startTime[0];
-                        businessMetricsService.recordStreamingLatency(latency);
-                        firstToken[0] = false;
-                    }
-                    fullResponse.append(partialResponse);
-                    emitter.next(partialResponse);
-                }
+                            streamingChatModel.chat(
+                                    request,
+                                    new StreamingChatResponseHandler() {
+                                        @Override
+                                        public void onPartialResponse(String partialResponse) {
+                                            // 记录首字延迟
+                                            if (firstToken[0]) {
+                                                long latency =
+                                                        System.currentTimeMillis() - startTime[0];
+                                                businessMetricsService.recordStreamingLatency(
+                                                        latency);
+                                                firstToken[0] = false;
+                                            }
+                                            fullResponse.append(partialResponse);
+                                            emitter.next(partialResponse);
+                                        }
 
-                @Override
-                public void onCompleteResponse(ChatResponse completeResponse) {
-                    // 保存 AI 回复到记忆
-                    chatMemory.add(AiMessage.from(fullResponse.toString()));
+                                        @Override
+                                        public void onCompleteResponse(
+                                                ChatResponse completeResponse) {
+                                            // 保存 AI 回复到记忆
+                                            chatMemory.add(AiMessage.from(fullResponse.toString()));
 
-                    String modelName = getModelName(completeResponse);
+                                            String modelName = getModelName(completeResponse);
 
-                    // 记录 Token 使用
-                    if (completeResponse.tokenUsage() != null) {
-                        tokenUsageService.recordUsage(userId, sessionId,
-                                modelName, completeResponse);
-                    } else {
-                        // 估算 Token（某些模型不返回 Token 使用信息）
-                        int estimatedPromptTokens = estimateTokens(message + SYSTEM_PROMPT);
-                        int estimatedCompletionTokens = estimateTokens(fullResponse.toString());
-                        tokenUsageService.recordStreamingUsage(
-                                userId, sessionId, "unknown",
-                                estimatedPromptTokens, estimatedCompletionTokens);
-                    }
+                                            // 记录 Token 使用
+                                            if (completeResponse.tokenUsage() != null) {
+                                                tokenUsageService.recordUsage(
+                                                        userId,
+                                                        sessionId,
+                                                        modelName,
+                                                        completeResponse);
+                                            } else {
+                                                // 估算 Token（某些模型不返回 Token 使用信息）
+                                                int estimatedPromptTokens =
+                                                        estimateTokens(message + SYSTEM_PROMPT);
+                                                int estimatedCompletionTokens =
+                                                        estimateTokens(fullResponse.toString());
+                                                tokenUsageService.recordStreamingUsage(
+                                                        userId,
+                                                        sessionId,
+                                                        "unknown",
+                                                        estimatedPromptTokens,
+                                                        estimatedCompletionTokens);
+                                            }
 
-                    // 记录 AI 响应和流式完成
-                    businessMetricsService.recordAiResponse(modelName);
-                    businessMetricsService.streamingRequestCompleted();
+                                            // 记录 AI 响应和流式完成
+                                            businessMetricsService.recordAiResponse(modelName);
+                                            businessMetricsService.streamingRequestCompleted();
 
-                    emitter.complete();
-                }
+                                            emitter.complete();
+                                        }
 
-                @Override
-                public void onError(Throwable error) {
-                    LOG.error("流式聊天失败", error);
-                    businessMetricsService.streamingRequestError(error.getClass().getSimpleName());
-                    emitter.error(handleAiException(error));
-                }
-            });
-        }, FluxSink.OverflowStrategy.BUFFER)
-        .doFinally(signalType -> {
-            // 会话结束
-            businessMetricsService.sessionEnded(userId);
-        });
+                                        @Override
+                                        public void onError(Throwable error) {
+                                            LOG.error("流式聊天失败", error);
+                                            businessMetricsService.streamingRequestError(
+                                                    error.getClass().getSimpleName());
+                                            emitter.error(handleAiException(error));
+                                        }
+                                    });
+                        },
+                        FluxSink.OverflowStrategy.BUFFER)
+                .doFinally(
+                        signalType -> {
+                            // 会话结束
+                            businessMetricsService.sessionEnded(userId);
+                        });
     }
 
-    /**
-     * 构建消息列表（包含系统提示词和对话历史）
-     */
+    /** 构建消息列表（包含系统提示词和对话历史） */
     private List<ChatMessage> buildMessages(String userMessage) {
         List<ChatMessage> messages = new ArrayList<>();
 
@@ -233,9 +239,7 @@ public class AiService {
         return messages;
     }
 
-    /**
-     * 记录 Token 使用
-     */
+    /** 记录 Token 使用 */
     private void recordTokenUsage(ChatResponse response) {
         try {
             String userId = getCurrentUserId();
@@ -246,9 +250,7 @@ public class AiService {
         }
     }
 
-    /**
-     * 获取当前用户 ID
-     */
+    /** 获取当前用户 ID */
     private String getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated()) {
@@ -257,9 +259,7 @@ public class AiService {
         return "anonymous";
     }
 
-    /**
-     * 从响应中获取模型名称
-     */
+    /** 从响应中获取模型名称 */
     private String getModelName(ChatResponse response) {
         if (response.modelName() != null) {
             return response.modelName();
@@ -267,17 +267,15 @@ public class AiService {
         return "unknown";
     }
 
-    /**
-     * 估算 Token 数量（粗略估算：1 Token ≈ 4 字符）
-     */
+    /** 估算 Token 数量（粗略估算：1 Token ≈ 4 字符） */
     private int estimateTokens(String text) {
-        if (text == null) return 0;
+        if (text == null) {
+            return 0;
+        }
         return text.length() / 4;
     }
 
-    /**
-     * 处理 AI 服务异常，转换为业务异常
-     */
+    /** 处理 AI 服务异常，转换为业务异常 */
     private BusinessException handleAiException(Throwable e) {
         String message = e.getMessage();
         if (message == null) {
@@ -298,9 +296,7 @@ public class AiService {
         return new BusinessException(ErrorCode.AI_SERVICE_ERROR, "AI 服务异常: " + message, e);
     }
 
-    /**
-     * 截断日志内容，避免日志过长
-     */
+    /** 截断日志内容，避免日志过长 */
     private String truncateForLog(String text) {
         if (text == null) {
             return "null";

@@ -6,29 +6,19 @@ package com.jonychen.planning;
  * @author jonychen
  */
 public enum StepStatus {
-    /**
-     * 待执行
-     */
+    /** 待执行 */
     PENDING("待执行"),
 
-    /**
-     * 运行中
-     */
+    /** 运行中 */
     RUNNING("运行中"),
 
-    /**
-     * 已完成
-     */
+    /** 已完成 */
     COMPLETED("已完成"),
 
-    /**
-     * 失败
-     */
+    /** 失败 */
     FAILED("失败"),
 
-    /**
-     * 跳过
-     */
+    /** 跳过 */
     SKIPPED("跳过");
 
     private final String displayName;

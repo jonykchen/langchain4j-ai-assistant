@@ -1,14 +1,18 @@
 package com.jonychen.rag.loader;
 
-import com.jonychen.rag.*;
-import org.springframework.stereotype.Component;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
+import com.jonychen.rag.Document;
+import com.jonychen.rag.DocumentLoadException;
+import com.jonychen.rag.DocumentLoader;
+import com.jonychen.rag.DocumentType;
 
 /**
  * 纯文本文档加载器
@@ -26,9 +30,10 @@ public class TxtDocumentLoader implements DocumentLoader {
     @Override
     public Document load(InputStream inputStream, String filename) throws DocumentLoadException {
         try {
-            String content = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
-                    .lines()
-                    .collect(Collectors.joining("\n"));
+            String content =
+                    new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                            .lines()
+                            .collect(Collectors.joining("\n"));
 
             return new Document(
                     UUID.randomUUID().toString(),
@@ -39,8 +44,7 @@ public class TxtDocumentLoader implements DocumentLoader {
                     content,
                     java.util.Map.of("loader", "TxtDocumentLoader"),
                     java.time.LocalDateTime.now(),
-                    java.time.LocalDateTime.now()
-            );
+                    java.time.LocalDateTime.now());
         } catch (Exception e) {
             throw DocumentLoadException.readError(filename, e);
         }

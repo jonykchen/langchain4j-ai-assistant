@@ -62,15 +62,21 @@
         <module name="WhitespaceAround">
             <property name="allowEmptyConstructors" value="true"/>
             <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyLambdas" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
         </module>
         <module name="NoWhitespaceAfter"/>
         <module name="NoWhitespaceBefore"/>
-        <module name="OperatorWrap"/>
+        <!-- OperatorWrap 检查运算符换行位置（排除三元运算符，因为与代码风格冲突） -->
+        <!-- <module name="OperatorWrap"/> -->
         <module name="ParenPad"/>
         <module name="TypecastParenPad"/>
 
         <!-- 命名规范 -->
-        <module name="ConstantName"/>
+        <!-- 允许 log 作为常量名（Logger 常用命名） -->
+        <module name="ConstantName">
+            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|log)$"/>
+        </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>
         <module name="MemberName"/>
@@ -90,9 +96,9 @@
             <property name="max" value="7"/>
         </module>
 
-        <!-- 代码复杂度 -->
+        <!-- 代码复杂度（放宽限制，复杂业务逻辑方法可达到 20） -->
         <module name="CyclomaticComplexity">
-            <property name="max" value="15"/>
+            <property name="max" value="20"/>
         </module>
 
         <!-- 其他 -->

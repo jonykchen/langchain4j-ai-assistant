@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { adminApi, type CostStatistics, type UserCostRanking, type BudgetInfo } from '@/api/admin'
 
+const loading = ref(true)
 const budget = ref<BudgetInfo>({
   dailyUsed: 0,
   dailyTotal: 100,
@@ -28,24 +30,49 @@ const getProgressColor = (percent: number) => {
 }
 
 onMounted(async () => {
-  try {
-    const [budgetData, costsData, usersData] = await Promise.all([
-      adminApi.getBudget(),
-      adminApi.getModelCostStatistics(),
-      adminApi.getTopUsers({ limit: 10 })
-    ])
+  loading.value = true
 
-    budget.value = budgetData
-    modelCosts.value = costsData
-    topUsers.value = usersData
-  } catch (e) {
-    console.error('Failed to load cost data:', e)
+  // 独立加载每个数据，避免单个失败影响全部
+  const [budgetResult, costsResult, usersResult] = await Promise.allSettled([
+    adminApi.getBudget(),
+    adminApi.getModelCostStatistics(),
+    adminApi.getTopUsers({ limit: 10 })
+  ])
+
+  // 处理预算数据
+  if (budgetResult.status === 'fulfilled') {
+    budget.value = budgetResult.value
+  } else {
+    console.error('加载预算数据失败:', budgetResult.reason)
   }
+
+  // 处理模型成本数据
+  if (costsResult.status === 'fulfilled') {
+    modelCosts.value = costsResult.value
+  } else {
+    console.error('加载模型成本数据失败:', costsResult.reason)
+  }
+
+  // 处理用户排行数据
+  if (usersResult.status === 'fulfilled') {
+    topUsers.value = usersResult.value
+  } else {
+    console.error('加载用户排行数据失败:', usersResult.reason)
+  }
+
+  // 如果全部失败，显示提示
+  if (budgetResult.status === 'rejected' &&
+      costsResult.status === 'rejected' &&
+      usersResult.status === 'rejected') {
+    ElMessage.warning('暂无成本数据，请先使用 AI 对话功能')
+  }
+
+  loading.value = false
 })
 </script>
 
 <template>
-  <div class="cost-view">
+  <div class="cost-view" v-loading="loading">
     <h2>成本监控</h2>
 
     <!-- 预算概览 -->
@@ -94,7 +121,8 @@ onMounted(async () => {
       <template #header>
         <span>模型成本统计</span>
       </template>
-      <el-table :data="modelCosts" stripe>
+      <el-empty v-if="modelCosts.length === 0" description="暂无数据" :image-size="80" />
+      <el-table v-else :data="modelCosts" stripe>
         <el-table-column prop="modelName" label="模型" width="150" />
         <el-table-column prop="totalTokens" label="总 Token" width="120">
           <template #default="{ row }">{{ formatNumber(row.totalTokens) }}</template>
@@ -119,7 +147,8 @@ onMounted(async () => {
       <template #header>
         <span>用户消费排行（今日）</span>
       </template>
-      <el-table :data="topUsers" stripe size="small">
+      <el-empty v-if="topUsers.length === 0" description="暂无数据" :image-size="80" />
+      <el-table v-else :data="topUsers" stripe size="small">
         <el-table-column prop="username" label="用户" width="150" />
         <el-table-column prop="tokens" label="Token" width="120">
           <template #default="{ row }">{{ formatNumber(row.tokens) }}</template>

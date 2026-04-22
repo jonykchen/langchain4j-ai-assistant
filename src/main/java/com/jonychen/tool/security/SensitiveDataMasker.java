@@ -1,16 +1,21 @@
 package com.jonychen.tool.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.regex.Pattern;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 敏感数据脱敏器
  *
- * 对工具执行记录中的敏感信息进行脱敏处理
+ * <p>对工具执行记录中的敏感信息进行脱敏处理
  *
  * @author jonychen
  */
@@ -20,33 +25,46 @@ public class SensitiveDataMasker {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * 敏感字段名模式
-     */
-    private static final Set<String> SENSITIVE_FIELDS = Set.of(
-            "password", "pwd", "pass", "secret", "token", "apikey", "api_key",
-            "access_token", "refresh_token", "authorization", "credential",
-            "private_key", "privatekey", "ssn", "credit_card", "creditcard",
-            "phone", "mobile", "email", "id_card", "idcard"
-    );
+    /** 敏感字段名模式 */
+    private static final Set<String> SENSITIVE_FIELDS =
+            Set.of(
+                    "password",
+                    "pwd",
+                    "pass",
+                    "secret",
+                    "token",
+                    "apikey",
+                    "api_key",
+                    "access_token",
+                    "refresh_token",
+                    "authorization",
+                    "credential",
+                    "private_key",
+                    "privatekey",
+                    "ssn",
+                    "credit_card",
+                    "creditcard",
+                    "phone",
+                    "mobile",
+                    "email",
+                    "id_card",
+                    "idcard");
 
-    /**
-     * 敏感值匹配模式
-     */
-    private static final List<Pattern> SENSITIVE_PATTERNS = List.of(
-            // 手机号
-            Pattern.compile("1[3-9]\\d{9}"),
-            // 邮箱
-            Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"),
-            // 身份证号
-            Pattern.compile("\\d{17}[\\dXx]"),
-            // 银行卡号
-            Pattern.compile("\\d{16,19}"),
-            // API Key 风格
-            Pattern.compile("[a-zA-Z0-9]{32,}"),
-            // JWT Token 风格
-            Pattern.compile("eyJ[a-zA-Z0-9_-]*\\.eyJ[a-zA-Z0-9_-]*\\.[a-zA-Z0-9_-]*")
-    );
+    /** 敏感值匹配模式 */
+    private static final List<Pattern> SENSITIVE_PATTERNS =
+            List.of(
+                    // 手机号
+                    Pattern.compile("1[3-9]\\d{9}"),
+                    // 邮箱
+                    Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"),
+                    // 身份证号
+                    Pattern.compile("\\d{17}[\\dXx]"),
+                    // 银行卡号
+                    Pattern.compile("\\d{16,19}"),
+                    // API Key 风格
+                    Pattern.compile("[a-zA-Z0-9]{32,}"),
+                    // JWT Token 风格
+                    Pattern.compile("eyJ[a-zA-Z0-9_-]*\\.eyJ[a-zA-Z0-9_-]*\\.[a-zA-Z0-9_-]*"));
 
     /**
      * 对 Map 进行脱敏
@@ -107,9 +125,7 @@ public class SensitiveDataMasker {
         }
     }
 
-    /**
-     * 判断是否为敏感字段
-     */
+    /** 判断是否为敏感字段 */
     private boolean isSensitiveField(String fieldName) {
         if (fieldName == null) {
             return false;
@@ -119,9 +135,7 @@ public class SensitiveDataMasker {
                 .anyMatch(sensitive -> lower.contains(sensitive.replace("_", "")));
     }
 
-    /**
-     * 对敏感值进行脱敏
-     */
+    /** 对敏感值进行脱敏 */
     private String maskValue(Object value) {
         if (value == null) {
             return null;
@@ -138,9 +152,7 @@ public class SensitiveDataMasker {
         return strValue.substring(0, 2) + "****" + strValue.substring(strValue.length() - 2);
     }
 
-    /**
-     * 对字符串中的敏感模式进行脱敏
-     */
+    /** 对字符串中的敏感模式进行脱敏 */
     private String maskSensitivePatterns(String text) {
         if (text == null || text.isEmpty()) {
             return text;
@@ -149,29 +161,30 @@ public class SensitiveDataMasker {
         String masked = text;
 
         // 手机号脱敏：138****1234
-        masked = Pattern.compile("(1[3-9]\\d)\\d{4}(\\d{4})")
-                .matcher(masked)
-                .replaceAll("$1****$2");
+        masked =
+                Pattern.compile("(1[3-9]\\d)\\d{4}(\\d{4})").matcher(masked).replaceAll("$1****$2");
 
         // 邮箱脱敏：a***@example.com
-        masked = Pattern.compile("([a-zA-Z0-9])[a-zA-Z0-9._%+-]*@([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})")
-                .matcher(masked)
-                .replaceAll("$1***@$2");
+        masked =
+                Pattern.compile("([a-zA-Z0-9])[a-zA-Z0-9._%+-]*@([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})")
+                        .matcher(masked)
+                        .replaceAll("$1***@$2");
 
         // 身份证脱敏：320***********1234
-        masked = Pattern.compile("(\\d{3})\\d{11}(\\d{4})")
-                .matcher(masked)
-                .replaceAll("$1***********$2");
+        masked =
+                Pattern.compile("(\\d{3})\\d{11}(\\d{4})")
+                        .matcher(masked)
+                        .replaceAll("$1***********$2");
 
         // 银行卡脱敏：6222****1234
-        masked = Pattern.compile("(\\d{4})\\d{8,11}(\\d{4})")
-                .matcher(masked)
-                .replaceAll("$1****$2");
+        masked =
+                Pattern.compile("(\\d{4})\\d{8,11}(\\d{4})").matcher(masked).replaceAll("$1****$2");
 
         // JWT Token 脱敏
-        masked = Pattern.compile("eyJ[a-zA-Z0-9_-]*\\.eyJ[a-zA-Z0-9_-]*\\.[a-zA-Z0-9_-]*")
-                .matcher(masked)
-                .replaceAll("eyJ***.eyJ***.***");
+        masked =
+                Pattern.compile("eyJ[a-zA-Z0-9_-]*\\.eyJ[a-zA-Z0-9_-]*\\.[a-zA-Z0-9_-]*")
+                        .matcher(masked)
+                        .replaceAll("eyJ***.eyJ***.***");
 
         return masked;
     }
@@ -179,8 +192,8 @@ public class SensitiveDataMasker {
     /**
      * 对长文本进行截断
      *
-     * @param text       原始文本
-     * @param maxLength  最大长度
+     * @param text 原始文本
+     * @param maxLength 最大长度
      * @return 截断后的文本
      */
     public String truncate(String text, int maxLength) {

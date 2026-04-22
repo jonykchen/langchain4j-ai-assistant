@@ -1,11 +1,11 @@
 package com.jonychen.tool.confirmation;
 
-import com.jonychen.tool.ToolCategory;
-import com.jonychen.tool.ToolDefinition;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.stereotype.Component;
+
+import com.jonychen.tool.ToolDefinition;
 
 /**
  * 工具风险评估器
@@ -15,38 +15,42 @@ import java.util.Map;
 @Component
 public class ToolRiskEvaluator {
 
-    /**
-     * 工具风险等级映射
-     */
-    private static final Map<String, ToolRiskLevel> RISK_MAPPING = Map.ofEntries(
-            Map.entry("execute_sql", ToolRiskLevel.HIGH),
-            Map.entry("write_file", ToolRiskLevel.HIGH),
-            Map.entry("delete_file", ToolRiskLevel.CRITICAL),
-            Map.entry("send_email", ToolRiskLevel.HIGH),
-            Map.entry("http_request", ToolRiskLevel.MEDIUM),
-            Map.entry("web_search", ToolRiskLevel.LOW),
-            Map.entry("get_current_time", ToolRiskLevel.LOW),
-            Map.entry("get_current_date", ToolRiskLevel.LOW),
-            Map.entry("calculate", ToolRiskLevel.LOW),
-            Map.entry("evaluate_expression", ToolRiskLevel.LOW),
-            Map.entry("format_datetime", ToolRiskLevel.LOW),
-            Map.entry("convert_units", ToolRiskLevel.LOW),
-            Map.entry("calculate_percentage", ToolRiskLevel.LOW)
-    );
+    /** 工具风险等级映射 */
+    private static final Map<String, ToolRiskLevel> RISK_MAPPING =
+            Map.ofEntries(
+                    Map.entry("execute_sql", ToolRiskLevel.HIGH),
+                    Map.entry("write_file", ToolRiskLevel.HIGH),
+                    Map.entry("delete_file", ToolRiskLevel.CRITICAL),
+                    Map.entry("send_email", ToolRiskLevel.HIGH),
+                    Map.entry("http_request", ToolRiskLevel.MEDIUM),
+                    Map.entry("web_search", ToolRiskLevel.LOW),
+                    Map.entry("get_current_time", ToolRiskLevel.LOW),
+                    Map.entry("get_current_date", ToolRiskLevel.LOW),
+                    Map.entry("calculate", ToolRiskLevel.LOW),
+                    Map.entry("evaluate_expression", ToolRiskLevel.LOW),
+                    Map.entry("format_datetime", ToolRiskLevel.LOW),
+                    Map.entry("convert_units", ToolRiskLevel.LOW),
+                    Map.entry("calculate_percentage", ToolRiskLevel.LOW));
 
-    /**
-     * 高风险操作关键词
-     */
-    private static final List<String> HIGH_RISK_KEYWORDS = List.of(
-            "delete", "drop", "truncate", "update", "remove",
-            "send", "publish", "submit", "confirm", "execute"
-    );
+    /** 高风险操作关键词 */
+    private static final List<String> HIGH_RISK_KEYWORDS =
+            List.of(
+                    "delete",
+                    "drop",
+                    "truncate",
+                    "update",
+                    "remove",
+                    "send",
+                    "publish",
+                    "submit",
+                    "confirm",
+                    "execute");
 
     /**
      * 评估工具风险等级
      *
      * @param toolName 工具名称
-     * @param params   参数
+     * @param params 参数
      * @return 风险等级
      */
     public ToolRiskLevel evaluateRisk(String toolName, Map<String, Object> params) {
@@ -74,7 +78,7 @@ public class ToolRiskEvaluator {
     /**
      * 评估工具风险等级（基于工具定义）
      *
-     * @param tool   工具定义
+     * @param tool 工具定义
      * @param params 参数
      * @return 风险等级
      */
@@ -86,9 +90,7 @@ public class ToolRiskEvaluator {
         return adjustByParams(baseLevel, params);
     }
 
-    /**
-     * 获取工具基础风险等级
-     */
+    /** 获取工具基础风险等级 */
     private ToolRiskLevel getBaseRiskLevel(ToolDefinition tool) {
         // 先检查预设映射
         if (RISK_MAPPING.containsKey(tool.name())) {
@@ -106,9 +108,7 @@ public class ToolRiskEvaluator {
         };
     }
 
-    /**
-     * 根据参数调整风险等级
-     */
+    /** 根据参数调整风险等级 */
     private ToolRiskLevel adjustByParams(ToolRiskLevel baseLevel, Map<String, Object> params) {
         if (containsHighRiskOperation(params)) {
             baseLevel = upgradeRiskLevel(baseLevel);
@@ -125,21 +125,19 @@ public class ToolRiskEvaluator {
         return baseLevel;
     }
 
-    /**
-     * 检查参数是否包含高风险操作
-     */
+    /** 检查参数是否包含高风险操作 */
     private boolean containsHighRiskOperation(Map<String, Object> params) {
         return params.values().stream()
                 .filter(String.class::isInstance)
                 .map(String.class::cast)
                 .map(String::toLowerCase)
-                .anyMatch(value -> HIGH_RISK_KEYWORDS.stream()
-                        .anyMatch(keyword -> value.contains(keyword)));
+                .anyMatch(
+                        value ->
+                                HIGH_RISK_KEYWORDS.stream()
+                                        .anyMatch(keyword -> value.contains(keyword)));
     }
 
-    /**
-     * 检查是否是批量操作
-     */
+    /** 检查是否是批量操作 */
     private boolean isBatchOperation(Map<String, Object> params) {
         // 检查数量参数
         Object count = params.get("count");
@@ -158,23 +156,21 @@ public class ToolRiskEvaluator {
         return batch instanceof Boolean && (Boolean) batch;
     }
 
-    /**
-     * 检查参数是否包含敏感数据
-     */
+    /** 检查参数是否包含敏感数据 */
     private boolean containsSensitiveData(Map<String, Object> params) {
         // 检查参数名是否包含敏感关键词
         return params.keySet().stream()
                 .map(String::toLowerCase)
-                .anyMatch(key -> key.contains("password") ||
-                        key.contains("token") ||
-                        key.contains("secret") ||
-                        key.contains("credit") ||
-                        key.contains("ssn"));
+                .anyMatch(
+                        key ->
+                                key.contains("password")
+                                        || key.contains("token")
+                                        || key.contains("secret")
+                                        || key.contains("credit")
+                                        || key.contains("ssn"));
     }
 
-    /**
-     * 提升风险等级
-     */
+    /** 提升风险等级 */
     private ToolRiskLevel upgradeRiskLevel(ToolRiskLevel level) {
         return switch (level) {
             case LOW -> ToolRiskLevel.MEDIUM;

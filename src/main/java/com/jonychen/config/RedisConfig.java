@@ -10,7 +10,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 /**
  * Redis 配置类
  *
- * 配置 Redis 连接和序列化
+ * <p>配置 Redis 连接和序列化
  */
 @Configuration
 public class RedisConfig {
@@ -18,7 +18,7 @@ public class RedisConfig {
     /**
      * String Redis Template
      *
-     * 用于限流计数等简单字符串操作
+     * <p>用于限流计数等简单字符串操作
      */
     @Bean
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
@@ -30,7 +30,7 @@ public class RedisConfig {
     /**
      * Redis Template
      *
-     * 用于存储复杂对象
+     * <p>用于存储复杂对象
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {

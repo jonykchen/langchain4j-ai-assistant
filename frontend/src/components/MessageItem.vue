@@ -112,11 +112,11 @@ const md = new MarkdownIt({
 
     // 返回完整的代码块 HTML
     // 包含：语言标签 + 操作按钮（复制/编辑/主题/折叠）+ 代码内容
-    return `<pre class="code-block-wrapper" data-lang="${langLabel}" data-raw="${rawData}">
+    return `<pre class="code-block-wrapper" data-testid="code-block" data-lang="${langLabel}" data-raw="${rawData}">
       <div class="code-block-header">
         <span class="code-lang">${langLabel}</span>
         <div class="code-actions">
-          <button class="code-action-btn" data-action="copy" title="复制代码">
+          <button class="code-action-btn" data-action="copy" data-testid="copy-button" title="复制代码">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>复制
           </button>
           <button class="code-action-btn" data-action="edit" title="编辑代码">
@@ -471,9 +471,9 @@ const isUser = computed(() => props.message.role === 'user')
     <!-- 消息内容区域 -->
     <div class="message-content">
       <!-- 思考过程区域（仅 AI 消息显示） -->
-      <div v-if="!isUser && parsedContent.hasThinking" class="thinking-section">
+      <div v-if="!isUser && parsedContent.hasThinking" class="thinking-section" data-testid="thinking-section">
         <!-- 可点击的头部，展开/折叠思考过程 -->
-        <div class="thinking-header" @click="thinkingExpanded = !thinkingExpanded">
+        <div class="thinking-header" data-testid="thinking-toggle" @click="thinkingExpanded = !thinkingExpanded">
           <span class="thinking-icon">
             <!-- 展开状态图标 -->
             <svg v-if="thinkingExpanded" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

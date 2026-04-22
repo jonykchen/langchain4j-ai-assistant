@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Prompt 模板管理器接口
- */
+/** Prompt 模板管理器接口 */
 public interface PromptTemplateManager {
 
     /**
@@ -75,13 +73,6 @@ public interface PromptTemplateManager {
      */
     boolean existsTemplate(String name);
 
-    /**
-     * 模板简要信息
-     */
-    record TemplateInfo(
-            String name,
-            String version,
-            String description,
-            LocalDateTime updatedAt
-    ) {}
+    /** 模板简要信息 */
+    record TemplateInfo(String name, String version, String description, LocalDateTime updatedAt) {}
 }

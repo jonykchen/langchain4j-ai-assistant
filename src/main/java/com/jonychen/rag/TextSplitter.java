@@ -25,13 +25,9 @@ public interface TextSplitter {
      */
     List<String> split(String text);
 
-    /**
-     * 获取块大小
-     */
+    /** 获取块大小 */
     int getChunkSize();
 
-    /**
-     * 获取重叠大小
-     */
+    /** 获取重叠大小 */
     int getOverlap();
 }

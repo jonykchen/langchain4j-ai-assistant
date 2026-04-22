@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 /**
  * 模型健康状态
  *
- * 记录单个模型的运行状态，用于健康检查和监控。
+ * <p>记录单个模型的运行状态，用于健康检查和监控。
  */
 public class ModelHealthStatus {
 
@@ -72,12 +72,19 @@ public class ModelHealthStatus {
 
     @Override
     public String toString() {
-        return "ModelHealthStatus{" +
-                "modelName='" + modelName + '\'' +
-                ", healthy=" + healthy +
-                ", successCount=" + successCount +
-                ", failureCount=" + failureCount +
-                ", lastError='" + lastError + '\'' +
-                '}';
+        return "ModelHealthStatus{"
+                + "modelName='"
+                + modelName
+                + '\''
+                + ", healthy="
+                + healthy
+                + ", successCount="
+                + successCount
+                + ", failureCount="
+                + failureCount
+                + ", lastError='"
+                + lastError
+                + '\''
+                + '}';
     }
 }

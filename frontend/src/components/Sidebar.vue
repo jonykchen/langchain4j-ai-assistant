@@ -48,10 +48,10 @@ function closeRename() {
 
 <template>
   <div class="sidebar-wrapper">
-    <aside class="sidebar">
+    <aside class="sidebar" data-testid="sidebar">
       <div class="sidebar-header">
         <h2 class="sidebar-title">AI Chat</h2>
-        <ElButton type="primary" :icon="Plus" @click="$emit('newChat')">
+        <ElButton type="primary" :icon="Plus" data-testid="new-conversation" @click="$emit('newChat')">
           新对话
         </ElButton>
       </div>
@@ -72,6 +72,8 @@ function closeRename() {
             size="small"
             :icon="Delete"
             class="delete-btn"
+            :aria-label="'删除对话: ' + conv.title"
+            title="删除对话"
             @click.stop="$emit('delete', conv.id)"
           />
         </div>

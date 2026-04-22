@@ -26,12 +26,13 @@ watch(
 </script>
 
 <template>
-  <div ref="listRef" class="message-list">
+  <div ref="listRef" class="message-list" data-testid="message-list">
     <TransitionGroup name="message">
       <MessageItem
         v-for="message in messages"
         :key="message.id"
         :message="message"
+        :data-testid="message.role === 'user' ? 'user-message' : 'assistant-message'"
         @regenerate="emit('regenerate')"
       />
     </TransitionGroup>

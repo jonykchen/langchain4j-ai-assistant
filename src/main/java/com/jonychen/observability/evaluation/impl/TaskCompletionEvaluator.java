@@ -1,12 +1,17 @@
 package com.jonychen.observability.evaluation.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.stereotype.Component;
+
 import com.jonychen.observability.evaluation.AgentEvaluator;
 import com.jonychen.observability.evaluation.EvaluationMetrics;
 import com.jonychen.observability.trace.AgentTrace;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
-import java.util.*;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 任务完成度评测器
@@ -40,20 +45,33 @@ public class TaskCompletionEvaluator implements AgentEvaluator {
         // 预期输出匹配（如果提供）
         boolean outputMatches = true;
         if (context.expectedOutput() != null) {
-            outputMatches = trace.getFinalOutput() != null &&
-                    trace.getFinalOutput().toLowerCase().contains(context.expectedOutput().toLowerCase());
+            outputMatches =
+                    trace.getFinalOutput() != null
+                            && trace.getFinalOutput()
+                                    .toLowerCase()
+                                    .contains(context.expectedOutput().toLowerCase());
         }
 
         // 计算得分
         double score = 0;
-        if (statusSuccess) score += 0.4;
-        if (hasOutput) score += 0.3;
-        if (outputMatches) score += 0.3;
+        if (statusSuccess) {
+            score += 0.4;
+        }
+        if (hasOutput) {
+            score += 0.3;
+        }
+        if (outputMatches) {
+            score += 0.3;
+        }
 
         // 收集问题
         List<String> issues = new ArrayList<>();
-        if (!statusSuccess) issues.add("任务状态非 COMPLETED: " + trace.getStatus());
-        if (!hasOutput) issues.add("缺少最终输出");
+        if (!statusSuccess) {
+            issues.add("任务状态非 COMPLETED: " + trace.getStatus());
+        }
+        if (!hasOutput) {
+            issues.add("缺少最终输出");
+        }
         if (!outputMatches && context.expectedOutput() != null) {
             issues.add("输出与预期不匹配");
         }
@@ -65,11 +83,9 @@ public class TaskCompletionEvaluator implements AgentEvaluator {
                 Map.of(
                         "statusSuccess", statusSuccess,
                         "hasOutput", hasOutput,
-                        "outputMatches", outputMatches
-                ),
+                        "outputMatches", outputMatches),
                 issues,
-                generateRecommendation(issues)
-        );
+                generateRecommendation(issues));
     }
 
     @Override
@@ -80,17 +96,22 @@ public class TaskCompletionEvaluator implements AgentEvaluator {
         double totalScore = 0;
 
         for (AgentTrace trace : traces) {
-            EvaluationResult result = evaluate(new EvaluationContext(trace, null, null, Map.of(), "batch"));
+            EvaluationResult result =
+                    evaluate(new EvaluationContext(trace, null, null, Map.of(), "batch"));
             results.add(result);
             totalScore += result.score();
-            if (result.passed()) passed++;
-            else failed++;
+            if (result.passed()) {
+                passed++;
+            } else {
+                failed++;
+            }
         }
 
-        EvaluationMetrics metrics = EvaluationMetrics.builder()
-                .taskCompletionRate(traces.isEmpty() ? 0 : (double) passed / traces.size())
-                .errorRate(traces.isEmpty() ? 0 : (double) failed / traces.size())
-                .build();
+        EvaluationMetrics metrics =
+                EvaluationMetrics.builder()
+                        .taskCompletionRate(traces.isEmpty() ? 0 : (double) passed / traces.size())
+                        .errorRate(traces.isEmpty() ? 0 : (double) failed / traces.size())
+                        .build();
 
         return new BatchEvaluationResult(
                 UUID.randomUUID().toString(),
@@ -101,13 +122,13 @@ public class TaskCompletionEvaluator implements AgentEvaluator {
                 results,
                 Map.of(
                         "avgScore", traces.isEmpty() ? 0 : totalScore / traces.size(),
-                        "passRate", traces.isEmpty() ? 0 : (double) passed / traces.size()
-                )
-        );
+                        "passRate", traces.isEmpty() ? 0 : (double) passed / traces.size()));
     }
 
     private String generateRecommendation(List<String> issues) {
-        if (issues.isEmpty()) return "任务执行良好";
+        if (issues.isEmpty()) {
+            return "任务执行良好";
+        }
         return "建议检查: " + String.join(", ", issues);
     }
 }

@@ -1,19 +1,24 @@
 package com.jonychen.observability.state;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.stereotype.Component;
+
 import com.jonychen.observability.trace.AgentTraceService;
 import com.jonychen.planning.TaskContext;
 import com.jonychen.planning.agent.ReActAgent;
 import com.jonychen.planning.agent.ReActResult;
 import com.jonychen.planning.agent.ReActStep;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import java.util.*;
 
 /**
- * 支持断点续传的 ReAct Agent
- * 在执行过程中自动保存检查点，支持从断点恢复执行
+ * 支持断点续传的 ReAct Agent 在执行过程中自动保存检查点，支持从断点恢复执行
  *
  * @author jonychen
  */
@@ -61,8 +66,10 @@ public class ResumableReActAgent {
         AgentStateService.AgentResumeContext resumeContext =
                 stateService.resumeFromSnapshot(snapshot.getSnapshotId());
 
-        log.info("Resuming execution from step {}/{}",
-                resumeContext.currentStepIndex(), resumeContext.totalSteps());
+        log.info(
+                "Resuming execution from step {}/{}",
+                resumeContext.currentStepIndex(),
+                resumeContext.totalSteps());
 
         // 恢复执行上下文（如果需要可以恢复变量等）
         if (context != null && resumeContext.internalState() != null) {
@@ -100,8 +107,12 @@ public class ResumableReActAgent {
      * @param maxSteps 最大步骤数
      * @return 快照 ID
      */
-    public String pause(String sessionId, String traceId,
-                         List<ReActStep> completedSteps, int currentStep, int maxSteps) {
+    public String pause(
+            String sessionId,
+            String traceId,
+            List<ReActStep> completedSteps,
+            int currentStep,
+            int maxSteps) {
         // 序列化已完成步骤
         List<Map<String, Object>> history = new ArrayList<>();
         for (ReActStep step : completedSteps) {
@@ -121,14 +132,9 @@ public class ResumableReActAgent {
         state.put("currentStepIndex", currentStep);
 
         // 保存暂停快照
-        AgentStateSnapshot snapshot = stateService.savePauseSnapshot(
-                traceId,
-                sessionId,
-                "REACT",
-                state,
-                currentStep,
-                maxSteps
-        );
+        AgentStateSnapshot snapshot =
+                stateService.savePauseSnapshot(
+                        traceId, sessionId, "REACT", state, currentStep, maxSteps);
 
         log.info("Agent execution paused, snapshot: {}", snapshot.getSnapshotId());
         return snapshot.getSnapshotId();
@@ -144,19 +150,17 @@ public class ResumableReActAgent {
      * @param maxSteps 最大步骤数
      * @return 快照 ID
      */
-    public String saveCheckpoint(String sessionId, String traceId,
-                                   Object state, int currentStep, int maxSteps) {
-        AgentStateSnapshot snapshot = stateService.saveCheckpoint(
-                traceId,
-                sessionId,
-                "REACT",
-                state,
-                currentStep,
-                maxSteps
-        );
+    public String saveCheckpoint(
+            String sessionId, String traceId, Object state, int currentStep, int maxSteps) {
+        AgentStateSnapshot snapshot =
+                stateService.saveCheckpoint(
+                        traceId, sessionId, "REACT", state, currentStep, maxSteps);
 
-        log.debug("Checkpoint saved: {} at step {}/{}",
-                snapshot.getSnapshotId(), currentStep, maxSteps);
+        log.debug(
+                "Checkpoint saved: {} at step {}/{}",
+                snapshot.getSnapshotId(),
+                currentStep,
+                maxSteps);
         return snapshot.getSnapshotId();
     }
 
@@ -186,19 +190,22 @@ public class ResumableReActAgent {
      * @param sessionId 会话 ID
      */
     public void abandonResume(String sessionId) {
-        stateService.getSessionSnapshots(sessionId).forEach(snapshot -> {
-            if (snapshot.getResumable()) {
-                stateService.markAsNonResumable(snapshot.getSnapshotId());
-            }
-        });
+        stateService
+                .getSessionSnapshots(sessionId)
+                .forEach(
+                        snapshot -> {
+                            if (snapshot.getResumable()) {
+                                stateService.markAsNonResumable(snapshot.getSnapshotId());
+                            }
+                        });
         log.info("Abandoned all resumable snapshots for session: {}", sessionId);
     }
 
-    /**
-     * 恢复任务上下文
-     */
+    /** 恢复任务上下文 */
     private void restoreContext(TaskContext context, Map<String, Object> state) {
-        if (state == null) return;
+        if (state == null) {
+            return;
+        }
 
         // 恢复变量
         @SuppressWarnings("unchecked")
@@ -212,11 +219,12 @@ public class ResumableReActAgent {
         Map<String, Object> stepResults = (Map<String, Object>) state.get("stepResults");
         if (stepResults != null && context.getStepResults() != null) {
             // 逐个添加步骤结果（类型转换）
-            stepResults.forEach((key, value) -> {
-                if (value instanceof com.jonychen.planning.StepResult sr) {
-                    context.getStepResults().put(key, sr);
-                }
-            });
+            stepResults.forEach(
+                    (key, value) -> {
+                        if (value instanceof com.jonychen.planning.StepResult sr) {
+                            context.getStepResults().put(key, sr);
+                        }
+                    });
         }
     }
 }

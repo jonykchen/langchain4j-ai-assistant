@@ -1,14 +1,18 @@
 package com.jonychen.rag.loader;
 
-import com.jonychen.rag.*;
-import org.springframework.stereotype.Component;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
+import com.jonychen.rag.Document;
+import com.jonychen.rag.DocumentLoadException;
+import com.jonychen.rag.DocumentLoader;
+import com.jonychen.rag.DocumentType;
 
 /**
  * Markdown 文档加载器
@@ -26,9 +30,10 @@ public class MarkdownDocumentLoader implements DocumentLoader {
     @Override
     public Document load(InputStream inputStream, String filename) throws DocumentLoadException {
         try {
-            String content = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
-                    .lines()
-                    .collect(Collectors.joining("\n"));
+            String content =
+                    new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                            .lines()
+                            .collect(Collectors.joining("\n"));
 
             // 提取标题作为元数据
             String title = extractTitle(content);
@@ -42,21 +47,20 @@ public class MarkdownDocumentLoader implements DocumentLoader {
                     null,
                     content,
                     java.util.Map.of(
-                            "loader", "MarkdownDocumentLoader",
-                            "title", title != null ? title : filename,
-                            "headingCount", headingCount
-                    ),
+                            "loader",
+                            "MarkdownDocumentLoader",
+                            "title",
+                            title != null ? title : filename,
+                            "headingCount",
+                            headingCount),
                     java.time.LocalDateTime.now(),
-                    java.time.LocalDateTime.now()
-            );
+                    java.time.LocalDateTime.now());
         } catch (Exception e) {
             throw DocumentLoadException.readError(filename, e);
         }
     }
 
-    /**
-     * 提取第一个标题
-     */
+    /** 提取第一个标题 */
     private String extractTitle(String content) {
         String[] lines = content.split("\n");
         for (String line : lines) {
@@ -68,9 +72,7 @@ public class MarkdownDocumentLoader implements DocumentLoader {
         return null;
     }
 
-    /**
-     * 统计标题数量
-     */
+    /** 统计标题数量 */
     private int countHeadings(String content) {
         int count = 0;
         for (String line : content.split("\n")) {

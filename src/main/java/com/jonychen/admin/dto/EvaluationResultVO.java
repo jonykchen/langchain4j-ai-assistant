@@ -1,12 +1,13 @@
 package com.jonychen.admin.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Builder;
-import lombok.Data;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import lombok.Builder;
+import lombok.Data;
 
 /**
  * 评测结果 VO
@@ -45,9 +46,7 @@ public class EvaluationResultVO {
         private double errorRate;
     }
 
-    /**
-     * 评测报告 VO
-     */
+    /** 评测报告 VO */
     @Data
     @Builder
     public static class ReportVO {

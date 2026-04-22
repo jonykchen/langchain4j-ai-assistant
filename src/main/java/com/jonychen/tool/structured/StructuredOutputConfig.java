@@ -3,11 +3,11 @@ package com.jonychen.tool.structured;
 /**
  * 结构化输出配置
  *
- * @param schema              输出 Schema
- * @param maxRetries          最大重试次数
- * @param validateOnParse     解析时是否验证
- * @param strictMode          严格模式（严格类型检查）
- * @param fallbackToJson      失败时是否回退到 JSON
+ * @param schema 输出 Schema
+ * @param maxRetries 最大重试次数
+ * @param validateOnParse 解析时是否验证
+ * @param strictMode 严格模式（严格类型检查）
+ * @param fallbackToJson 失败时是否回退到 JSON
  * @author jonychen
  */
 public record StructuredOutputConfig(
@@ -15,32 +15,23 @@ public record StructuredOutputConfig(
         int maxRetries,
         boolean validateOnParse,
         boolean strictMode,
-        boolean fallbackToJson
-) {
-    /**
-     * 默认配置
-     */
+        boolean fallbackToJson) {
+    /** 默认配置 */
     public static StructuredOutputConfig defaultConfig(OutputSchema schema) {
         return new StructuredOutputConfig(schema, 3, true, false, true);
     }
 
-    /**
-     * 严格配置
-     */
+    /** 严格配置 */
     public static StructuredOutputConfig strict(OutputSchema schema) {
         return new StructuredOutputConfig(schema, 3, true, true, false);
     }
 
-    /**
-     * 宽松配置
-     */
+    /** 宽松配置 */
     public static StructuredOutputConfig lenient(OutputSchema schema) {
         return new StructuredOutputConfig(schema, 1, false, false, true);
     }
 
-    /**
-     * 构建器
-     */
+    /** 构建器 */
     public static Builder builder() {
         return new Builder();
     }
@@ -81,7 +72,8 @@ public record StructuredOutputConfig(
             if (schema == null) {
                 throw new IllegalArgumentException("Schema is required");
             }
-            return new StructuredOutputConfig(schema, maxRetries, validateOnParse, strictMode, fallbackToJson);
+            return new StructuredOutputConfig(
+                    schema, maxRetries, validateOnParse, strictMode, fallbackToJson);
         }
     }
 }

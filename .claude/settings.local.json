@@ -77,7 +77,15 @@
       "Bash(mvn dependency:sources -q)",
       "Read(//c/Users/30240/.m2/repository/dev/langchain4j/**)",
       "Bash(jar tf:*)",
-      "Bash(javap:*)"
+      "Bash(javap:*)",
+      "Bash(npx playwright:*)",
+      "Bash(mvn spotless:apply -q)",
+      "Bash(mvn checkstyle:check -q)",
+      "Bash(mvn checkstyle:check)",
+      "Bash(mvn checkstyle:checkstyle)",
+      "Bash(mvn spotless:apply)",
+      "Bash(mvn checkstyle:checkstyle -q)",
+      "Bash(mvn spotless:check checkstyle:check)"
     ]
   }
 }

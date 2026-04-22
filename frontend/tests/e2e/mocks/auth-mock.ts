@@ -2,6 +2,7 @@ import { Page, Route } from '@playwright/test';
 
 /**
  * 认证 API Mock
+ * 返回格式与前端类型定义 OAuthCallbackResponse / TokenResponse 一致
  */
 export class AuthMock {
   private page: Page;
@@ -12,6 +13,7 @@ export class AuthMock {
 
   /**
    * Mock 登录成功
+   * 返回格式与后端 OAuthCallbackResponse 一致
    */
   async mockLoginSuccess(token: string = 'test-jwt-token') {
     await this.page.route('**/auth/login', async (route: Route) => {
@@ -22,9 +24,12 @@ export class AuthMock {
           code: 200,
           message: 'success',
           data: {
-            token,
-            refreshToken: 'test-refresh-token',
-            expiresIn: 3600,
+            token: {
+              accessToken: token,
+              refreshToken: 'test-refresh-token',
+              tokenType: 'Bearer',
+              expiresIn: 3600,
+            },
             user: {
               id: 'test-user-id',
               username: 'testuser',
@@ -34,6 +39,9 @@ export class AuthMock {
         })
       });
     });
+
+    // 同时 Mock /auth/me 接口（登录后前端可能立即调用）
+    await this.mockGetUserInfo({ username: 'testuser', role: 'USER' });
   }
 
   /**
@@ -92,6 +100,7 @@ export class AuthMock {
 
   /**
    * Mock Token 刷新
+   * 返回格式与后端 TokenResponse 一致
    */
   async mockTokenRefresh(newToken: string = 'new-jwt-token') {
     await this.page.route('**/auth/refresh', async (route: Route) => {
@@ -102,8 +111,10 @@ export class AuthMock {
           code: 200,
           message: 'success',
           data: {
-            token: newToken,
-            expiresIn: 3600
+            accessToken: newToken,
+            refreshToken: 'new-refresh-token',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
           }
         })
       });
@@ -112,6 +123,7 @@ export class AuthMock {
 
   /**
    * Mock Token 过期
+   * 当请求包含过期 Token 时返回 401
    */
   async mockTokenExpired() {
     await this.page.route('**/api/**', async (route: Route) => {
@@ -146,7 +158,12 @@ export class AuthMock {
           code: 200,
           message: 'success',
           data: {
-            token: 'github-oauth-token',
+            token: {
+              accessToken: 'github-oauth-token',
+              refreshToken: 'github-refresh-token',
+              tokenType: 'Bearer',
+              expiresIn: 3600,
+            },
             user: {
               id: 'github-user-id',
               username: 'githubuser',
@@ -171,7 +188,12 @@ export class AuthMock {
           code: 200,
           message: 'success',
           data: {
-            token: 'gitlab-oauth-token',
+            token: {
+              accessToken: 'gitlab-oauth-token',
+              refreshToken: 'gitlab-refresh-token',
+              tokenType: 'Bearer',
+              expiresIn: 3600,
+            },
             user: {
               id: 'gitlab-user-id',
               username: 'gitlabuser',
@@ -210,7 +232,7 @@ export class AuthMock {
    * 设置认证状态
    */
   async setAuthState(token: string, user: any) {
-    await this.page.addCookies([{
+    await this.page.context().addCookies([{
       name: 'auth_token',
       value: token,
       domain: 'localhost',
@@ -219,8 +241,10 @@ export class AuthMock {
 
     await this.page.goto('/');
     await this.page.evaluate((authData) => {
-      localStorage.setItem('token', authData.token);
-      localStorage.setItem('user', JSON.stringify(authData.user));
+      localStorage.setItem('access_token', authData.token);
+      localStorage.setItem('refresh_token', 'test-refresh-token');
+      localStorage.setItem('token_expiry', String(Date.now() + 3600000));
+      localStorage.setItem('user_info', JSON.stringify(authData.user));
     }, { token, user });
   }
 
@@ -229,9 +253,15 @@ export class AuthMock {
    */
   async clearAuthState() {
     await this.page.context().clearCookies();
-    await this.page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    // 只有在页面已加载时才清除 localStorage
+    const url = this.page.url();
+    if (url && url !== 'about:blank') {
+      await this.page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      }).catch(() => {
+        // 页面可能未加载，忽略错误
+      });
+    }
   }
 }

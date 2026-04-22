@@ -76,6 +76,12 @@ const routes: RouteRecordRaw[] = [
         name: 'AdminEvaluation',
         component: () => import('@/views/admin/EvaluationView.vue'),
         meta: { title: 'Agent 评测' }
+      },
+      {
+        path: 'test-history',
+        name: 'AdminTestHistory',
+        component: () => import('@/views/admin/TestHistoryView.vue'),
+        meta: { title: '测试历史' }
       }
     ]
   }

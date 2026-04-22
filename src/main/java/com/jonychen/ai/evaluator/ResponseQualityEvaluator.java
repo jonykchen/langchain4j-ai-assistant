@@ -1,32 +1,28 @@
 package com.jonychen.ai.evaluator;
 
-import com.jonychen.ai.model.AIModelTestCase;
-import com.jonychen.ai.model.AIModelTestResult;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-/**
- * 响应质量评估器
- * 评估 AI 响应的质量和正确性
- */
+import org.springframework.stereotype.Component;
+
+import com.jonychen.ai.model.AIModelTestCase;
+import com.jonychen.ai.model.AIModelTestResult;
+
+/** 响应质量评估器 评估 AI 响应的质量和正确性 */
 @Component
 public class ResponseQualityEvaluator {
 
     /**
      * 评估响应质量
      *
-     * @param testCase     测试用例
+     * @param testCase 测试用例
      * @param actualResponse 实际响应
      * @param responseTimeMs 响应时间（毫秒）
      * @return 断言结果
      */
     public AIModelTestResult.AssertionResult evaluate(
-            AIModelTestCase testCase,
-            String actualResponse,
-            long responseTimeMs) {
+            AIModelTestCase testCase, String actualResponse, long responseTimeMs) {
 
         List<String> passed = new ArrayList<>();
         List<AIModelTestResult.AssertionFailure> failed = new ArrayList<>();
@@ -41,11 +37,11 @@ public class ResponseQualityEvaluator {
             if (result) {
                 passed.add(assertion.description());
             } else {
-                failed.add(new AIModelTestResult.AssertionFailure(
-                    assertion.description(),
-                    String.valueOf(assertion.expected()),
-                    getActualValue(assertion.type(), actualResponse, responseTimeMs)
-                ));
+                failed.add(
+                        new AIModelTestResult.AssertionFailure(
+                                assertion.description(),
+                                String.valueOf(assertion.expected()),
+                                getActualValue(assertion.type(), actualResponse, responseTimeMs)));
             }
         }
 
@@ -53,13 +49,9 @@ public class ResponseQualityEvaluator {
         return new AIModelTestResult.AssertionResult(passed, failed, score);
     }
 
-    /**
-     * 评估单个断言
-     */
+    /** 评估单个断言 */
     private boolean evaluateAssertion(
-            AIModelTestCase.Assertion assertion,
-            String actualResponse,
-            long responseTimeMs) {
+            AIModelTestCase.Assertion assertion, String actualResponse, long responseTimeMs) {
 
         String type = assertion.type();
         Object expected = assertion.expected();
@@ -90,9 +82,7 @@ public class ResponseQualityEvaluator {
         };
     }
 
-    /**
-     * 获取实际值（用于失败报告）
-     */
+    /** 获取实际值（用于失败报告） */
     private String getActualValue(String type, String actualResponse, long responseTimeMs) {
         return switch (type) {
             case "RESPONSE_TIME_MS" -> String.valueOf(responseTimeMs) + "ms";
@@ -102,16 +92,12 @@ public class ResponseQualityEvaluator {
         };
     }
 
-    /**
-     * 计算得分
-     */
+    /** 计算得分 */
     private double calculateScore(int passed, int total) {
         return total == 0 ? 1.0 : (double) passed / total;
     }
 
-    /**
-     * 验证是否为有效 JSON
-     */
+    /** 验证是否为有效 JSON */
     private boolean isValidJson(String text) {
         if (text == null || text.trim().isEmpty()) {
             return false;
@@ -128,11 +114,11 @@ public class ResponseQualityEvaluator {
         }
     }
 
-    /**
-     * 截断文本
-     */
+    /** 截断文本 */
     private String truncate(String text, int maxLength) {
-        if (text == null) return "null";
+        if (text == null) {
+            return "null";
+        }
         return text.length() > maxLength ? text.substring(0, maxLength) + "..." : text;
     }
 }

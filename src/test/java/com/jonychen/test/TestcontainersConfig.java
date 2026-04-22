@@ -7,17 +7,18 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 /**
  * Testcontainers 测试配置基类
  *
- * 使用 Testcontainers 启动 PostgreSQL 容器进行集成测试
+ * <p>使用 Testcontainers 启动 PostgreSQL 容器进行集成测试
  */
 @Testcontainers
 public abstract class TestcontainersConfig {
 
     @Container
     @SuppressWarnings("resource")
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("langchain4j_test")
-            .withUsername("test")
-            .withPassword("test");
+    static final PostgreSQLContainer<?> postgres =
+            new PostgreSQLContainer<>("postgres:16-alpine")
+                    .withDatabaseName("langchain4j_test")
+                    .withUsername("test")
+                    .withPassword("test");
 
     static {
         // 设置测试数据库连接属性

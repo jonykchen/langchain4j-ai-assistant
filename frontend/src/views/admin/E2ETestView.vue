@@ -49,9 +49,14 @@ const loadResults = async () => {
 
 const loadReport = async () => {
   try {
-    reportUrl.value = await testApi.getE2EReport()
+    const url = await testApi.getE2EReport()
+    // 只在报告路径有效时设置
+    if (url && url !== '') {
+      reportUrl.value = url
+    }
   } catch (error) {
-    console.error('获取报告路径失败', error)
+    // 报告不可用，不显示按钮
+    reportUrl.value = null
   }
 }
 
