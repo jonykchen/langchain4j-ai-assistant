@@ -17,10 +17,6 @@ const formatTime = (ms: number) => {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
-const formatPercent = (value: number) => {
-  return `${(value * 100).toFixed(1)}%`
-}
-
 const summaryStats = computed(() => {
   if (results.value.length === 0) return null
   const latest = results.value[results.value.length - 1]

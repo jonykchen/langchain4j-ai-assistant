@@ -2,6 +2,7 @@ import { test as base, Page } from '@playwright/test';
 import { ChatPage } from '../pages/ChatPage';
 import { LoginPage } from '../pages/LoginPage';
 import { AdminPage } from '../pages/AdminPage';
+import { PlanningPage } from '../pages/PlanningPage';
 
 /**
  * 自定义测试夹具
@@ -11,6 +12,7 @@ type TestFixtures = {
   chatPage: ChatPage;
   loginPage: LoginPage;
   adminPage: AdminPage;
+  planningPage: PlanningPage;
   authenticatedPage: Page;
 };
 
@@ -31,6 +33,12 @@ export const test = base.extend<TestFixtures>({
   adminPage: async ({ page }, use) => {
     const adminPage = new AdminPage(page);
     await use(adminPage);
+  },
+
+  // 任务规划页面对象
+  planningPage: async ({ page }, use) => {
+    const planningPage = new PlanningPage(page);
+    await use(planningPage);
   },
 
   // 已认证的页面
