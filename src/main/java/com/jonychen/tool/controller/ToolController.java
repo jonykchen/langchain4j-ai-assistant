@@ -1,14 +1,25 @@
 package com.jonychen.tool.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.jonychen.model.ApiResponse;
-import com.jonychen.tool.*;
+import com.jonychen.tool.ToolCategory;
+import com.jonychen.tool.ToolDefinition;
+import com.jonychen.tool.ToolNotFoundException;
+import com.jonychen.tool.ToolRegistry;
+import com.jonychen.tool.ToolResult;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 工具系统 REST API
@@ -23,51 +34,40 @@ public class ToolController {
 
     private final ToolRegistry toolRegistry;
 
-    /**
-     * 获取所有可用工具
-     */
+    /** 获取所有可用工具 */
     @Operation(summary = "获取工具列表", description = "获取所有已注册的工具定义")
     @GetMapping
     public ApiResponse<List<ToolInfo>> getAllTools() {
-        List<ToolInfo> tools = toolRegistry.getAllTools().stream()
-                .map(this::toToolInfo)
-                .toList();
+        List<ToolInfo> tools = toolRegistry.getAllTools().stream().map(this::toToolInfo).toList();
         return ApiResponse.success(tools);
     }
 
-    /**
-     * 获取指定工具详情
-     */
+    /** 获取指定工具详情 */
     @Operation(summary = "获取工具详情", description = "获取指定工具的完整定义")
     @GetMapping("/{name}")
     public ApiResponse<ToolInfo> getTool(@PathVariable String name) {
-        ToolDefinition tool = toolRegistry.getTool(name)
-                .orElseThrow(() -> new ToolNotFoundException("Tool not found: " + name));
+        ToolDefinition tool =
+                toolRegistry
+                        .getTool(name)
+                        .orElseThrow(() -> new ToolNotFoundException("Tool not found: " + name));
         return ApiResponse.success(toToolInfo(tool));
     }
 
-    /**
-     * 按分类获取工具
-     */
+    /** 按分类获取工具 */
     @Operation(summary = "按分类获取工具", description = "获取指定分类下的所有工具")
     @GetMapping("/category/{category}")
     public ApiResponse<List<ToolInfo>> getToolsByCategory(@PathVariable String category) {
         ToolCategory cat = ToolCategory.valueOf(category.toUpperCase());
-        List<ToolInfo> tools = toolRegistry.getToolsByCategory(cat).stream()
-                .map(this::toToolInfo)
-                .toList();
+        List<ToolInfo> tools =
+                toolRegistry.getToolsByCategory(cat).stream().map(this::toToolInfo).toList();
         return ApiResponse.success(tools);
     }
 
-    /**
-     * 执行工具
-     */
+    /** 执行工具 */
     @Operation(summary = "执行工具", description = "手动执行指定工具")
     @PostMapping("/{name}/execute")
     public ApiResponse<ToolResult> executeTool(
-            @PathVariable String name,
-            @RequestBody(required = false) Map<String, Object> params
-    ) {
+            @PathVariable String name, @RequestBody(required = false) Map<String, Object> params) {
         if (!toolRegistry.hasTool(name)) {
             throw new ToolNotFoundException("Tool not found: " + name);
         }
@@ -76,9 +76,7 @@ public class ToolController {
         return ApiResponse.success(result);
     }
 
-    /**
-     * 获取工具数量
-     */
+    /** 获取工具数量 */
     @Operation(summary = "获取工具数量", description = "获取已注册工具的总数量")
     @GetMapping("/count")
     public ApiResponse<Integer> getToolCount() {
@@ -93,13 +91,10 @@ public class ToolController {
                 def.requiredPermissions(),
                 def.timeout().toMillis(),
                 def.maxRetries(),
-                def.parameters().toSchemaMap()
-        );
+                def.parameters().toSchemaMap());
     }
 
-    /**
-     * 工具信息 VO
-     */
+    /** 工具信息 VO */
     public record ToolInfo(
             String name,
             String description,
@@ -107,6 +102,5 @@ public class ToolController {
             List<String> requiredPermissions,
             long timeoutMs,
             int maxRetries,
-            Map<String, Object> parameters
-    ) {}
+            Map<String, Object> parameters) {}
 }

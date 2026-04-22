@@ -1,20 +1,21 @@
 package com.jonychen.rag.embedding;
 
-import com.jonychen.rag.EmbeddingService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Primary;
-import org.springframework.stereotype.Service;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Service;
+
+import com.jonychen.rag.EmbeddingService;
+
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 简单的 Embedding 降级实现
  *
- * 当没有配置 EmbeddingModel 时使用，基于哈希生成固定维度向量。
- * 仅用于开发/测试，生产环境应配置真实的 EmbeddingModel。
+ * <p>当没有配置 EmbeddingModel 时使用，基于哈希生成固定维度向量。 仅用于开发/测试，生产环境应配置真实的 EmbeddingModel。
  *
  * @author jonychen
  */
@@ -26,8 +27,9 @@ public class SimpleEmbeddingService implements EmbeddingService {
     private static final int DIMENSION = 1536;
 
     public SimpleEmbeddingService() {
-        log.warn("使用 SimpleEmbeddingService（基于哈希的降级实现），"
-                + "生产环境请配置 EmbeddingModel（如 langchain4j-open-ai-spring-boot-starter 的 embedding 配置）");
+        log.warn(
+                "使用 SimpleEmbeddingService（基于哈希的降级实现），"
+                        + "生产环境请配置 EmbeddingModel（如 langchain4j-open-ai-spring-boot-starter 的 embedding 配置）");
     }
 
     @Override

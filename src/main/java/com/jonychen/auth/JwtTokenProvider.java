@@ -1,20 +1,20 @@
 package com.jonychen.auth;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import javax.crypto.SecretKey;
+
+import jakarta.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * JWT Token 提供者
- * 负责生成、验证和解析 JWT Token
- */
+/** JWT Token 提供者 负责生成、验证和解析 JWT Token */
 @Slf4j
 @Component
 public class JwtTokenProvider {
@@ -43,43 +43,38 @@ public class JwtTokenProvider {
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /**
-     * 生成访问令牌和刷新令牌
-     */
+    /** 生成访问令牌和刷新令牌 */
     public TokenResponse generateToken(User user) {
         long now = System.currentTimeMillis();
 
         // 生成访问令牌
-        String accessToken = Jwts.builder()
-                .subject(user.getId())
-                .claim("username", user.getUsername())
-                .claim("role", user.getRole().name())
-                .issuedAt(new Date(now))
-                .expiration(new Date(now + accessTokenExpiration * 1000))
-                .signWith(secretKey)
-                .compact();
+        String accessToken =
+                Jwts.builder()
+                        .subject(user.getId())
+                        .claim("username", user.getUsername())
+                        .claim("role", user.getRole().name())
+                        .issuedAt(new Date(now))
+                        .expiration(new Date(now + accessTokenExpiration * 1000))
+                        .signWith(secretKey)
+                        .compact();
 
         // 生成刷新令牌
-        String refreshToken = Jwts.builder()
-                .subject(user.getId())
-                .claim("type", "refresh")
-                .issuedAt(new Date(now))
-                .expiration(new Date(now + refreshTokenExpiration * 1000))
-                .signWith(secretKey)
-                .compact();
+        String refreshToken =
+                Jwts.builder()
+                        .subject(user.getId())
+                        .claim("type", "refresh")
+                        .issuedAt(new Date(now))
+                        .expiration(new Date(now + refreshTokenExpiration * 1000))
+                        .signWith(secretKey)
+                        .compact();
 
         return TokenResponse.of(accessToken, refreshToken, accessTokenExpiration);
     }
 
-    /**
-     * 验证 Token 是否有效
-     */
+    /** 验证 Token 是否有效 */
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(token);
+            Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("JWT Token 验证失败: {}", e.getMessage());
@@ -87,9 +82,7 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * 从 Token 中获取用户 ID
-     */
+    /** 从 Token 中获取用户 ID */
     public String getUserIdFromToken(String token) {
         try {
             return Jwts.parser()
@@ -104,9 +97,7 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * 从 Token 中获取用户名
-     */
+    /** 从 Token 中获取用户名 */
     public String getUsernameFromToken(String token) {
         try {
             return Jwts.parser()
@@ -121,9 +112,7 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * 从 Token 中获取角色
-     */
+    /** 从 Token 中获取角色 */
     public String getRoleFromToken(String token) {
         try {
             return Jwts.parser()
@@ -138,17 +127,16 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * 检查 Token 是否为刷新令牌
-     */
+    /** 检查 Token 是否为刷新令牌 */
     public boolean isRefreshToken(String token) {
         try {
-            String type = Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload()
-                    .get("type", String.class);
+            String type =
+                    Jwts.parser()
+                            .verifyWith(secretKey)
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload()
+                            .get("type", String.class);
             return "refresh".equals(type);
         } catch (JwtException e) {
             return false;

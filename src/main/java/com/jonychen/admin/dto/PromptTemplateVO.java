@@ -1,10 +1,12 @@
 package com.jonychen.admin.dto;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.Builder;
 import lombok.Data;
-
-import java.time.LocalDateTime;
 
 /**
  * Prompt 模板 VO
@@ -35,21 +37,22 @@ public class PromptTemplateVO {
     // A/B 测试
     private Boolean abTestEnabled;
     private String abTestVariantName;
-    private Double abTestTrafficPercentage;
+    private BigDecimal abTestTrafficPercentage;
     private String abTestBaselineVersion;
 
     // 使用统计
     private Long totalUses;
     private Long successCount;
     private Long failureCount;
-    private Double avgResponseTime;
-    private Double avgTokenUsage;
+    private BigDecimal avgResponseTime;
+    private BigDecimal avgTokenUsage;
 
-    /**
-     * 从实体转换为 VO
-     */
-    public static PromptTemplateVO from(com.jonychen.observability.prompt.PromptTemplateEntity entity) {
-        if (entity == null) return null;
+    /** 从实体转换为 VO */
+    public static PromptTemplateVO from(
+            com.jonychen.observability.prompt.PromptTemplateEntity entity) {
+        if (entity == null) {
+            return null;
+        }
 
         return PromptTemplateVO.builder()
                 .id(entity.getId())

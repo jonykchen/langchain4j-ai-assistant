@@ -3,6 +3,7 @@
 
 root = true
 
+# 默认设置
 [*]
 charset = utf-8
 indent_style = space
@@ -10,18 +11,53 @@ indent_size = 2
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
+max_line_length = 150
 
+# Java 文件
 [*.java]
 indent_size = 4
+max_line_length = 150
+# 禁止通配符导入（配合 IDE 设置）
+ij_java_class_count_to_use_import_on_demand = 999
+ij_java_names_count_to_use_import_on_demand = 999
 
+# XML 文件
 [*.xml]
 indent_size = 4
 
+# YAML 文件
+[*.{yml,yaml}]
+indent_size = 2
+
+# JSON 文件
+[*.json]
+indent_size = 2
+
+# Properties 文件
 [*.properties]
 indent_size = 4
 
+# Markdown 文件 - 不修剪尾部空白（可能用于换行）
 [*.md]
 trim_trailing_whitespace = false
 
+# Shell 脚本
+[*.sh]
+indent_size = 2
+end_of_line = lf
+
+# Windows 批处理脚本
+[*.bat]
+end_of_line = crlf
+
+# Makefile
 [Makefile]
 indent_style = tab
+
+# TypeScript/JavaScript/Vue 文件（前端）
+[*.{ts,tsx,js,jsx,vue}]
+indent_size = 2
+
+# SQL 文件
+[*.sql]
+indent_size = 4

@@ -1,30 +1,28 @@
 package com.jonychen.planning.agent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jonychen.planning.*;
-import com.jonychen.tool.ToolResult;
-import com.jonychen.tool.ToolRegistry;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jonychen.planning.TaskContext;
+import com.jonychen.tool.ToolRegistry;
+import com.jonychen.tool.ToolResult;
+
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * ReAct Agent：推理-行动循环
  *
- * 工作流程：
- * 1. Thought: LLM 思考下一步该做什么
- * 2. Action: 选择并执行工具
- * 3. Observation: 观察执行结果
- * 4. 循环直到得出最终答案
+ * <p>工作流程： 1. Thought: LLM 思考下一步该做什么 2. Action: 选择并执行工具 3. Observation: 观察执行结果 4. 循环直到得出最终答案
  *
  * @author jonychen
  */
@@ -32,7 +30,8 @@ import java.util.regex.Pattern;
 @Component
 public class ReActAgent {
 
-    private static final String REACT_PROMPT_TEMPLATE = """
+    private static final String REACT_PROMPT_TEMPLATE =
+            """
             你是一个智能助手，使用 ReAct 模式解决问题。
 
             遵循以下格式：
@@ -60,10 +59,13 @@ public class ReActAgent {
             {history}
             """;
 
-    private static final Pattern THOUGHT_PATTERN = Pattern.compile("Thought:\\s*(.+?)(?=Action:|Final Answer:|$)", Pattern.DOTALL);
+    private static final Pattern THOUGHT_PATTERN =
+            Pattern.compile("Thought:\\s*(.+?)(?=Action:|Final Answer:|$)", Pattern.DOTALL);
     private static final Pattern ACTION_PATTERN = Pattern.compile("Action:\\s*(\\w+)");
-    private static final Pattern ACTION_INPUT_PATTERN = Pattern.compile("Action Input:\\s*(\\{[^}]*\\}|\\S+)", Pattern.DOTALL);
-    private static final Pattern FINAL_ANSWER_PATTERN = Pattern.compile("Final Answer:\\s*(.+)$", Pattern.DOTALL);
+    private static final Pattern ACTION_INPUT_PATTERN =
+            Pattern.compile("Action Input:\\s*(\\{[^}]*\\}|\\S+)", Pattern.DOTALL);
+    private static final Pattern FINAL_ANSWER_PATTERN =
+            Pattern.compile("Final Answer:\\s*(.+)$", Pattern.DOTALL);
 
     private static final int DEFAULT_MAX_ITERATIONS = 10;
 
@@ -83,7 +85,7 @@ public class ReActAgent {
      * 执行 ReAct 循环
      *
      * @param question 用户问题
-     * @param context  任务上下文
+     * @param context 任务上下文
      * @return 执行结果
      */
     public ReActResult execute(String question, TaskContext context) {
@@ -94,16 +96,22 @@ public class ReActAgent {
 
         for (int i = 0; i < maxIterations; i++) {
             // 1. 构建 Prompt
-            String prompt = REACT_PROMPT_TEMPLATE
-                    .replace("{tools}", toolsDescription)
-                    .replace("{question}", question)
-                    .replace("{history}", history.toString());
+            String prompt =
+                    REACT_PROMPT_TEMPLATE
+                            .replace("{tools}", toolsDescription)
+                            .replace("{question}", question)
+                            .replace("{history}", history.toString());
 
             // 2. LLM 思考
-            String response = chatModel.chat(ChatRequest.builder()
-                    .messages(UserMessage.from(prompt))
-                    .build()).aiMessage().text();
-            log.debug("ReAct iteration {}: {}", i + 1, response);
+            String response =
+                    chatModel
+                            .chat(ChatRequest.builder().messages(UserMessage.from(prompt)).build())
+                            .aiMessage()
+                            .text();
+            log.trace(
+                    "ReAct iteration {}: responseLength={}",
+                    i + 1,
+                    response != null ? response.length() : 0);
 
             // 3. 解析响应
             ReActStep step = parseResponse(response);
@@ -121,7 +129,7 @@ public class ReActAgent {
                 String observation = formatObservation(toolResult);
 
                 step = step.withObservation(observation);
-                steps.set(steps.size() - 1, step);  // 更新步骤
+                steps.set(steps.size() - 1, step); // 更新步骤
 
                 // 6. 更新历史
                 history.append("\n").append(response);
@@ -137,9 +145,7 @@ public class ReActAgent {
         return ReActResult.failure("达到最大迭代次数，未能得出答案", steps, maxIterations);
     }
 
-    /**
-     * 解析 LLM 响应
-     */
+    /** 解析 LLM 响应 */
     private ReActStep parseResponse(String response) {
         String thought = null;
         String action = null;
@@ -178,9 +184,7 @@ public class ReActAgent {
         return ReActStep.thought(thought != null ? thought : response);
     }
 
-    /**
-     * 执行工具
-     */
+    /** 执行工具 */
     @SuppressWarnings("unchecked")
     private ToolResult executeTool(String toolName, String actionInput, TaskContext context) {
         try {
@@ -198,9 +202,7 @@ public class ReActAgent {
         }
     }
 
-    /**
-     * 解析 Action Input
-     */
+    /** 解析 Action Input */
     @SuppressWarnings("unchecked")
     private Map<String, Object> parseActionInput(String actionInput) {
         if (actionInput == null || actionInput.isBlank()) {
@@ -216,9 +218,7 @@ public class ReActAgent {
         }
     }
 
-    /**
-     * 格式化观察结果
-     */
+    /** 格式化观察结果 */
     private String formatObservation(ToolResult result) {
         if (result.success()) {
             if (result.data() != null) {
@@ -234,13 +234,15 @@ public class ReActAgent {
         }
     }
 
-    /**
-     * 构建工具描述
-     */
+    /** 构建工具描述 */
     private String buildToolsDescription() {
         StringBuilder sb = new StringBuilder();
         for (var tool : toolRegistry.getAllTools()) {
-            sb.append("- ").append(tool.name()).append(": ").append(tool.description()).append("\n");
+            sb.append("- ")
+                    .append(tool.name())
+                    .append(": ")
+                    .append(tool.description())
+                    .append("\n");
         }
         return sb.toString();
     }

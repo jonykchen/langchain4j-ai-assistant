@@ -13,8 +13,10 @@ export class ChatMock {
 
   /**
    * Mock 同步聊天 API
+   * 同时拦截同步和流式 API，确保测试覆盖实际使用场景
    */
   async mockChatResponse(reply: string, options?: { delay?: number; status?: number }) {
+    // 拦截同步 API
     await this.page.route('**/api/chat', async (route: Route) => {
       if (options?.delay) {
         await new Promise(resolve => setTimeout(resolve, options.delay));
@@ -27,6 +29,20 @@ export class ChatMock {
           message: 'success',
           data: { reply }
         })
+      });
+    });
+
+    // 同时拦截流式 API（实际应用使用流式响应）
+    await this.page.route('**/api/chat/stream', async (route: Route) => {
+      if (options?.delay) {
+        await new Promise(resolve => setTimeout(resolve, options.delay));
+      }
+      // 将同步响应转换为 SSE 流式格式
+      const body = `event:token\ndata:${reply}\n\nevent:done\ndata:[DONE]\n\n`;
+      await route.fulfill({
+        status: options?.status || 200,
+        contentType: 'text/event-stream;charset=UTF-8',
+        body
       });
     });
   }
@@ -70,8 +86,10 @@ export class ChatMock {
 
   /**
    * Mock 聊天 API 错误
+   * 同时拦截同步和流式 API
    */
   async mockChatError(statusCode: number, errorCode: number, message: string) {
+    // 拦截同步 API
     await this.page.route('**/api/chat', async (route: Route) => {
       await route.fulfill({
         status: statusCode,
@@ -81,6 +99,17 @@ export class ChatMock {
           message,
           data: null
         })
+      });
+    });
+
+    // 同时拦截流式 API
+    await this.page.route('**/api/chat/stream', async (route: Route) => {
+      // 流式 API 错误以 error 事件形式返回
+      const body = `event:error\ndata:${message}\n\n`;
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream;charset=UTF-8',
+        body
       });
     });
   }
@@ -101,9 +130,13 @@ export class ChatMock {
 
   /**
    * Mock 网络超时
+   * 同时拦截同步和流式 API
    */
   async mockNetworkTimeout() {
     await this.page.route('**/api/chat', async (route: Route) => {
+      await route.abort('timedout');
+    });
+    await this.page.route('**/api/chat/stream', async (route: Route) => {
       await route.abort('timedout');
     });
   }

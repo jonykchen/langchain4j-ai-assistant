@@ -1,9 +1,10 @@
 package com.jonychen.tool;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import dev.langchain4j.agent.tool.ToolSpecification;
 
 /**
  * 工具注册中心接口
@@ -82,7 +83,7 @@ public interface ToolRegistry {
      * 执行工具
      *
      * @param toolName 工具名称
-     * @param params   参数
+     * @param params 参数
      * @return 执行结果
      */
     ToolResult execute(String toolName, Map<String, Object> params);

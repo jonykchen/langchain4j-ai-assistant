@@ -49,6 +49,8 @@ function handleCompositionEnd() {
         placeholder="输入消息，按 Enter 发送..."
         :disabled="disabled"
         resize="none"
+        data-testid="message-input"
+        aria-label="消息输入框"
         @keydown="handleKeydown"
         @compositionstart="handleCompositionStart"
         @compositionend="handleCompositionEnd"
@@ -56,6 +58,8 @@ function handleCompositionEnd() {
       <ElButton
         type="primary"
         :disabled="!inputText.trim() || disabled"
+        data-testid="send-button"
+        aria-label="发送消息"
         @click="handleSend"
       >
         发送

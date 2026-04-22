@@ -35,19 +35,41 @@ export const test = base.extend<TestFixtures>({
 
   // 已认证的页面
   authenticatedPage: async ({ page }, use) => {
+    // Mock /auth/me 接口，避免后端依赖
+    await page.route('**/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 200,
+          message: 'success',
+          data: {
+            id: 'test-user-id',
+            username: 'testuser',
+            role: 'ADMIN',
+            createdAt: new Date().toISOString(),
+          }
+        })
+      });
+    });
+
     // 设置认证 Token
-    await page.addCookies([{
+    await page.context().addCookies([{
       name: 'auth_token',
       value: process.env.TEST_AUTH_TOKEN || 'test-jwt-token',
       domain: 'localhost',
       path: '/',
     }]);
 
-    // 设置 localStorage 认证信息
+    // 先导航到有效页面，再设置 localStorage
     await page.goto('/');
+
+    // 设置 localStorage 认证信息
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify({
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('refresh_token', 'test-refresh-token');
+      localStorage.setItem('token_expiry', String(Date.now() + 3600000));
+      localStorage.setItem('user_info', JSON.stringify({
         id: 'test-user-id',
         username: 'testuser',
         role: 'ADMIN',

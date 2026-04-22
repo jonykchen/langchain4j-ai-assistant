@@ -1,10 +1,11 @@
 package com.jonychen.tool;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 工具参数 Schema 定义
@@ -31,17 +32,13 @@ public class ToolParameterSchema {
         this.required = required;
     }
 
-    /**
-     * 添加属性
-     */
+    /** 添加属性 */
     public ToolParameterSchema addProperty(String name, Property property) {
         properties.put(name, property);
         return this;
     }
 
-    /**
-     * 添加必需属性
-     */
+    /** 添加必需属性 */
     public ToolParameterSchema addRequired(String name) {
         if (!required.contains(name)) {
             required.add(name);
@@ -49,9 +46,7 @@ public class ToolParameterSchema {
         return this;
     }
 
-    /**
-     * 转换为 JSON Schema Map
-     */
+    /** 转换为 JSON Schema Map */
     public Map<String, Object> toSchemaMap() {
         Map<String, Object> schema = new HashMap<>();
         schema.put("type", type);
@@ -67,9 +62,7 @@ public class ToolParameterSchema {
         return schema;
     }
 
-    /**
-     * 转换为 JSON 字符串
-     */
+    /** 转换为 JSON 字符串 */
     public String toJsonSchema() {
         try {
             return OBJECT_MAPPER.writeValueAsString(toSchemaMap());
@@ -86,9 +79,7 @@ public class ToolParameterSchema {
         return required;
     }
 
-    /**
-     * 属性定义
-     */
+    /** 属性定义 */
     public static class Property {
         private final String type;
         private final String description;
@@ -99,7 +90,8 @@ public class ToolParameterSchema {
             this(type, description, null, null);
         }
 
-        public Property(String type, String description, List<String> enumValues, Object defaultValue) {
+        public Property(
+                String type, String description, List<String> enumValues, Object defaultValue) {
             this.type = type;
             this.description = description;
             this.enumValues = enumValues;

@@ -1,27 +1,32 @@
 package com.jonychen.planning.agent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jonychen.planning.*;
-import com.jonychen.tool.ToolRegistry;
-import com.jonychen.tool.ToolResult;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jonychen.planning.Step;
+import com.jonychen.planning.StepResult;
+import com.jonychen.planning.StepStatus;
+import com.jonychen.planning.Task;
+import com.jonychen.planning.TaskContext;
+import com.jonychen.planning.TaskExecutor;
+import com.jonychen.planning.TaskResult;
+import com.jonychen.planning.TaskStatus;
+import com.jonychen.tool.ToolRegistry;
+import com.jonychen.tool.ToolResult;
+
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Plan-Execute Agent：先规划后执行
  *
- * 工作流程：
- * 1. Planning: LLM 生成完整计划
- * 2. Execution: 按顺序执行每个步骤
- * 3. Replanning: 遇到失败时重新规划
+ * <p>工作流程： 1. Planning: LLM 生成完整计划 2. Execution: 按顺序执行每个步骤 3. Replanning: 遇到失败时重新规划
  *
  * @author jonychen
  */
@@ -29,7 +34,8 @@ import java.util.Map;
 @Component
 public class PlanExecuteAgent {
 
-    private static final String PLANNING_PROMPT = """
+    private static final String PLANNING_PROMPT =
+            """
             你是一个任务规划专家。根据用户目标，分解为具体执行步骤。
 
             输出格式（JSON）：
@@ -59,7 +65,8 @@ public class PlanExecuteAgent {
             用户目标：{goal}
             """;
 
-    private static final String REPLAN_PROMPT = """
+    private static final String REPLAN_PROMPT =
+            """
             任务执行过程中遇到问题，需要重新规划。
 
             原计划：
@@ -87,7 +94,8 @@ public class PlanExecuteAgent {
     private final ObjectMapper objectMapper;
     private final TaskExecutor taskExecutor;
 
-    public PlanExecuteAgent(ChatModel chatModel, ToolRegistry toolRegistry, TaskExecutor taskExecutor) {
+    public PlanExecuteAgent(
+            ChatModel chatModel, ToolRegistry toolRegistry, TaskExecutor taskExecutor) {
         this.chatModel = chatModel;
         this.toolRegistry = toolRegistry;
         this.objectMapper = new ObjectMapper();
@@ -97,7 +105,7 @@ public class PlanExecuteAgent {
     /**
      * 执行任务
      *
-     * @param goal    任务目标
+     * @param goal 任务目标
      * @param context 任务上下文
      * @return 执行结果
      */
@@ -132,8 +140,10 @@ public class PlanExecuteAgent {
             stepResults.add(result);
 
             // 更新步骤状态
-            Step updatedStep = currentStep.withStatus(result.success() ? StepStatus.COMPLETED : StepStatus.FAILED)
-                    .withResult(result);
+            Step updatedStep =
+                    currentStep
+                            .withStatus(result.success() ? StepStatus.COMPLETED : StepStatus.FAILED)
+                            .withResult(result);
             task = task.updateStep(currentStep.stepId(), updatedStep);
 
             if (!result.success()) {
@@ -141,13 +151,16 @@ public class PlanExecuteAgent {
                 replanCount++;
 
                 if (replanCount <= MAX_REPLANS) {
-                    log.warn("Step {} failed, replanning (attempt {}/{})",
-                            currentStep.order(), replanCount, MAX_REPLANS);
+                    log.warn(
+                            "Step {} failed, replanning (attempt {}/{})",
+                            currentStep.order(),
+                            replanCount,
+                            MAX_REPLANS);
 
                     List<Step> newSteps = replan(task, currentStep, result.error());
                     if (!newSteps.isEmpty()) {
                         task = task.withSteps(newSteps);
-                        stepResults.clear();  // 重置结果
+                        stepResults.clear(); // 重置结果
                         continue;
                     }
                 }
@@ -157,63 +170,58 @@ public class PlanExecuteAgent {
                         task.taskId(),
                         "步骤执行失败: " + result.error(),
                         stepResults,
-                        System.currentTimeMillis() - startTime
-                );
+                        System.currentTimeMillis() - startTime);
             }
         }
 
         // 3. 构建最终结果
-        Object finalOutput = stepResults.isEmpty() ? null : stepResults.get(stepResults.size() - 1).output();
+        Object finalOutput =
+                stepResults.isEmpty() ? null : stepResults.get(stepResults.size() - 1).output();
 
         return TaskResult.success(
-                task.taskId(),
-                finalOutput,
-                stepResults,
-                System.currentTimeMillis() - startTime
-        );
+                task.taskId(), finalOutput, stepResults, System.currentTimeMillis() - startTime);
     }
 
-    /**
-     * 规划任务
-     */
+    /** 规划任务 */
     private List<Step> plan(String goal) {
-        String prompt = PLANNING_PROMPT
-                .replace("{tools}", buildToolsDescription())
-                .replace("{goal}", goal);
+        String prompt =
+                PLANNING_PROMPT.replace("{tools}", buildToolsDescription()).replace("{goal}", goal);
 
-        String response = chatModel.chat(ChatRequest.builder()
-                .messages(UserMessage.from(prompt))
-                .build()).aiMessage().text();
+        String response =
+                chatModel
+                        .chat(ChatRequest.builder().messages(UserMessage.from(prompt)).build())
+                        .aiMessage()
+                        .text();
         return parsePlanResponse(response);
     }
 
-    /**
-     * 重新规划
-     */
+    /** 重新规划 */
     private List<Step> replan(Task task, Step failedStep, String error) {
-        String completedSteps = task.steps().stream()
-                .filter(s -> s.status() == StepStatus.COMPLETED)
-                .map(s -> String.format("  %d. %s", s.order(), s.description()))
-                .reduce("", (a, b) -> a + "\n" + b);
+        String completedSteps =
+                task.steps().stream()
+                        .filter(s -> s.status() == StepStatus.COMPLETED)
+                        .map(s -> String.format("  %d. %s", s.order(), s.description()))
+                        .reduce("", (a, b) -> a + "\n" + b);
 
-        String prompt = REPLAN_PROMPT
-                .replace("{originalPlan}", formatPlan(task.steps()))
-                .replace("{completedSteps}", completedSteps)
-                .replace("{failedOrder}", String.valueOf(failedStep.order()))
-                .replace("{failedDescription}", failedStep.description())
-                .replace("{error}", error)
-                .replace("{tools}", buildToolsDescription())
-                .replace("{goal}", task.goal());
+        String prompt =
+                REPLAN_PROMPT
+                        .replace("{originalPlan}", formatPlan(task.steps()))
+                        .replace("{completedSteps}", completedSteps)
+                        .replace("{failedOrder}", String.valueOf(failedStep.order()))
+                        .replace("{failedDescription}", failedStep.description())
+                        .replace("{error}", error)
+                        .replace("{tools}", buildToolsDescription())
+                        .replace("{goal}", task.goal());
 
-        String response = chatModel.chat(ChatRequest.builder()
-                .messages(UserMessage.from(prompt))
-                .build()).aiMessage().text();
+        String response =
+                chatModel
+                        .chat(ChatRequest.builder().messages(UserMessage.from(prompt)).build())
+                        .aiMessage()
+                        .text();
         return parsePlanResponse(response);
     }
 
-    /**
-     * 执行单个步骤
-     */
+    /** 执行单个步骤 */
     private StepResult executeStep(Step step, TaskContext context) {
         log.info("Executing step {}: {}", step.order(), step.description());
 
@@ -226,9 +234,7 @@ public class PlanExecuteAgent {
         return executeLLMStep(step, context);
     }
 
-    /**
-     * 执行工具步骤
-     */
+    /** 执行工具步骤 */
     private StepResult executeToolStep(Step step, TaskContext context) {
         try {
             ToolResult result = toolRegistry.execute(step.tool(), step.params());
@@ -242,24 +248,22 @@ public class PlanExecuteAgent {
         }
     }
 
-    /**
-     * 执行 LLM 步骤
-     */
+    /** 执行 LLM 步骤 */
     private StepResult executeLLMStep(Step step, TaskContext context) {
         String prompt = "执行以下任务: " + step.description();
         if (step.action() != null) {
             prompt += "\n具体行动: " + step.action();
         }
 
-        String response = chatModel.chat(ChatRequest.builder()
-                .messages(UserMessage.from(prompt))
-                .build()).aiMessage().text();
+        String response =
+                chatModel
+                        .chat(ChatRequest.builder().messages(UserMessage.from(prompt)).build())
+                        .aiMessage()
+                        .text();
         return StepResult.success(response);
     }
 
-    /**
-     * 解析规划响应
-     */
+    /** 解析规划响应 */
     @SuppressWarnings("unchecked")
     private List<Step> parsePlanResponse(String response) {
         List<Step> steps = new ArrayList<>();
@@ -282,11 +286,13 @@ public class PlanExecuteAgent {
                 int order = ((Number) stepData.getOrDefault("order", 0)).intValue();
                 String description = (String) stepData.get("description");
                 String tool = (String) stepData.get("tool");
-                Map<String, Object> params = (Map<String, Object>) stepData.getOrDefault("params", Map.of());
+                Map<String, Object> params =
+                        (Map<String, Object>) stepData.getOrDefault("params", Map.of());
 
-                Step step = tool != null
-                        ? Step.createWithTool(order, description, tool, params)
-                        : Step.create(order, description, (String) stepData.get("action"));
+                Step step =
+                        tool != null
+                                ? Step.createWithTool(order, description, tool, params)
+                                : Step.create(order, description, (String) stepData.get("action"));
 
                 steps.add(step);
             }
@@ -298,28 +304,30 @@ public class PlanExecuteAgent {
         return steps;
     }
 
-    /**
-     * 提取 JSON
-     */
+    /** 提取 JSON */
     private String extractJson(String text) {
         int start = text.indexOf("```json");
         if (start == -1) {
             start = text.indexOf("{");
-            if (start == -1) return null;
+            if (start == -1) {
+                return null;
+            }
             int end = text.lastIndexOf("}");
-            if (end == -1 || end < start) return null;
+            if (end == -1 || end < start) {
+                return null;
+            }
             return text.substring(start, end + 1);
         }
 
         start += 7;
         int end = text.indexOf("```", start);
-        if (end == -1) return null;
+        if (end == -1) {
+            return null;
+        }
         return text.substring(start, end).trim();
     }
 
-    /**
-     * 格式化计划
-     */
+    /** 格式化计划 */
     private String formatPlan(List<Step> steps) {
         StringBuilder sb = new StringBuilder();
         for (Step step : steps) {
@@ -332,13 +340,15 @@ public class PlanExecuteAgent {
         return sb.toString();
     }
 
-    /**
-     * 构建工具描述
-     */
+    /** 构建工具描述 */
     private String buildToolsDescription() {
         StringBuilder sb = new StringBuilder();
         for (var tool : toolRegistry.getAllTools()) {
-            sb.append("- ").append(tool.name()).append(": ").append(tool.description()).append("\n");
+            sb.append("- ")
+                    .append(tool.name())
+                    .append(": ")
+                    .append(tool.description())
+                    .append("\n");
         }
         return sb.toString();
     }

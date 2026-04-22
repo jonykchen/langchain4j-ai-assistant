@@ -1,23 +1,30 @@
 package com.jonychen.prompt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * 基于文件系统的 Prompt 模板管理器
- * 模板以 YAML 格式存储在指定目录
- */
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import lombok.extern.slf4j.Slf4j;
+
+/** 基于文件系统的 Prompt 模板管理器 模板以 YAML 格式存储在指定目录 */
 @Slf4j
 @Component
 public class FileSystemPromptTemplateManager implements PromptTemplateManager {
@@ -29,13 +36,13 @@ public class FileSystemPromptTemplateManager implements PromptTemplateManager {
             @Value("${app.prompt.templates-path:classpath:prompts/}") String templatesPath) {
         // 处理 classpath 前缀
         if (templatesPath.startsWith("classpath:")) {
-            this.templatesPath = Paths.get("src/main/resources", templatesPath.substring("classpath:".length()));
+            this.templatesPath =
+                    Paths.get("src/main/resources", templatesPath.substring("classpath:".length()));
         } else {
             this.templatesPath = Paths.get(templatesPath);
         }
 
-        this.yamlMapper = new ObjectMapper(new YAMLFactory())
-                .registerModule(new JavaTimeModule());
+        this.yamlMapper = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
 
         log.info("Prompt 模板目录: {}", this.templatesPath);
     }
@@ -81,11 +88,12 @@ public class FileSystemPromptTemplateManager implements PromptTemplateManager {
 
         // 验证必需变量
         if (validate && !template.validateVariables(variables)) {
-            List<String> missing = template.variables().stream()
-                    .filter(TemplateVariable::required)
-                    .filter(v -> variables == null || !variables.containsKey(v.name()))
-                    .map(TemplateVariable::name)
-                    .collect(Collectors.toList());
+            List<String> missing =
+                    template.variables().stream()
+                            .filter(TemplateVariable::required)
+                            .filter(v -> variables == null || !variables.containsKey(v.name()))
+                            .map(TemplateVariable::name)
+                            .collect(Collectors.toList());
 
             throw new IllegalArgumentException("缺少必需变量: " + missing);
         }
@@ -103,7 +111,11 @@ public class FileSystemPromptTemplateManager implements PromptTemplateManager {
 
             // 写入 YAML 文件
             String content = yamlMapper.writeValueAsString(template);
-            Files.writeString(templateFile, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.writeString(
+                    templateFile,
+                    content,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
 
             log.info("保存模板成功: name={}, file={}", template.name(), templateFile);
         } catch (IOException e) {
@@ -119,8 +131,8 @@ public class FileSystemPromptTemplateManager implements PromptTemplateManager {
         }
 
         try (Stream<Path> stream = Files.walk(templatesPath, 2)) {
-            return stream
-                    .filter(p -> p.toString().endsWith(".yaml") || p.toString().endsWith(".yml"))
+            return stream.filter(
+                            p -> p.toString().endsWith(".yaml") || p.toString().endsWith(".yml"))
                     .map(this::loadTemplateInfoFromFile)
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(TemplateInfo::name))
@@ -170,8 +182,9 @@ public class FileSystemPromptTemplateManager implements PromptTemplateManager {
                     template.name(),
                     template.version(),
                     template.description(),
-                    template.metadata() != null ? template.metadata().updatedAt() : LocalDateTime.now()
-            );
+                    template.metadata() != null
+                            ? template.metadata().updatedAt()
+                            : LocalDateTime.now());
         } catch (IOException e) {
             log.warn("解析模板文件失败: {}", file, e);
             return null;

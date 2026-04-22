@@ -32,9 +32,7 @@ public enum DocumentType {
         return description;
     }
 
-    /**
-     * 根据文件扩展名判断文档类型
-     */
+    /** 根据文件扩展名判断文档类型 */
     public static DocumentType fromExtension(String filename) {
         if (filename == null || filename.isEmpty()) {
             return UNKNOWN;
@@ -54,9 +52,7 @@ public enum DocumentType {
         return UNKNOWN;
     }
 
-    /**
-     * 判断是否支持解析
-     */
+    /** 判断是否支持解析 */
     public boolean isSupported() {
         return this != UNKNOWN;
     }

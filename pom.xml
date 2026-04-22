@@ -284,6 +284,21 @@
             <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
 
+        <!-- ==================== Excel 导出 ==================== -->
+
+        <!-- Apache POI：Excel 文件读写支持 -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+
+        <!-- Jackson CSV：CSV 格式导出支持 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
+        </dependency>
+
         <!-- ==================== 测试依赖 ==================== -->
 
         <!-- Spring Boot Test 启动器：包含 JUnit 5, Mockito, AssertJ 等测试框架 -->
@@ -432,12 +447,50 @@
                     <configLocation>config/checkstyle/checkstyle.xml</configLocation>
                     <encoding>UTF-8</encoding>
                     <consoleOutput>true</consoleOutput>
-                    <failOnViolation>false</failOnViolation>
+                    <failOnViolation>true</failOnViolation>
                     <skip>${checkstyle.skip}</skip>
                 </configuration>
                 <executions>
                     <execution>
                         <id>validate</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Spotless：代码自动格式化 -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.43.0</version>
+                <configuration>
+                    <java>
+                        <!-- Google Java Format：统一代码风格 -->
+                        <googleJavaFormat>
+                            <version>1.25.0</version>
+                            <style>AOSP</style>
+                        </googleJavaFormat>
+                        <!-- 移除未使用的导入 -->
+                        <removeUnusedImports/>
+                        <!-- 导入排序 -->
+                        <importOrder>
+                            <order>java,jakarta,org,com,</order>
+                        </importOrder>
+                    </java>
+                    <!-- 确保文件以换行结尾 -->
+                    <lineEndings>UNIX</lineEndings>
+                    <!-- 应用于所有 Java 文件 -->
+                    <includes>
+                        <include>src/main/java/**/*.java</include>
+                        <include>src/test/java/**/*.java</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotless-check</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>check</goal>

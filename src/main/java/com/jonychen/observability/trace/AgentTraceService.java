@@ -1,16 +1,22 @@
 package com.jonychen.observability.trace;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Agent 追踪服务
@@ -88,7 +94,7 @@ public class AgentTraceService {
         // 持久化 Trace 更新
         traceRepository.save(trace);
 
-        log.debug("Added span {} to trace {}", span.getType(), traceId);
+        log.trace("Added span {} to trace {}", span.getType(), traceId);
     }
 
     /**
@@ -116,14 +122,18 @@ public class AgentTraceService {
      * @param error 错误信息
      * @return Span 对象
      */
-    public AgentTraceSpan recordToolCall(String traceId, String toolName,
-                                          Map<String, Object> params,
-                                          String result,
-                                          long durationMs,
-                                          boolean success,
-                                          String error) {
+    public AgentTraceSpan recordToolCall(
+            String traceId,
+            String toolName,
+            Map<String, Object> params,
+            String result,
+            long durationMs,
+            boolean success,
+            String error) {
         String paramsJson = toJson(params);
-        AgentTraceSpan span = AgentTraceSpan.toolCall(traceId, toolName, paramsJson, result, durationMs, success, error);
+        AgentTraceSpan span =
+                AgentTraceSpan.toolCall(
+                        traceId, toolName, paramsJson, result, durationMs, success, error);
         addSpan(traceId, span);
         return span;
     }
@@ -139,9 +149,16 @@ public class AgentTraceService {
      * @param durationMs 执行时间
      * @return Span 对象
      */
-    public AgentTraceSpan recordLLMCall(String traceId, String prompt, String response,
-                                         long promptTokens, long completionTokens, long durationMs) {
-        AgentTraceSpan span = AgentTraceSpan.llmCall(traceId, prompt, response, promptTokens, completionTokens, durationMs);
+    public AgentTraceSpan recordLLMCall(
+            String traceId,
+            String prompt,
+            String response,
+            long promptTokens,
+            long completionTokens,
+            long durationMs) {
+        AgentTraceSpan span =
+                AgentTraceSpan.llmCall(
+                        traceId, prompt, response, promptTokens, completionTokens, durationMs);
         addSpan(traceId, span);
         return span;
     }
@@ -155,7 +172,8 @@ public class AgentTraceService {
      * @param completionTokens Completion Token 数
      */
     @Transactional
-    public void endTraceSuccess(String traceId, String finalOutput, long promptTokens, long completionTokens) {
+    public void endTraceSuccess(
+            String traceId, String finalOutput, long promptTokens, long completionTokens) {
         AgentTrace trace = activeTraces.remove(traceId);
         if (trace == null) {
             trace = traceRepository.findByTraceId(traceId).orElse(null);
@@ -172,8 +190,11 @@ public class AgentTraceService {
         trace.setTokenUsage(AgentTrace.TokenUsage.of(promptTokens, completionTokens));
 
         traceRepository.save(trace);
-        log.info("Agent trace completed: {}, iterations: {}, time: {}ms",
-                traceId, trace.getIterations(), trace.getExecutionTimeMs());
+        log.info(
+                "Agent trace completed: {}, iterations: {}, time: {}ms",
+                traceId,
+                trace.getIterations(),
+                trace.getExecutionTimeMs());
     }
 
     /**
@@ -241,9 +262,7 @@ public class AgentTraceService {
                 .toList();
     }
 
-    /**
-     * 获取所有活跃追踪数量
-     */
+    /** 获取所有活跃追踪数量 */
     public int getActiveTracesCount() {
         return activeTraces.size();
     }
@@ -272,7 +291,8 @@ public class AgentTraceService {
         if (trace != null) {
             return trace;
         }
-        return traceRepository.findByTraceId(traceId)
+        return traceRepository
+                .findByTraceId(traceId)
                 .orElseThrow(() -> new IllegalArgumentException("Trace not found: " + traceId));
     }
 
@@ -309,8 +329,8 @@ public class AgentTraceService {
         long active = activeTraces.size();
         long total = completed + failed + active;
 
-        return new TraceStatistics(total, completed, failed, active,
-                total > 0 ? (double) completed / total : 0.0);
+        return new TraceStatistics(
+                total, completed, failed, active, total > 0 ? (double) completed / total : 0.0);
     }
 
     // ==================== 私有方法 ====================
@@ -350,8 +370,7 @@ public class AgentTraceService {
         return map;
     }
 
-    /**
-     * 追踪统计信息
-     */
-    public record TraceStatistics(long total, long completed, long failed, long active, double successRate) {}
+    /** 追踪统计信息 */
+    public record TraceStatistics(
+            long total, long completed, long failed, long active, double successRate) {}
 }

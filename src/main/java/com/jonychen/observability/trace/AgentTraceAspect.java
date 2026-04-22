@@ -1,19 +1,20 @@
 package com.jonychen.observability.trace;
 
-import com.jonychen.planning.TaskContext;
-import com.jonychen.planning.agent.ReActResult;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import com.jonychen.planning.TaskContext;
+import com.jonychen.planning.agent.ReActResult;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * Agent 执行追踪切面
- * 自动追踪 ReActAgent 和 PlanExecuteAgent 的执行过程
+ * Agent 执行追踪切面 自动追踪 ReActAgent 和 PlanExecuteAgent 的执行过程
  *
  * @author jonychen
  */
@@ -26,9 +27,7 @@ public class AgentTraceAspect {
     private final AgentTraceService traceService;
     private final TraceContext traceContext;
 
-    /**
-     * 追踪 ReAct Agent 执行
-     */
+    /** 追踪 ReAct Agent 执行 */
     @Around("execution(* com.jonychen.planning.agent.ReActAgent.execute(..))")
     public Object traceReActExecution(ProceedingJoinPoint joinPoint) throws Throwable {
         Object[] args = joinPoint.getArgs();
@@ -50,14 +49,13 @@ public class AgentTraceAspect {
 
             // 记录成功
             if (result instanceof ReActResult reactResult) {
-                String output = reactResult.answer() != null
-                        ? reactResult.answer()
-                        : String.valueOf(reactResult);
+                String output =
+                        reactResult.answer() != null
+                                ? reactResult.answer()
+                                : String.valueOf(reactResult);
                 traceService.endTraceSuccess(
-                        trace.getTraceId(),
-                        output,
-                        0, 0 // Token 信息需要从实际响应中提取
-                );
+                        trace.getTraceId(), output, 0, 0 // Token 信息需要从实际响应中提取
+                        );
             } else {
                 traceService.endTraceSuccess(trace.getTraceId(), String.valueOf(result), 0, 0);
             }
@@ -71,9 +69,7 @@ public class AgentTraceAspect {
         }
     }
 
-    /**
-     * 追踪 PlanExecute Agent 执行
-     */
+    /** 追踪 PlanExecute Agent 执行 */
     @Around("execution(* com.jonychen.planning.agent.PlanExecuteAgent.execute(..))")
     public Object tracePlanExecuteExecution(ProceedingJoinPoint joinPoint) throws Throwable {
         Object[] args = joinPoint.getArgs();
@@ -94,11 +90,7 @@ public class AgentTraceAspect {
             Object result = joinPoint.proceed();
 
             // 记录成功
-            traceService.endTraceSuccess(
-                    trace.getTraceId(),
-                    String.valueOf(result),
-                    0, 0
-            );
+            traceService.endTraceSuccess(trace.getTraceId(), String.valueOf(result), 0, 0);
 
             return result;
         } catch (Throwable e) {
@@ -109,9 +101,7 @@ public class AgentTraceAspect {
         }
     }
 
-    /**
-     * 追踪工具执行
-     */
+    /** 追踪工具执行 */
     @Around("execution(* com.jonychen.tool.ToolRegistry.execute(..))")
     public Object traceToolExecution(ProceedingJoinPoint joinPoint) throws Throwable {
         String traceId = traceContext.getCurrentTraceId();
@@ -131,16 +121,16 @@ public class AgentTraceAspect {
             long duration = System.currentTimeMillis() - startTime;
 
             // 记录成功的工具调用
-            traceService.recordToolCall(traceId, toolName, params,
-                    String.valueOf(result), duration, true, null);
+            traceService.recordToolCall(
+                    traceId, toolName, params, String.valueOf(result), duration, true, null);
 
             return result;
         } catch (Throwable e) {
             long duration = System.currentTimeMillis() - startTime;
 
             // 记录失败的工具调用
-            traceService.recordToolCall(traceId, toolName, params,
-                    null, duration, false, e.getMessage());
+            traceService.recordToolCall(
+                    traceId, toolName, params, null, duration, false, e.getMessage());
 
             throw e;
         }

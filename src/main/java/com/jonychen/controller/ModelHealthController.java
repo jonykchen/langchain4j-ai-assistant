@@ -1,21 +1,23 @@
 package com.jonychen.controller;
 
-import com.jonychen.model.ApiResponse;
-import com.jonychen.model.LoadBalancedChatModel;
-import com.jonychen.model.ModelHealthStatus;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.jonychen.model.ApiResponse;
+import com.jonychen.model.LoadBalancedChatModel;
+import com.jonychen.model.ModelHealthStatus;
+
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+
 /**
  * 模型健康检查控制器
  *
- * 提供模型状态查询 API，用于监控和运维。
+ * <p>提供模型状态查询 API，用于监控和运维。
  */
 @RestController
 @RequestMapping("/api/health")
@@ -47,12 +49,13 @@ public class ModelHealthController {
         Map<String, CircuitBreaker.State> states = loadBalancedChatModel.getCircuitBreakerStates();
 
         Map<String, Object> result = new HashMap<>();
-        states.forEach((name, state) -> {
-            Map<String, Object> info = new HashMap<>();
-            info.put("state", state.name());
-            info.put("healthy", state != CircuitBreaker.State.OPEN);
-            result.put(name, info);
-        });
+        states.forEach(
+                (name, state) -> {
+                    Map<String, Object> info = new HashMap<>();
+                    info.put("state", state.name());
+                    info.put("healthy", state != CircuitBreaker.State.OPEN);
+                    result.put(name, info);
+                });
 
         return ApiResponse.success(result);
     }
@@ -65,15 +68,13 @@ public class ModelHealthController {
     @GetMapping("/summary")
     public ApiResponse<Map<String, Object>> getHealthSummary() {
         List<ModelHealthStatus> statuses = loadBalancedChatModel.getModelStatuses();
-        Map<String, CircuitBreaker.State> breakerStates = loadBalancedChatModel.getCircuitBreakerStates();
+        Map<String, CircuitBreaker.State> breakerStates =
+                loadBalancedChatModel.getCircuitBreakerStates();
 
-        long healthyCount = statuses.stream()
-                .filter(ModelHealthStatus::isHealthy)
-                .count();
+        long healthyCount = statuses.stream().filter(ModelHealthStatus::isHealthy).count();
 
-        long openBreakerCount = breakerStates.values().stream()
-                .filter(s -> s == CircuitBreaker.State.OPEN)
-                .count();
+        long openBreakerCount =
+                breakerStates.values().stream().filter(s -> s == CircuitBreaker.State.OPEN).count();
 
         Map<String, Object> summary = new HashMap<>();
         summary.put("totalModels", statuses.size());

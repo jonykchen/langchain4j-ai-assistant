@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     avatar          VARCHAR(500),
     provider        VARCHAR(20)     NOT NULL,
     provider_id     VARCHAR(100),
+    password        VARCHAR(100),
     role            VARCHAR(20)     NOT NULL DEFAULT 'USER',
     created_at      TIMESTAMP       NOT NULL,
     last_login_at   TIMESTAMP,
@@ -121,3 +122,79 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chunks_document ON document_chunks(document_id);
+
+-- ================================================================================
+-- 测试结果持久化表
+-- ================================================================================
+
+-- 测试任务表
+CREATE TABLE IF NOT EXISTS test_jobs (
+    id              VARCHAR(36)     PRIMARY KEY,
+    test_type       VARCHAR(20)     NOT NULL,
+    status          VARCHAR(20)     NOT NULL DEFAULT 'PENDING',
+    start_time      TIMESTAMPTZ,
+    end_time        TIMESTAMPTZ,
+    message         TEXT,
+    progress        INTEGER         DEFAULT 0,
+    triggered_by    VARCHAR(50),
+    metadata        JSONB           DEFAULT '{}'::jsonb,
+    created_at      TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_test_jobs_type ON test_jobs(test_type);
+CREATE INDEX IF NOT EXISTS idx_test_jobs_status ON test_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_test_jobs_start_time ON test_jobs(start_time DESC);
+CREATE INDEX IF NOT EXISTS idx_test_jobs_created ON test_jobs(created_at DESC);
+
+-- E2E 测试结果表
+CREATE TABLE IF NOT EXISTS e2e_test_results (
+    id              BIGSERIAL       PRIMARY KEY,
+    job_id          VARCHAR(36)     NOT NULL REFERENCES test_jobs(id) ON DELETE CASCADE,
+    test_name       VARCHAR(255)    NOT NULL,
+    status          VARCHAR(20)     NOT NULL,
+    duration_ms     BIGINT,
+    assertions_passed INTEGER      DEFAULT 0,
+    assertions_failed INTEGER      DEFAULT 0,
+    error_message   TEXT,
+    created_at      TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_e2e_results_job ON e2e_test_results(job_id);
+CREATE INDEX IF NOT EXISTS idx_e2e_results_status ON e2e_test_results(status);
+
+-- 性能测试结果表
+CREATE TABLE IF NOT EXISTS performance_test_results (
+    id              BIGSERIAL       PRIMARY KEY,
+    job_id          VARCHAR(36)     NOT NULL REFERENCES test_jobs(id) ON DELETE CASCADE,
+    simulation      VARCHAR(100)    NOT NULL,
+    requests        BIGINT          DEFAULT 0,
+    success_rate    DECIMAL(5,2),
+    avg_response_time BIGINT,
+    max_response_time BIGINT,
+    p95_response_time BIGINT,
+    p99_response_time BIGINT,
+    start_time      TIMESTAMPTZ,
+    end_time        TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_results_job ON performance_test_results(job_id);
+
+-- AI 模型测试结果表
+CREATE TABLE IF NOT EXISTS ai_model_test_results (
+    id              BIGSERIAL       PRIMARY KEY,
+    job_id          VARCHAR(36)     NOT NULL REFERENCES test_jobs(id) ON DELETE CASCADE,
+    test_case_id    VARCHAR(100)    NOT NULL,
+    test_name       VARCHAR(255)    NOT NULL,
+    category        VARCHAR(50),
+    score           DECIMAL(5,4),
+    passed          BOOLEAN         DEFAULT false,
+    details         JSONB           DEFAULT '[]'::jsonb,
+    response_time   BIGINT,
+    actual_output   TEXT,
+    created_at      TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_results_job ON ai_model_test_results(job_id);
+CREATE INDEX IF NOT EXISTS idx_ai_results_category ON ai_model_test_results(category);
+CREATE INDEX IF NOT EXISTS idx_ai_results_passed ON ai_model_test_results(passed);

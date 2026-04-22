@@ -1,11 +1,16 @@
 package com.jonychen.tool;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 默认工具注册中心实现
@@ -51,7 +56,8 @@ public class DefaultToolRegistry implements ToolRegistry {
         }
     }
 
-    private void registerFromMethod(Object bean, java.lang.reflect.Method method, AgentTool annotation) {
+    private void registerFromMethod(
+            Object bean, java.lang.reflect.Method method, AgentTool annotation) {
         String name = annotation.name().isEmpty() ? method.getName() : annotation.name();
 
         // 构建 Parameter Schema
@@ -59,12 +65,14 @@ public class DefaultToolRegistry implements ToolRegistry {
         java.lang.reflect.Parameter[] params = method.getParameters();
         for (java.lang.reflect.Parameter param : params) {
             ToolParam toolParam = param.getAnnotation(ToolParam.class);
-            String paramName = toolParam != null && !toolParam.name().isEmpty()
-                    ? toolParam.name()
-                    : param.getName();
+            String paramName =
+                    toolParam != null && !toolParam.name().isEmpty()
+                            ? toolParam.name()
+                            : param.getName();
             String paramDesc = toolParam != null ? toolParam.description() : paramName;
 
-            ToolParameterSchema.Property property = convertTypeToProperty(param.getType(), paramDesc);
+            ToolParameterSchema.Property property =
+                    convertTypeToProperty(param.getType(), paramDesc);
             if (toolParam != null && toolParam.enumValues().length > 0) {
                 property = property.withEnum(Arrays.asList(toolParam.enumValues()));
             }
@@ -76,45 +84,49 @@ public class DefaultToolRegistry implements ToolRegistry {
         }
 
         // 创建执行器
-        ToolExecutor executor = paramsMap -> {
-            try {
-                // 转换参数类型
-                Object[] args = new Object[params.length];
-                for (int i = 0; i < params.length; i++) {
-                    java.lang.reflect.Parameter param = params[i];
-                    ToolParam toolParam = param.getAnnotation(ToolParam.class);
-                    String paramName = toolParam != null && !toolParam.name().isEmpty()
-                            ? toolParam.name()
-                            : param.getName();
+        ToolExecutor executor =
+                paramsMap -> {
+                    try {
+                        // 转换参数类型
+                        Object[] args = new Object[params.length];
+                        for (int i = 0; i < params.length; i++) {
+                            java.lang.reflect.Parameter param = params[i];
+                            ToolParam toolParam = param.getAnnotation(ToolParam.class);
+                            String paramName =
+                                    toolParam != null && !toolParam.name().isEmpty()
+                                            ? toolParam.name()
+                                            : param.getName();
 
-                    Object value = paramsMap.get(paramName);
-                    args[i] = convertValue(value, param.getType());
-                }
+                            Object value = paramsMap.get(paramName);
+                            args[i] = convertValue(value, param.getType());
+                        }
 
-                // 执行方法
-                Object result = method.invoke(bean, args);
-                if (result instanceof ToolResult) {
-                    return (ToolResult) result;
-                }
-                return ToolResult.success(result);
-            } catch (Exception e) {
-                Throwable cause = e.getCause() != null ? e.getCause() : e;
-                log.error("Tool '{}' execution failed: {}", name, cause.getMessage(), cause);
-                return ToolResult.failure(cause.getMessage());
-            }
-        };
+                        // 执行方法
+                        Object result = method.invoke(bean, args);
+                        if (result instanceof ToolResult) {
+                            return (ToolResult) result;
+                        }
+                        return ToolResult.success(result);
+                    } catch (Exception e) {
+                        Throwable cause = e.getCause() != null ? e.getCause() : e;
+                        log.error(
+                                "Tool '{}' execution failed: {}", name, cause.getMessage(), cause);
+                        return ToolResult.failure(cause.getMessage());
+                    }
+                };
 
         // 创建工具定义
-        ToolDefinition definition = ToolDefinition.builder()
-                .name(name)
-                .description(annotation.description())
-                .category(annotation.category())
-                .parameters(schema)
-                .executor(executor)
-                .requiredPermissions(Arrays.asList(annotation.requiredPermissions()))
-                .timeout(java.time.Duration.ofMillis(annotation.timeoutMs()))
-                .maxRetries(annotation.maxRetries())
-                .build();
+        ToolDefinition definition =
+                ToolDefinition.builder()
+                        .name(name)
+                        .description(annotation.description())
+                        .category(annotation.category())
+                        .parameters(schema)
+                        .executor(executor)
+                        .requiredPermissions(Arrays.asList(annotation.requiredPermissions()))
+                        .timeout(java.time.Duration.ofMillis(annotation.timeoutMs()))
+                        .maxRetries(annotation.maxRetries())
+                        .build();
 
         register(definition);
         log.debug("Registered annotated tool '{}' from {}", name, bean.getClass().getSimpleName());
@@ -123,9 +135,15 @@ public class DefaultToolRegistry implements ToolRegistry {
     private ToolParameterSchema.Property convertTypeToProperty(Class<?> type, String description) {
         if (type == String.class) {
             return ToolParameterSchema.Property.string(description);
-        } else if (type == Integer.class || type == int.class || type == Long.class || type == long.class) {
+        } else if (type == Integer.class
+                || type == int.class
+                || type == Long.class
+                || type == long.class) {
             return ToolParameterSchema.Property.integer(description);
-        } else if (type == Double.class || type == double.class || type == Float.class || type == float.class) {
+        } else if (type == Double.class
+                || type == double.class
+                || type == Float.class
+                || type == float.class) {
             return ToolParameterSchema.Property.number(description);
         } else if (type == Boolean.class || type == boolean.class) {
             return ToolParameterSchema.Property.bool(description);
@@ -212,8 +230,10 @@ public class DefaultToolRegistry implements ToolRegistry {
 
     @Override
     public ToolResult execute(String toolName, Map<String, Object> params) {
-        ToolDefinition tool = getTool(toolName)
-                .orElseThrow(() -> new ToolNotFoundException("Tool not found: " + toolName));
+        ToolDefinition tool =
+                getTool(toolName)
+                        .orElseThrow(
+                                () -> new ToolNotFoundException("Tool not found: " + toolName));
 
         long startTime = System.currentTimeMillis();
         try {
@@ -235,9 +255,7 @@ public class DefaultToolRegistry implements ToolRegistry {
 
     @Override
     public List<ToolDefinition> getToolsByCategory(ToolCategory category) {
-        return tools.values().stream()
-                .filter(t -> t.category() == category)
-                .toList();
+        return tools.values().stream().filter(t -> t.category() == category).toList();
     }
 
     @Override
@@ -246,9 +264,7 @@ public class DefaultToolRegistry implements ToolRegistry {
             // 无权限要求时返回所有工具
             return getAllTools();
         }
-        return tools.values().stream()
-                .filter(t -> hasRequiredPermissions(t, permissions))
-                .toList();
+        return tools.values().stream().filter(t -> hasRequiredPermissions(t, permissions)).toList();
     }
 
     private boolean hasRequiredPermissions(ToolDefinition tool, List<String> userPermissions) {

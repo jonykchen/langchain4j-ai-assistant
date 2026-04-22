@@ -93,6 +93,16 @@ Desktop.ini
 **/checkstyle-result.xml
 **/pmd.xml
 
+### 测试报告 ###
+# Playwright E2E 测试
+frontend/test-results/
+frontend/playwright-report/
+frontend/test-report*
+# Gatling 性能测试
+target/gatling-results/
+# JaCoCo 覆盖率报告
+target/site/jacoco/
+
 ### Docker 数据卷（本地开发） ###
 data/
 #backup/
