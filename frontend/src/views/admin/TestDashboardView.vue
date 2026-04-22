@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { testApi, type TestStatsSummary, type TestJobStatus } from '@/api/admin'
 import E2ETestView from './E2ETestView.vue'
@@ -25,6 +25,11 @@ const loadError = ref<string | null>(null)
 
 const currentJobId = ref<string | null>(null)
 const jobStatus = ref<TestJobStatus | null>(null)
+
+// 轮询清理相关
+const pollingTimeouts = new Set<ReturnType<typeof setTimeout>>()
+const MAX_POLLING_ATTEMPTS = 150 // 最大轮询次数（5分钟）
+let pollingAttempts = 0
 
 // 统计卡片数据
 const statsCards = computed(() => [
@@ -137,13 +142,20 @@ const runAllTests = async () => {
 
 // 轮询任务状态
 const pollJobStatus = async (jobId: string) => {
+  pollingAttempts = 0
   const poll = async () => {
+    pollingAttempts++
+    if (pollingAttempts > MAX_POLLING_ATTEMPTS) {
+      ElMessage.warning('轮询超时，请手动刷新查看状态')
+      return
+    }
     try {
       const status = await testApi.getJobStatus(jobId)
       jobStatus.value = status
 
       if (status.status === 'running') {
-        setTimeout(poll, 2000)
+        const timeout = setTimeout(poll, 2000)
+        pollingTimeouts.add(timeout)
       } else {
         loadStats()
         if (status.status === 'completed') {
@@ -184,6 +196,12 @@ const refreshData = async () => {
 
 onMounted(() => {
   loadStats()
+})
+
+// 组件卸载时清理所有轮询定时器
+onUnmounted(() => {
+  pollingTimeouts.forEach(timeout => clearTimeout(timeout))
+  pollingTimeouts.clear()
 })
 </script>
 

@@ -15,6 +15,9 @@ const providerFilter = ref('')
 const showUserDrawer = ref(false)
 const selectedUser = ref<UserAdminVO | null>(null)
 
+// 防抖定时器
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
 const providerLabels: Record<string, string> = {
   GITHUB: 'GitHub',
   GITLAB: 'GitLab',
@@ -41,6 +44,7 @@ const loadUsers = async () => {
     total.value = res.total
   } catch (e) {
     console.error('Failed to load users:', e)
+    ElMessage.error('加载用户列表失败')
   } finally {
     loading.value = false
   }
@@ -61,8 +65,10 @@ const toggleAdmin = async (user: UserAdminVO) => {
     await adminApi.updateUserRole(user.id, newRole)
     ElMessage.success('操作成功')
     loadUsers()
-  } catch (e) {
-    // 用户取消
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error('操作失败')
+    }
   }
 }
 
@@ -72,12 +78,25 @@ const deleteUser = async (user: UserAdminVO) => {
     await adminApi.deleteUser(user.id)
     ElMessage.success('删除成功')
     loadUsers()
-  } catch (e) {
-    // 用户取消
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
   }
 }
 
-watch([searchQuery, roleFilter, providerFilter], () => {
+// 搜索防抖处理：搜索文本输入延迟 300ms，选择器立即触发
+watch([searchQuery], () => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadUsers()
+  }, 300)
+})
+
+watch([roleFilter, providerFilter], () => {
   currentPage.value = 1
   loadUsers()
 })

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jonychen.admin.dto.AIModelTestSummary;
+import com.jonychen.admin.dto.PageResponse;
 import com.jonychen.admin.dto.PerformanceResultSummary;
 import com.jonychen.admin.dto.TestComparisonResult;
 import com.jonychen.admin.dto.TestJobStatus;
@@ -36,6 +37,7 @@ import com.jonychen.test.entity.AIModelTestResultEntity;
 import com.jonychen.test.entity.E2ETestResult;
 import com.jonychen.test.entity.PerformanceTestResult;
 import com.jonychen.test.entity.TestJob;
+import com.jonychen.test.repository.TestJobRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -58,6 +60,7 @@ public class TestManagementController {
     private final TestExportService testExportService;
     private final TestCleanupService testCleanupService;
     private final TestComparisonService testComparisonService;
+    private final TestJobRepository testJobRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
@@ -153,7 +156,7 @@ public class TestManagementController {
 
     @GetMapping("/jobs")
     @Operation(summary = "获取测试任务历史列表", description = "分页查询测试任务历史，支持按类型、状态、时间过滤")
-    public ApiResponse<Page<TestJob>> getTestJobHistory(
+    public ApiResponse<PageResponse<TestJob>> getTestJobHistory(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String from,
@@ -163,18 +166,22 @@ public class TestManagementController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime"));
         LocalDateTime fromDate = from != null ? LocalDateTime.parse(from, DATE_FORMATTER) : null;
         LocalDateTime toDate = to != null ? LocalDateTime.parse(to, DATE_FORMATTER) : null;
-        return ApiResponse.success(
-                testExecutionService.getTestJobHistory(type, status, fromDate, toDate, pageable));
+        Page<TestJob> result =
+                testExecutionService.getTestJobHistory(type, status, fromDate, toDate, pageable);
+        PageResponse<TestJob> response =
+                PageResponse.of(
+                        result.getContent(),
+                        result.getTotalElements(),
+                        result.getNumber(),
+                        result.getSize());
+        return ApiResponse.success(response);
     }
 
     @GetMapping("/jobs/{jobId}")
     @Operation(summary = "获取单个任务详情", description = "获取测试任务的详细信息")
     public ApiResponse<TestJob> getTestJobDetail(@PathVariable String jobId) {
-        return testExecutionService
-                .getTestJobHistory(null, null, null, null, PageRequest.of(0, 1))
-                .stream()
-                .filter(job -> job.getId().equals(jobId))
-                .findFirst()
+        return testJobRepository
+                .findById(jobId)
                 .map(ApiResponse::success)
                 .orElse(ApiResponse.error(404, "Job not found"));
     }

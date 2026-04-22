@@ -1,0 +1,338 @@
+<testsuites id="" name="" tests="117" failures="0" skipped="12" errors="0" time="99.113485">
+<testsuite name="accessibility.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="chromium" tests="8" failures="0" skipped="0" time="28.14" errors="0">
+<testcase name="无障碍测试 › 聊天页面无障碍检查" classname="accessibility.spec.ts" time="3.766">
+</testcase>
+<testcase name="无障碍测试 › 登录页面无障碍检查" classname="accessibility.spec.ts" time="3.816">
+</testcase>
+<testcase name="无障碍测试 › 键盘导航 - 聊天页面" classname="accessibility.spec.ts" time="3.33">
+</testcase>
+<testcase name="无障碍测试 › 键盘导航 - 登录页面" classname="accessibility.spec.ts" time="3.203">
+</testcase>
+<testcase name="无障碍测试 › 焦点顺序正确" classname="accessibility.spec.ts" time="3.322">
+</testcase>
+<testcase name="无障碍测试 › 屏幕阅读器标签" classname="accessibility.spec.ts" time="3.18">
+</testcase>
+<testcase name="无障碍测试 › 颜色对比度检查" classname="accessibility.spec.ts" time="3.789">
+</testcase>
+<testcase name="无障碍测试 › 移动端无障碍" classname="accessibility.spec.ts" time="3.734">
+</testcase>
+</testsuite>
+<testsuite name="admin.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="chromium" tests="6" failures="0" skipped="0" time="15.811" errors="0">
+<testcase name="管理后台测试 › 仪表盘数据加载" classname="admin.spec.ts" time="2.394">
+</testcase>
+<testcase name="管理后台测试 › 查看用户列表" classname="admin.spec.ts" time="2.76">
+</testcase>
+<testcase name="管理后台测试 › 搜索用户" classname="admin.spec.ts" time="2.634">
+</testcase>
+<testcase name="管理后台测试 › 查看用户详情" classname="admin.spec.ts" time="2.925">
+</testcase>
+<testcase name="管理后台测试 › 成本监控页面" classname="admin.spec.ts" time="2.395">
+</testcase>
+<testcase name="管理员权限测试 › 普通用户无法访问管理后台" classname="admin.spec.ts" time="2.703">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="chromium" tests="9" failures="0" skipped="4" time="16.029" errors="0">
+<testcase name="认证流程 › 用户名密码登录成功" classname="auth.spec.ts" time="3.061">
+</testcase>
+<testcase name="认证流程 › 登录失败显示错误提示" classname="auth.spec.ts" time="3.306">
+</testcase>
+<testcase name="认证流程 › GitHub OAuth 登录" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › GitLab OAuth 登录" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › Token 过期后自动刷新" classname="auth.spec.ts" time="4.299">
+</testcase>
+<testcase name="认证流程 › 未登录访问受保护页面跳转到登录" classname="auth.spec.ts" time="2.331">
+</testcase>
+<testcase name="认证流程 › 注册新用户" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › 注册已存在用户显示错误" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › 退出登录" classname="auth.spec.ts" time="3.032">
+</testcase>
+</testsuite>
+<testsuite name="chat.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="chromium" tests="10" failures="0" skipped="0" time="19.99" errors="0">
+<testcase name="聊天功能 › 发送简单消息并收到回复" classname="chat.spec.ts" time="1.67">
+</testcase>
+<testcase name="聊天功能 › 流式响应正确显示" classname="chat.spec.ts" time="1.562">
+</testcase>
+<testcase name="聊天功能 › 思考过程可折叠显示" classname="chat.spec.ts" time="2.287">
+</testcase>
+<testcase name="聊天功能 › 代码块可以复制" classname="chat.spec.ts" time="1.51">
+</testcase>
+<testcase name="聊天功能 › 网络错误时显示友好提示" classname="chat.spec.ts" time="1.699">
+</testcase>
+<testcase name="聊天功能 › 限流时显示提示" classname="chat.spec.ts" time="1.91">
+</testcase>
+<testcase name="聊天功能 › AI 服务不可用时显示提示" classname="chat.spec.ts" time="1.984">
+</testcase>
+<testcase name="聊天功能 › 连续发送多条消息" classname="chat.spec.ts" time="2.508">
+</testcase>
+<testcase name="聊天功能 › 消息输入框支持回车发送" classname="chat.spec.ts" time="2.779">
+</testcase>
+<testcase name="聊天功能 › 空消息不能发送" classname="chat.spec.ts" time="2.081">
+</testcase>
+</testsuite>
+<testsuite name="streaming.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="chromium" tests="6" failures="0" skipped="0" time="15.531" errors="0">
+<testcase name="流式响应测试 › SSE 流式响应逐字显示" classname="streaming.spec.ts" time="3.435">
+</testcase>
+<testcase name="流式响应测试 › 流式响应包含代码块" classname="streaming.spec.ts" time="2.801">
+</testcase>
+<testcase name="流式响应测试 › 流式响应中途断开" classname="streaming.spec.ts" time="2.428">
+</testcase>
+<testcase name="流式响应测试 › 流式响应包含思考过程" classname="streaming.spec.ts" time="2.475">
+</testcase>
+<testcase name="流式响应测试 › 流式响应错误事件" classname="streaming.spec.ts" time="2.327">
+</testcase>
+<testcase name="流式响应测试 › 多个流式请求顺序处理" classname="streaming.spec.ts" time="2.065">
+</testcase>
+</testsuite>
+<testsuite name="accessibility.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="firefox" tests="8" failures="0" skipped="0" time="85.182" errors="0">
+<testcase name="无障碍测试 › 聊天页面无障碍检查" classname="accessibility.spec.ts" time="11.554">
+</testcase>
+<testcase name="无障碍测试 › 登录页面无障碍检查" classname="accessibility.spec.ts" time="8.25">
+</testcase>
+<testcase name="无障碍测试 › 键盘导航 - 聊天页面" classname="accessibility.spec.ts" time="14.713">
+</testcase>
+<testcase name="无障碍测试 › 键盘导航 - 登录页面" classname="accessibility.spec.ts" time="7.746">
+</testcase>
+<testcase name="无障碍测试 › 焦点顺序正确" classname="accessibility.spec.ts" time="10.648">
+</testcase>
+<testcase name="无障碍测试 › 屏幕阅读器标签" classname="accessibility.spec.ts" time="10.426">
+</testcase>
+<testcase name="无障碍测试 › 颜色对比度检查" classname="accessibility.spec.ts" time="8.15">
+</testcase>
+<testcase name="无障碍测试 › 移动端无障碍" classname="accessibility.spec.ts" time="13.695">
+</testcase>
+</testsuite>
+<testsuite name="admin.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="firefox" tests="6" failures="0" skipped="0" time="52.861" errors="0">
+<testcase name="管理后台测试 › 仪表盘数据加载" classname="admin.spec.ts" time="7.957">
+</testcase>
+<testcase name="管理后台测试 › 查看用户列表" classname="admin.spec.ts" time="9.296">
+</testcase>
+<testcase name="管理后台测试 › 搜索用户" classname="admin.spec.ts" time="9.457">
+</testcase>
+<testcase name="管理后台测试 › 查看用户详情" classname="admin.spec.ts" time="8.76">
+</testcase>
+<testcase name="管理后台测试 › 成本监控页面" classname="admin.spec.ts" time="8.56">
+</testcase>
+<testcase name="管理员权限测试 › 普通用户无法访问管理后台" classname="admin.spec.ts" time="8.831">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="firefox" tests="9" failures="0" skipped="4" time="35.603" errors="0">
+<testcase name="认证流程 › 用户名密码登录成功" classname="auth.spec.ts" time="7.056">
+</testcase>
+<testcase name="认证流程 › 登录失败显示错误提示" classname="auth.spec.ts" time="7.025">
+</testcase>
+<testcase name="认证流程 › GitHub OAuth 登录" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › GitLab OAuth 登录" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › Token 过期后自动刷新" classname="auth.spec.ts" time="8.762">
+</testcase>
+<testcase name="认证流程 › 未登录访问受保护页面跳转到登录" classname="auth.spec.ts" time="5.389">
+</testcase>
+<testcase name="认证流程 › 注册新用户" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › 注册已存在用户显示错误" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › 退出登录" classname="auth.spec.ts" time="7.371">
+</testcase>
+</testsuite>
+<testsuite name="chat.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="firefox" tests="10" failures="0" skipped="0" time="87.261" errors="0">
+<testcase name="聊天功能 › 发送简单消息并收到回复" classname="chat.spec.ts" time="6.428">
+</testcase>
+<testcase name="聊天功能 › 流式响应正确显示" classname="chat.spec.ts" time="7.164">
+</testcase>
+<testcase name="聊天功能 › 思考过程可折叠显示" classname="chat.spec.ts" time="7.57">
+</testcase>
+<testcase name="聊天功能 › 代码块可以复制" classname="chat.spec.ts" time="6.475">
+</testcase>
+<testcase name="聊天功能 › 网络错误时显示友好提示" classname="chat.spec.ts" time="9.328">
+</testcase>
+<testcase name="聊天功能 › 限流时显示提示" classname="chat.spec.ts" time="10.465">
+</testcase>
+<testcase name="聊天功能 › AI 服务不可用时显示提示" classname="chat.spec.ts" time="10.23">
+</testcase>
+<testcase name="聊天功能 › 连续发送多条消息" classname="chat.spec.ts" time="9.705">
+</testcase>
+<testcase name="聊天功能 › 消息输入框支持回车发送" classname="chat.spec.ts" time="10.122">
+</testcase>
+<testcase name="聊天功能 › 空消息不能发送" classname="chat.spec.ts" time="9.774">
+</testcase>
+</testsuite>
+<testsuite name="streaming.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="firefox" tests="6" failures="0" skipped="0" time="49.083" errors="0">
+<testcase name="流式响应测试 › SSE 流式响应逐字显示" classname="streaming.spec.ts" time="10.529">
+</testcase>
+<testcase name="流式响应测试 › 流式响应包含代码块" classname="streaming.spec.ts" time="9.634">
+</testcase>
+<testcase name="流式响应测试 › 流式响应中途断开" classname="streaming.spec.ts" time="8.1">
+</testcase>
+<testcase name="流式响应测试 › 流式响应包含思考过程" classname="streaming.spec.ts" time="7.305">
+</testcase>
+<testcase name="流式响应测试 › 流式响应错误事件" classname="streaming.spec.ts" time="6.862">
+</testcase>
+<testcase name="流式响应测试 › 多个流式请求顺序处理" classname="streaming.spec.ts" time="6.653">
+</testcase>
+</testsuite>
+<testsuite name="accessibility.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="Mobile Chrome" tests="8" failures="0" skipped="0" time="30.047" errors="0">
+<testcase name="无障碍测试 › 聊天页面无障碍检查" classname="accessibility.spec.ts" time="4.551">
+</testcase>
+<testcase name="无障碍测试 › 登录页面无障碍检查" classname="accessibility.spec.ts" time="4.753">
+</testcase>
+<testcase name="无障碍测试 › 键盘导航 - 聊天页面" classname="accessibility.spec.ts" time="3.938">
+</testcase>
+<testcase name="无障碍测试 › 键盘导航 - 登录页面" classname="accessibility.spec.ts" time="3.207">
+</testcase>
+<testcase name="无障碍测试 › 焦点顺序正确" classname="accessibility.spec.ts" time="3.308">
+</testcase>
+<testcase name="无障碍测试 › 屏幕阅读器标签" classname="accessibility.spec.ts" time="3.513">
+</testcase>
+<testcase name="无障碍测试 › 颜色对比度检查" classname="accessibility.spec.ts" time="3.027">
+</testcase>
+<testcase name="无障碍测试 › 移动端无障碍" classname="accessibility.spec.ts" time="3.75">
+</testcase>
+</testsuite>
+<testsuite name="admin.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="Mobile Chrome" tests="6" failures="0" skipped="0" time="20.536" errors="0">
+<testcase name="管理后台测试 › 仪表盘数据加载" classname="admin.spec.ts" time="3.092">
+</testcase>
+<testcase name="管理后台测试 › 查看用户列表" classname="admin.spec.ts" time="3.361">
+</testcase>
+<testcase name="管理后台测试 › 搜索用户" classname="admin.spec.ts" time="3.512">
+</testcase>
+<testcase name="管理后台测试 › 查看用户详情" classname="admin.spec.ts" time="3.916">
+</testcase>
+<testcase name="管理后台测试 › 成本监控页面" classname="admin.spec.ts" time="3.161">
+</testcase>
+<testcase name="管理员权限测试 › 普通用户无法访问管理后台" classname="admin.spec.ts" time="3.494">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="Mobile Chrome" tests="9" failures="0" skipped="4" time="25.771" errors="0">
+<testcase name="认证流程 › 用户名密码登录成功" classname="auth.spec.ts" time="3.083">
+</testcase>
+<testcase name="认证流程 › 登录失败显示错误提示" classname="auth.spec.ts" time="10.873">
+</testcase>
+<testcase name="认证流程 › GitHub OAuth 登录" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › GitLab OAuth 登录" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › Token 过期后自动刷新" classname="auth.spec.ts" time="5.345">
+</testcase>
+<testcase name="认证流程 › 未登录访问受保护页面跳转到登录" classname="auth.spec.ts" time="2.77">
+</testcase>
+<testcase name="认证流程 › 注册新用户" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › 注册已存在用户显示错误" classname="auth.spec.ts">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="认证流程 › 退出登录" classname="auth.spec.ts" time="3.7">
+</testcase>
+</testsuite>
+<testsuite name="chat.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="Mobile Chrome" tests="10" failures="0" skipped="0" time="37.13" errors="0">
+<testcase name="聊天功能 › 发送简单消息并收到回复" classname="chat.spec.ts" time="10.053">
+</testcase>
+<testcase name="聊天功能 › 流式响应正确显示" classname="chat.spec.ts" time="3.067">
+</testcase>
+<testcase name="聊天功能 › 思考过程可折叠显示" classname="chat.spec.ts" time="4.298">
+</testcase>
+<testcase name="聊天功能 › 代码块可以复制" classname="chat.spec.ts" time="3.668">
+</testcase>
+<testcase name="聊天功能 › 网络错误时显示友好提示" classname="chat.spec.ts" time="2.628">
+</testcase>
+<testcase name="聊天功能 › 限流时显示提示" classname="chat.spec.ts" time="2.174">
+</testcase>
+<testcase name="聊天功能 › AI 服务不可用时显示提示" classname="chat.spec.ts" time="2.478">
+</testcase>
+<testcase name="聊天功能 › 连续发送多条消息" classname="chat.spec.ts" time="3.307">
+</testcase>
+<testcase name="聊天功能 › 消息输入框支持回车发送" classname="chat.spec.ts" time="2.903">
+</testcase>
+<testcase name="聊天功能 › 空消息不能发送" classname="chat.spec.ts" time="2.554">
+</testcase>
+</testsuite>
+<testsuite name="streaming.spec.ts" timestamp="2026-04-22T02:26:17.179Z" hostname="Mobile Chrome" tests="6" failures="0" skipped="0" time="15.619" errors="0">
+<testcase name="流式响应测试 › SSE 流式响应逐字显示" classname="streaming.spec.ts" time="3.106">
+</testcase>
+<testcase name="流式响应测试 › 流式响应包含代码块" classname="streaming.spec.ts" time="2.365">
+</testcase>
+<testcase name="流式响应测试 › 流式响应中途断开" classname="streaming.spec.ts" time="2.093">
+</testcase>
+<testcase name="流式响应测试 › 流式响应包含思考过程" classname="streaming.spec.ts" time="3.73">
+</testcase>
+<testcase name="流式响应测试 › 流式响应错误事件" classname="streaming.spec.ts" time="2.337">
+</testcase>
+<testcase name="流式响应测试 › 多个流式请求顺序处理" classname="streaming.spec.ts" time="1.988">
+</testcase>
+</testsuite>
+</testsuites>

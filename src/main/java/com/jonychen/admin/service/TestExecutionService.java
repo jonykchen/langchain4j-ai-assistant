@@ -4,6 +4,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,24 +92,18 @@ public class TestExecutionService {
         new Thread(
                         () -> {
                             try {
+                                // 不传 --reporter 参数，使用 playwright.config.ts 中配置的 reporters
+                                // config 已配置: html, junit, json, list
                                 ProcessBuilder pb =
                                         new ProcessBuilder(
                                                 System.getProperty("os.name")
                                                                 .toLowerCase()
                                                                 .contains("win")
                                                         ? new String[] {
-                                                            "cmd",
-                                                            "/c",
-                                                            "npx",
-                                                            "playwright",
-                                                            "test",
-                                                            "--reporter=html"
+                                                            "cmd", "/c", "npx", "playwright", "test"
                                                         }
                                                         : new String[] {
-                                                            "npx",
-                                                            "playwright",
-                                                            "test",
-                                                            "--reporter=html"
+                                                            "npx", "playwright", "test"
                                                         });
                                 pb.directory(new File("frontend"));
                                 pb.redirectErrorStream(true);
@@ -114,22 +111,29 @@ public class TestExecutionService {
                                 Process process = pb.start();
                                 runningProcesses.put(jobId, process);
 
-                                // 读取输出并解析结果
-                                List<TestResultSummary> results = new ArrayList<>();
+                                // 读取输出日志（仅记录，不用于解析）
                                 try (BufferedReader reader =
                                         new BufferedReader(
                                                 new InputStreamReader(process.getInputStream()))) {
                                     String line;
                                     while ((line = reader.readLine()) != null) {
-                                        log.info("[E2E] {}", line);
-                                        // 简化的结果解析
-                                        if (line.contains("passed") || line.contains("failed")) {
-                                            results.add(parseE2ELine(line));
-                                        }
+                                        String cleanLine = stripAnsiCodes(line);
+                                        log.info("[E2E] {}", cleanLine);
                                     }
                                 }
 
                                 int exitCode = process.waitFor();
+
+                                // 从 JSON 报告文件解析结果
+                                Path jsonReportPath =
+                                        new File("frontend/test-results/report.json").toPath();
+                                List<TestResultSummary> results = parseJsonReport(jsonReportPath);
+
+                                // 如果 JSON 报告解析失败，记录警告
+                                if (results.isEmpty()) {
+                                    log.warn(
+                                            "[E2E] JSON report not found or empty, test may have failed to start");
+                                }
 
                                 // 保存结果到数据库
                                 saveE2EResults(jobId, results);
@@ -139,7 +143,7 @@ public class TestExecutionService {
                                         jobId,
                                         exitCode == 0 ? "COMPLETED" : "FAILED",
                                         exitCode == 0
-                                                ? "Tests passed"
+                                                ? "Tests passed: " + results.size() + " tests"
                                                 : "Tests failed with exit code: " + exitCode,
                                         100);
 
@@ -214,7 +218,9 @@ public class TestExecutionService {
                                                 new InputStreamReader(process.getInputStream()))) {
                                     String line;
                                     while ((line = reader.readLine()) != null) {
-                                        log.info("[Gatling] {}", line);
+                                        // 剥离 ANSI 转义码
+                                        String cleanLine = stripAnsiCodes(line);
+                                        log.info("[Gatling] {}", cleanLine);
                                     }
                                 }
 
@@ -507,17 +513,128 @@ public class TestExecutionService {
         return allCases.stream().filter(tc -> category.equals(tc.category())).toList();
     }
 
-    /** 解析 E2E 输出行 */
+    /** 解析 E2E 输出行（已废弃，保留兼容） */
     private TestResultSummary parseE2ELine(String line) {
-        boolean passed = line.contains("passed");
-        String testName = line.split("\\s+")[0];
+        // 先剥离 ANSI 转义码
+        String cleanLine = stripAnsiCodes(line);
+        boolean passed = cleanLine.contains("passed");
+        String testName = cleanLine.split("\\s+")[0];
         return new TestResultSummary(
                 testName,
                 passed ? "passed" : "failed",
                 100L,
                 new TestResultSummary.Assertions(passed ? 1 : 0, passed ? 0 : 1, 1),
-                passed ? null : line,
+                passed ? null : cleanLine,
                 java.time.Instant.now());
+    }
+
+    /** 从 Playwright JSON 报告文件解析测试结果 */
+    private List<TestResultSummary> parseJsonReport(Path jsonReportPath) {
+        List<TestResultSummary> results = new ArrayList<>();
+        if (!Files.exists(jsonReportPath)) {
+            log.warn("[E2E] JSON report file not found: {}", jsonReportPath);
+            return results;
+        }
+
+        try {
+            String content = Files.readString(jsonReportPath, StandardCharsets.UTF_8);
+            com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(content);
+            com.fasterxml.jackson.databind.JsonNode suites = root.get("suites");
+            if (suites != null) {
+                collectSpecs(suites, results);
+            }
+        } catch (Exception e) {
+            log.error("[E2E] Failed to parse JSON report: {}", jsonReportPath, e);
+        }
+
+        return results;
+    }
+
+    /** 递归遍历 suites 树，提取每个 spec 的测试结果 */
+    private void collectSpecs(
+            com.fasterxml.jackson.databind.JsonNode suites, List<TestResultSummary> results) {
+        for (com.fasterxml.jackson.databind.JsonNode suite : suites) {
+            // 处理当前 suite 下的 specs
+            com.fasterxml.jackson.databind.JsonNode specs = suite.get("specs");
+            if (specs != null) {
+                for (com.fasterxml.jackson.databind.JsonNode spec : specs) {
+                    extractSpecResult(spec, results);
+                }
+            }
+            // 递归处理嵌套 suites
+            com.fasterxml.jackson.databind.JsonNode nested = suite.get("suites");
+            if (nested != null && nested.isArray()) {
+                collectSpecs(nested, results);
+            }
+        }
+    }
+
+    /** 从单个 spec 节点提取测试结果（每个 project 生成一条记录） */
+    private void extractSpecResult(
+            com.fasterxml.jackson.databind.JsonNode spec, List<TestResultSummary> results) {
+        String specTitle = spec.path("title").asText("");
+        String specFile = spec.path("file").asText("");
+        com.fasterxml.jackson.databind.JsonNode tests = spec.get("tests");
+
+        if (tests == null || tests.isEmpty()) {
+            return;
+        }
+
+        for (com.fasterxml.jackson.databind.JsonNode test : tests) {
+            String projectName = test.path("projectName").asText("");
+            com.fasterxml.jackson.databind.JsonNode testResults = test.path("results");
+
+            if (testResults.isEmpty()) {
+                continue;
+            }
+
+            // 取最后一个 result（重试后最终结果）
+            com.fasterxml.jackson.databind.JsonNode lastResult =
+                    testResults.get(testResults.size() - 1);
+            String status = lastResult.path("status").asText("unknown");
+            long duration = lastResult.path("duration").asLong(0);
+
+            // 组合测试名称：[项目名] 文件 › spec标题
+            String testName =
+                    (projectName.isEmpty() ? "" : "[" + projectName + "] ")
+                            + specFile
+                            + " › "
+                            + specTitle;
+
+            // 提取错误信息
+            String error = null;
+            com.fasterxml.jackson.databind.JsonNode errorNode = lastResult.get("error");
+            if (errorNode != null) {
+                error = errorNode.path("message").asText(null);
+                if (error == null) {
+                    error = errorNode.asText(null);
+                }
+                // 剥离可能残留的 ANSI 码
+                error = stripAnsiCodes(error);
+            }
+
+            boolean passed = "passed".equals(status);
+            results.add(
+                    new TestResultSummary(
+                            testName,
+                            passed ? "passed" : "failed",
+                            duration,
+                            new TestResultSummary.Assertions(passed ? 1 : 0, passed ? 0 : 1, 1),
+                            error,
+                            java.time.Instant.now()));
+        }
+    }
+
+    /** 剥离 ANSI 转义码（如颜色、光标移动控制字符） */
+    private String stripAnsiCodes(String text) {
+        if (text == null) {
+            return null;
+        }
+        // 匹配 ANSI 转义序列：ESC [ 或 ESC ] 开头的控制序列
+        // 常见模式：\u001B[...m (颜色), \u001B[...A/K/etc (光标控制)
+        return text.replaceAll("\u001B\\[[;\\d]*[ -/]*[@-~]", "");
     }
 
     /** 解析性能测试结果 */

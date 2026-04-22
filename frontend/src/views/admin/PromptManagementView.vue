@@ -273,7 +273,9 @@ const promptGroups = computed(() => {
     }
   }
 
-  return Array.from(groups.values())
+  return Array.from(groups.values()).filter(g =>
+    !searchName.value || g.name.toLowerCase().includes(searchName.value.toLowerCase())
+  )
 })
 
 const loadPrompts = async () => {
@@ -446,9 +448,23 @@ const configureABTest = async () => {
   }
 }
 
+/**
+ * HTML 转义函数，防止 XSS 攻击
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 const viewVersionContent = (version: PromptTemplate) => {
+  // 转义 HTML 防止 XSS 攻击
+  const escapedContent = escapeHtml(version.content || '')
   ElMessageBox.alert(
-    `<pre style="max-height:400px;overflow:auto;white-space:pre-wrap">${version.content}</pre>`,
+    `<pre style="max-height:400px;overflow:auto;white-space:pre-wrap">${escapedContent}</pre>`,
     `版本 ${version.version} 内容`,
     { dangerouslyUseHTMLString: true }
   )

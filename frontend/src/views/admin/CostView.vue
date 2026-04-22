@@ -82,8 +82,8 @@ onMounted(async () => {
           <div class="budget-card">
             <h4>日预算</h4>
             <div class="budget-amount">
-              <span class="used">${{ budget.dailyUsed.toFixed(2) }}</span>
-              <span class="total">/ ${{ budget.dailyTotal }}</span>
+              <span class="used">${{ (budget.dailyUsed ?? 0).toFixed(2) }}</span>
+              <span class="total">/ ${{ budget.dailyTotal ?? 0 }}</span>
             </div>
             <el-progress
               :percentage="Math.min(budget.dailyPercent, 100)"
@@ -103,8 +103,8 @@ onMounted(async () => {
           <div class="budget-card">
             <h4>月预算</h4>
             <div class="budget-amount">
-              <span class="used">${{ budget.monthlyUsed.toFixed(2) }}</span>
-              <span class="total">/ ${{ budget.monthlyTotal }}</span>
+              <span class="used">${{ (budget.monthlyUsed ?? 0).toFixed(2) }}</span>
+              <span class="total">/ ${{ budget.monthlyTotal ?? 0 }}</span>
             </div>
             <el-progress
               :percentage="Math.min(budget.monthlyPercent, 100)"
@@ -128,10 +128,10 @@ onMounted(async () => {
           <template #default="{ row }">{{ formatNumber(row.totalTokens) }}</template>
         </el-table-column>
         <el-table-column prop="totalCost" label="总费用" width="120">
-          <template #default="{ row }">${{ row.totalCost.toFixed(2) }}</template>
+          <template #default="{ row }">${{ (row.totalCost ?? 0).toFixed(2) }}</template>
         </el-table-column>
         <el-table-column prop="avgTokensPerRequest" label="平均 Token/请求" width="150">
-          <template #default="{ row }">{{ row.avgTokensPerRequest.toFixed(0) }}</template>
+          <template #default="{ row }">{{ (row.avgTokensPerRequest ?? 0).toFixed(0) }}</template>
         </el-table-column>
         <el-table-column prop="requestCount" label="请求数" width="100" />
         <el-table-column label="占比" width="200">
@@ -154,7 +154,7 @@ onMounted(async () => {
           <template #default="{ row }">{{ formatNumber(row.tokens) }}</template>
         </el-table-column>
         <el-table-column prop="cost" label="费用">
-          <template #default="{ row }">${{ row.cost.toFixed(4) }}</template>
+          <template #default="{ row }">${{ (row.cost ?? 0).toFixed(4) }}</template>
         </el-table-column>
       </el-table>
     </el-card>

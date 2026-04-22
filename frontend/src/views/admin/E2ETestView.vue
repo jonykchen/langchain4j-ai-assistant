@@ -39,11 +39,15 @@ const runTests = async () => {
 }
 
 const loadResults = async () => {
+  loading.value = true
   try {
     results.value = await testApi.getE2EStatus()
     emit('stats-update', calculateStats())
   } catch (error) {
     console.error('加载 E2E 测试结果失败', error)
+    ElMessage.error('加载 E2E 测试结果失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -121,7 +125,7 @@ onMounted(() => {
       </el-table-column>
       <el-table-column prop="assertions" label="断言">
         <template #default="{ row }">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2" v-if="row.assertions">
             <el-tag type="success" size="small">
               {{ row.assertions.passed }} 通过
             </el-tag>
@@ -129,6 +133,7 @@ onMounted(() => {
               {{ row.assertions.failed }} 失败
             </el-tag>
           </div>
+          <span v-else class="text-gray-400">-</span>
         </template>
       </el-table-column>
       <el-table-column prop="error" label="错误信息">

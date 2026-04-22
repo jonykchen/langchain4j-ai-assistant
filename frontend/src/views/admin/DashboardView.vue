@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { adminApi, type DashboardMetrics } from '@/api/admin'
 
 const loading = ref(true)
@@ -48,6 +49,7 @@ onMounted(async () => {
     metrics.value = await adminApi.getMetrics()
   } catch (e) {
     console.error('Failed to load metrics:', e)
+    ElMessage.error('加载仪表盘数据失败，请刷新重试')
   } finally {
     loading.value = false
   }
