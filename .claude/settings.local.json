@@ -36,7 +36,8 @@
       "Bash(scoop *)",
       "WebFetch(domain:gitee.com)",
       "Bash(pip search *)",
-      "Bash(pip index *)"
+      "Bash(pip index *)",
+      "Bash(node *)"
     ]
   }
 }
