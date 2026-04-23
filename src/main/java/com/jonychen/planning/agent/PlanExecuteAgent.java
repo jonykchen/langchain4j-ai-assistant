@@ -110,20 +110,33 @@ public class PlanExecuteAgent {
      * @return 执行结果
      */
     public TaskResult execute(String goal, TaskContext context) {
+        log.info("[PlanExecute] ========== 开始 Plan-Execute 流程 ==========");
+        log.info("[PlanExecute] 目标: {}", goal);
         long startTime = System.currentTimeMillis();
 
         // 1. 生成初始计划
+        log.info("[PlanExecute] 阶段1: Planning (规划)...");
+        log.info("[PlanExecute] → 调用 LLM 生成执行计划...");
         List<Step> steps = plan(goal);
         if (steps.isEmpty()) {
+            log.error("[PlanExecute] 规划失败: 无法生成执行计划");
             return TaskResult.failure(null, "无法生成执行计划", List.of(), 0);
+        }
+
+        log.info("[PlanExecute] 规划完成 | 生成 {} 个步骤:", steps.size());
+        for (Step s : steps) {
+            log.info(
+                    "[PlanExecute]   步骤{}: {} | 工具: {}",
+                    s.order(),
+                    s.description(),
+                    s.tool() != null ? s.tool() : "LLM");
         }
 
         Task task = Task.create(goal).withSteps(steps);
         task = task.withStatus(TaskStatus.EXECUTING);
 
-        log.info("Plan-Execute: Created plan with {} steps for goal: {}", steps.size(), goal);
-
         // 2. 执行步骤
+        log.info("[PlanExecute] 阶段2: Execution (执行)...");
         int replanCount = 0;
         List<StepResult> stepResults = new ArrayList<>();
 
@@ -131,10 +144,11 @@ public class PlanExecuteAgent {
             Step currentStep = task.getNextPendingStep();
 
             if (currentStep == null) {
-                // 所有步骤完成
+                log.info("[PlanExecute] 所有步骤执行完成");
                 break;
             }
 
+            log.info("[PlanExecute] ── 执行步骤 {}/{} ──", currentStep.order(), steps.size());
             // 执行步骤
             StepResult result = executeStep(currentStep, context);
             stepResults.add(result);
@@ -152,20 +166,21 @@ public class PlanExecuteAgent {
 
                 if (replanCount <= MAX_REPLANS) {
                     log.warn(
-                            "Step {} failed, replanning (attempt {}/{})",
+                            "[PlanExecute] 步骤 {} 失败，尝试重新规划 ({}/{})",
                             currentStep.order(),
                             replanCount,
                             MAX_REPLANS);
 
                     List<Step> newSteps = replan(task, currentStep, result.error());
                     if (!newSteps.isEmpty()) {
+                        log.info("[PlanExecute] 重新规划完成 | 新步骤数: {}", newSteps.size());
                         task = task.withSteps(newSteps);
                         stepResults.clear(); // 重置结果
                         continue;
                     }
                 }
 
-                // 无法恢复
+                log.error("[PlanExecute] 执行失败 | 重试次数耗尽");
                 return TaskResult.failure(
                         task.taskId(),
                         "步骤执行失败: " + result.error(),
@@ -177,6 +192,13 @@ public class PlanExecuteAgent {
         // 3. 构建最终结果
         Object finalOutput =
                 stepResults.isEmpty() ? null : stepResults.get(stepResults.size() - 1).output();
+
+        log.info("[PlanExecute] ========== Plan-Execute 完成 ==========");
+        log.info(
+                "[PlanExecute] 总耗时: {}ms | 步骤数: {} | 重规划次数: {}",
+                System.currentTimeMillis() - startTime,
+                stepResults.size(),
+                replanCount);
 
         return TaskResult.success(
                 task.taskId(), finalOutput, stepResults, System.currentTimeMillis() - startTime);
@@ -223,14 +245,16 @@ public class PlanExecuteAgent {
 
     /** 执行单个步骤 */
     private StepResult executeStep(Step step, TaskContext context) {
-        log.info("Executing step {}: {}", step.order(), step.description());
+        log.info("[PlanExecute] 执行步骤 {}: {}", step.order(), step.description());
 
         // 检查是否有工具调用
         if (step.tool() != null && !step.tool().isBlank()) {
+            log.info("[PlanExecute] → 调用工具: {}", step.tool());
             return executeToolStep(step, context);
         }
 
         // 普通步骤，使用 LLM 执行
+        log.info("[PlanExecute] → 调用 LLM...");
         return executeLLMStep(step, context);
     }
 

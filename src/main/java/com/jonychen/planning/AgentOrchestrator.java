@@ -35,7 +35,15 @@ public class AgentOrchestrator {
         // 判断任务类型
         TaskType taskType = determineTaskType(goal);
 
-        log.info("Executing task with type: {} for goal: {}", taskType, goal);
+        log.info("[Orchestrator] 任务类型判定: {} | 目标: {}", taskType.getDisplayName(), goal);
+        log.info(
+                "[Orchestrator] {} → {}",
+                taskType,
+                switch (taskType) {
+                    case SIMPLE -> "TaskExecutor(SIMPLE模式-直接LLM执行)";
+                    case MULTI_STEP -> "PlanExecuteAgent(先规划后执行)";
+                    case COMPLEX -> "ReActAgent(推理-行动循环)";
+                });
 
         return switch (taskType) {
             case SIMPLE -> executeSimple(goal, context);
@@ -52,9 +60,17 @@ public class AgentOrchestrator {
      * @return 任务结果
      */
     public TaskResult executeReAct(String question, TaskContext context) {
+        log.info("[Orchestrator] ReAct模式 | 问题: {}", question);
         long startTime = System.currentTimeMillis();
 
+        log.info("[Orchestrator] → 调用 ReActAgent.execute()...");
         var reActResult = reActAgent.execute(question, context);
+
+        log.info(
+                "[Orchestrator] ReAct完成 | 迭代: {}次 | 成功: {} | 耗时: {}ms",
+                reActResult.iterations(),
+                reActResult.success(),
+                System.currentTimeMillis() - startTime);
 
         return TaskResult.withIterations(
                 null,
@@ -85,21 +101,31 @@ public class AgentOrchestrator {
      * @return 任务结果
      */
     public TaskResult executePlanExecute(String goal, TaskContext context) {
+        log.info("[Orchestrator] Plan-Execute模式 | 目标: {}", goal);
+        log.info("[Orchestrator] → 调用 PlanExecuteAgent.execute()...");
         return planExecuteAgent.execute(goal, context);
     }
 
     /** 执行简单任务 */
     private TaskResult executeSimple(String goal, TaskContext context) {
+        log.info("[Orchestrator] SIMPLE模式 | 创建单步任务...");
         Task task = Task.create(goal);
         task = task.withStatus(TaskStatus.EXECUTING);
 
         Step step = Step.create(1, goal, goal);
+        log.info("[Orchestrator] → 调用 TaskExecutor.executeStep()...");
+
         StepResult result = taskExecutor.executeStep(step, context);
 
         task =
                 task.addStep(
                         step.withStatus(result.success() ? StepStatus.COMPLETED : StepStatus.FAILED)
                                 .withResult(result));
+
+        log.info(
+                "[Orchestrator] SIMPLE完成 | 成功: {} | 输出长度: {}",
+                result.success(),
+                result.output() != null ? result.output().toString().length() : 0);
 
         if (result.success()) {
             return TaskResult.success(
@@ -118,19 +144,20 @@ public class AgentOrchestrator {
 
     /** 执行多步骤任务 */
     private TaskResult executeMultiStep(String goal, TaskContext context) {
-        // 使用 Plan-Execute Agent
+        log.info("[Orchestrator] MULTI_STEP模式 | → 委托给 PlanExecuteAgent...");
         return planExecuteAgent.execute(goal, context);
     }
 
     /** 执行复杂任务 */
     private TaskResult executeComplex(String goal, TaskContext context) {
-        // 复杂任务使用 ReAct 模式
+        log.info("[Orchestrator] COMPLEX模式 | → 委托给 ReActAgent...");
         return executeReAct(goal, context);
     }
 
     /** 判断任务类型 */
     private TaskType determineTaskType(String goal) {
         if (goal == null) {
+            log.info("[Orchestrator] 类型判定: goal为null → SIMPLE");
             return TaskType.SIMPLE;
         }
 
@@ -143,6 +170,7 @@ public class AgentOrchestrator {
                 || lowerGoal.contains("决策")
                 || lowerGoal.contains("不确定")
                 || lowerGoal.contains("探索")) {
+            log.info("[Orchestrator] 类型判定: 命中复杂任务关键词 → COMPLEX");
             return TaskType.COMPLEX;
         }
 
@@ -153,9 +181,11 @@ public class AgentOrchestrator {
                 || lowerGoal.contains("步骤")
                 || lowerGoal.contains("依次")
                 || lowerGoal.contains("顺序")) {
+            log.info("[Orchestrator] 类型判定: 命中多步骤关键词 → MULTI_STEP");
             return TaskType.MULTI_STEP;
         }
 
+        log.info("[Orchestrator] 类型判定: 未命中关键词 → SIMPLE");
         return TaskType.SIMPLE;
     }
 }
