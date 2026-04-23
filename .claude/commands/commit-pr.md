@@ -48,21 +48,23 @@ effort: low
    GITEE_REPO=仓库名
    ```
 
-3. 用 curl 创建 PR（注意：必须使用 form-data 方式，不能用 JSON body）：
+3. 用 curl 创建 PR（注意：必须使用 --data-urlencode 正确编码中文）：
    ```bash
    source .env
 
    # 获取提交记录作为描述
    COMMITS=$(git log master..HEAD --format="- %s")
 
-   # 使用 form-data 方式（-d 参数 múltiples，不用 JSON）
+   # 使用 --data-urlencode 正确编码中文
    curl -s -X POST "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/pulls" \
-     -d "access_token=${GITEE_TOKEN}" \
-     -d "title=PR标题" \
-     -d "head=源分支" \
-     -d "base=master" \
-     -d "body=## 提交记录\n\n${COMMITS}"
+     --data-urlencode "access_token=${GITEE_TOKEN}" \
+     --data-urlencode "title=PR标题" \
+     --data-urlencode "head=源分支" \
+     --data-urlencode "base=master" \
+     --data-urlencode "body=## 提交记录\n\n${COMMITS}"
    ```
+
+   **重要**：必须使用 `--data-urlencode` 而非 `-d`，否则中文会乱码。
 
 4. 从响应中提取 `html_url` 作为 PR 链接：
    ```bash
@@ -74,5 +76,5 @@ effort: low
 ## 注意
 
 - 个人私有项目，`.env` 需要提交到 Git 仓库
-- Gitee API 必须使用 form-data 方式（多个 -d 参数），使用 JSON body 会返回 400 错误
+- Gitee API 必须使用 `--data-urlencode` 编码参数，使用 `-d` 或 JSON body 会导致中文乱码或 400 错误
 - 不要将 GITEE_TOKEN 硬编码在命令文件中
