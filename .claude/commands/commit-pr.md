@@ -77,4 +77,5 @@ effort: low
 
 - 个人私有项目，`.env` 需要提交到 Git 仓库
 - Gitee API 必须使用 `--data-urlencode` 编码参数，使用 `-d` 或 JSON body 会导致中文乱码或 400 错误
+- **Windows Git Bash 限制**：curl 发送中文可能乱码，创建 PR 后需在网页手动修改标题和描述
 - 不要将 GITEE_TOKEN 硬编码在命令文件中
