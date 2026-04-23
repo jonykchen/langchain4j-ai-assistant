@@ -30,7 +30,14 @@
       "WebFetch(domain:docs.langchain4j.dev)",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(winget install *)",
+      "Bash(choco *)",
+      "Bash(scoop *)",
+      "WebFetch(domain:gitee.com)",
+      "Bash(pip search *)",
+      "Bash(pip index *)",
+      "Bash(node *)"
     ]
   }
 }
