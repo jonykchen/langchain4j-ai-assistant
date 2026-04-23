@@ -89,12 +89,21 @@ public class ReActAgent {
      * @return 执行结果
      */
     public ReActResult execute(String question, TaskContext context) {
+        log.info("[ReAct] ========== 开始 ReAct 循环 ==========");
+        log.info("[ReAct] 问题: {}", question);
         List<ReActStep> steps = new ArrayList<>();
         StringBuilder history = new StringBuilder();
 
         String toolsDescription = buildToolsDescription();
+        log.info(
+                "[ReAct] 可用工具: {}",
+                toolRegistry.getAllTools().stream()
+                        .map(t -> t.name())
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("无"));
 
         for (int i = 0; i < maxIterations; i++) {
+            log.info("[ReAct] ── 迭代 {}/{} ──", i + 1, maxIterations);
             // 1. 构建 Prompt
             String prompt =
                     REACT_PROMPT_TEMPLATE
@@ -103,14 +112,16 @@ public class ReActAgent {
                             .replace("{history}", history.toString());
 
             // 2. LLM 思考
+            log.info("[ReAct] → LLM 思考中...");
+            long startTime = System.currentTimeMillis();
             String response =
                     chatModel
                             .chat(ChatRequest.builder().messages(UserMessage.from(prompt)).build())
                             .aiMessage()
                             .text();
-            log.trace(
-                    "ReAct iteration {}: responseLength={}",
-                    i + 1,
+            log.info(
+                    "[ReAct] LLM响应 | 耗时: {}ms | 长度: {}",
+                    System.currentTimeMillis() - startTime,
                     response != null ? response.length() : 0);
 
             // 3. 解析响应
@@ -119,14 +130,24 @@ public class ReActAgent {
 
             // 4. 检查是否是最终答案
             if (step.isFinalAnswer()) {
-                log.info("ReAct completed after {} iterations", i + 1);
+                log.info("[ReAct] 得到最终答案!");
+                log.info("[ReAct] Final Answer: {}", step.finalAnswer());
+                log.info("[ReAct] ========== ReAct 完成 (迭代 {} 次) ==========", i + 1);
                 return ReActResult.success(step.finalAnswer(), steps, i + 1);
             }
 
             // 5. 执行工具
             if (step.hasAction()) {
+                log.info("[ReAct] Thought: {}", step.thought());
+                log.info("[ReAct] Action: {} | Input: {}", step.action(), step.actionInput());
                 ToolResult toolResult = executeTool(step.action(), step.actionInput(), context);
                 String observation = formatObservation(toolResult);
+
+                log.info(
+                        "[ReAct] Observation: {}",
+                        observation.length() > 200
+                                ? observation.substring(0, 200) + "..."
+                                : observation);
 
                 step = step.withObservation(observation);
                 steps.set(steps.size() - 1, step); // 更新步骤
@@ -136,12 +157,14 @@ public class ReActAgent {
                 history.append("\nObservation: ").append(observation).append("\n");
             } else {
                 // 没有行动也没有最终答案，可能是解析失败
+                log.warn("[ReAct] 响应解析失败，无Action也无FinalAnswer");
                 history.append("\n").append(response);
             }
         }
 
         // 达到最大迭代次数
-        log.warn("ReAct reached max iterations: {}", maxIterations);
+        log.warn("[ReAct] 达到最大迭代次数: {}", maxIterations);
+        log.info("[ReAct] ========== ReAct 失败 ==========");
         return ReActResult.failure("达到最大迭代次数，未能得出答案", steps, maxIterations);
     }
 

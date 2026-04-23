@@ -19,12 +19,14 @@ import com.jonychen.planning.TaskResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 任务规划 REST API
  *
  * @author jonychen
  */
+@Slf4j
 @Tag(name = "任务规划", description = "任务规划与执行相关接口")
 @RestController
 @RequestMapping("/api/planning")
@@ -34,13 +36,30 @@ public class PlanningController {
     private final AgentOrchestrator agentOrchestrator;
     private final TaskExecutor taskExecutor;
 
+    private static final String LOG_PREFIX = "════════════════════════════════════════";
+
     /** 执行任务（自动选择策略） */
     @Operation(summary = "执行任务", description = "根据任务类型自动选择执行策略")
     @PostMapping("/execute")
     public ApiResponse<TaskResultInfo> executeTask(@RequestBody TaskRequest request) {
+        log.info("{} [Planning] API入口: POST /api/planning/execute {}", LOG_PREFIX, LOG_PREFIX);
+        log.info(
+                "[Planning] 策略: AUTO(自动选择) | 目标: {} | SessionId: {}",
+                request.goal(),
+                request.sessionId());
+
+        long startTime = System.currentTimeMillis();
         TaskContext context = TaskContext.create(request.sessionId());
 
+        log.info("[Planning] 调用 AgentOrchestrator.execute()...");
         TaskResult result = agentOrchestrator.execute(request.goal(), context);
+
+        log.info(
+                "[Planning] 执行完成 | 耗时: {}ms | 成功: {} | 步骤数: {}",
+                System.currentTimeMillis() - startTime,
+                result.success(),
+                result.stepResults().size());
+        log.info("{} [Planning] API出口 {}", LOG_PREFIX, LOG_PREFIX);
 
         return ApiResponse.success(toTaskResultInfo(result));
     }
@@ -49,9 +68,24 @@ public class PlanningController {
     @Operation(summary = "ReAct 执行", description = "使用推理-行动循环模式执行任务")
     @PostMapping("/react")
     public ApiResponse<TaskResultInfo> executeReAct(@RequestBody TaskRequest request) {
+        log.info("{} [Planning] API入口: POST /api/planning/react {}", LOG_PREFIX, LOG_PREFIX);
+        log.info(
+                "[Planning] 策略: REACT | 问题: {} | SessionId: {}",
+                request.question(),
+                request.sessionId());
+
+        long startTime = System.currentTimeMillis();
         TaskContext context = TaskContext.create(request.sessionId());
 
+        log.info("[Planning] 调用 AgentOrchestrator.executeReAct()...");
         TaskResult result = agentOrchestrator.executeReAct(request.question(), context);
+
+        log.info(
+                "[Planning] ReAct完成 | 耗时: {}ms | 迭代次数: {} | 成功: {}",
+                System.currentTimeMillis() - startTime,
+                result.iterations(),
+                result.success());
+        log.info("{} [Planning] API出口 {}", LOG_PREFIX, LOG_PREFIX);
 
         return ApiResponse.success(toTaskResultInfo(result));
     }
@@ -60,9 +94,24 @@ public class PlanningController {
     @Operation(summary = "Plan-Execute 执行", description = "先规划后执行模式")
     @PostMapping("/plan-execute")
     public ApiResponse<TaskResultInfo> executePlanExecute(@RequestBody TaskRequest request) {
+        log.info("{} [Planning] API入口: POST /api/planning/plan-execute {}", LOG_PREFIX, LOG_PREFIX);
+        log.info(
+                "[Planning] 策略: PLAN-EXECUTE | 目标: {} | SessionId: {}",
+                request.goal(),
+                request.sessionId());
+
+        long startTime = System.currentTimeMillis();
         TaskContext context = TaskContext.create(request.sessionId());
 
+        log.info("[Planning] 调用 AgentOrchestrator.executePlanExecute()...");
         TaskResult result = agentOrchestrator.executePlanExecute(request.goal(), context);
+
+        log.info(
+                "[Planning] Plan-Execute完成 | 耗时: {}ms | 步骤数: {} | 成功: {}",
+                System.currentTimeMillis() - startTime,
+                result.stepResults().size(),
+                result.success());
+        log.info("{} [Planning] API出口 {}", LOG_PREFIX, LOG_PREFIX);
 
         return ApiResponse.success(toTaskResultInfo(result));
     }
@@ -72,6 +121,15 @@ public class PlanningController {
     @PostMapping("/task")
     public ApiResponse<TaskResultInfo> executePredefinedTask(
             @RequestBody PredefinedTaskRequest request) {
+        log.info("{} [Planning] API入口: POST /api/planning/task {}", LOG_PREFIX, LOG_PREFIX);
+        log.info(
+                "[Planning] 策略: PREDEFINED | 目标: {} | 步骤数: {} | SessionId: {}",
+                request.goal(),
+                request.steps().size(),
+                request.sessionId());
+
+        long startTime = System.currentTimeMillis();
+
         Task task = Task.create(request.goal());
 
         List<Step> steps = new java.util.ArrayList<>();
@@ -83,12 +141,24 @@ public class PlanningController {
                                     i + 1, stepDef.description(), stepDef.tool(), stepDef.params())
                             : Step.create(i + 1, stepDef.description(), stepDef.action());
             steps.add(step);
+            log.info(
+                    "[Planning] 步骤{}: {} | 工具: {}",
+                    i + 1,
+                    stepDef.description(),
+                    stepDef.tool() != null ? stepDef.tool() : "LLM");
         }
 
         task = task.withSteps(steps);
 
         TaskContext context = TaskContext.create(request.sessionId());
+        log.info("[Planning] 调用 TaskExecutor.executeTask()...");
         TaskResult result = taskExecutor.executeTask(task);
+
+        log.info(
+                "[Planning] 预定义任务完成 | 耗时: {}ms | 成功: {}",
+                System.currentTimeMillis() - startTime,
+                result.success());
+        log.info("{} [Planning] API出口 {}", LOG_PREFIX, LOG_PREFIX);
 
         return ApiResponse.success(toTaskResultInfo(result));
     }
