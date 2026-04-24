@@ -747,6 +747,7 @@ A: 确保 `FaultTolerantHandler` 正确调用 `circuitBreaker.onSuccess/onError`
 
 | 文件 | 内容 |
 |------|------|
+| [.claude/behavior.md](./.claude/behavior.md) | Claude 编码行为准则 |
 | [.claude/guide.md](./.claude/guide.md) | Claude Code 使用方法、协作最佳实践 |
 | [.claude/patterns.md](./.claude/patterns.md) | 项目特有代码模式和模板 |
 | [.claude/debugging.md](./.claude/debugging.md) | 常见问题诊断与解决方案 |
@@ -785,6 +786,7 @@ JaCoCo 已配置，运行 `mvn test` 后在 `target/site/jacoco/` 查看覆盖�
 ## 学习路径
 
 1. **入门** - 阅读本文档了解项目结构
-2. **进阶** - 学习 [.claude/guide.md](./.claude/guide.md) 掌握 Claude 协作技巧
-3. **实践** - 参考 [.claude/patterns.md](./.claude/patterns.md) 使用代码模板
-4. **排错** - 遇到问题查阅 [.claude/debugging.md](./.claude/debugging.md)
+2. **准则** - 学习 [.claude/behavior.md](./.claude/behavior.md) 掌握编码行为原则
+3. **进阶** - 学习 [.claude/guide.md](./.claude/guide.md) 掌握 Claude 协作技巧
+4. **实践** - 参考 [.claude/patterns.md](./.claude/patterns.md) 使用代码模板
+5. **排错** - 遇到问题查阅 [.claude/debugging.md](./.claude/debugging.md)

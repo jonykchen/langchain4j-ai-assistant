@@ -15,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 默认工具注册中心实现
  *
+ * <p>增强功能： - 支持风险等级（riskLevel） - 支持确认机制（requiresConfirmation） - 支持角色限制（allowedRoles）
+ *
  * @author jonychen
  */
 @Slf4j
@@ -37,7 +39,12 @@ public class DefaultToolRegistry implements ToolRegistry {
 
         tools.put(name, tool);
         specifications.put(name, ToolSpecificationConverter.convert(tool));
-        log.info("Registered tool: {} [{}]", name, tool.category());
+        log.info(
+                "Registered tool: {} [category={}, riskLevel={}, requiresConfirmation={}]",
+                name,
+                tool.category(),
+                tool.riskLevel(),
+                tool.requiresConfirmation());
     }
 
     @Override
@@ -115,15 +122,18 @@ public class DefaultToolRegistry implements ToolRegistry {
                     }
                 };
 
-        // 创建工具定义
+        // 创建工具定义（包含新增属性）
         ToolDefinition definition =
                 ToolDefinition.builder()
                         .name(name)
                         .description(annotation.description())
                         .category(annotation.category())
+                        .riskLevel(annotation.riskLevel())
                         .parameters(schema)
                         .executor(executor)
                         .requiredPermissions(Arrays.asList(annotation.requiredPermissions()))
+                        .allowedRoles(Arrays.asList(annotation.allowedRoles()))
+                        .requiresConfirmation(annotation.requiresConfirmation())
                         .timeout(java.time.Duration.ofMillis(annotation.timeoutMs()))
                         .maxRetries(annotation.maxRetries())
                         .build();
@@ -243,6 +253,15 @@ public class DefaultToolRegistry implements ToolRegistry {
                 return ToolResult.failure(validationError);
             }
 
+            // 敏感操作确认检查（仅返回 pending 状态，不发送 SSE 事件）
+            // 注意：确认生命周期由 AgentContext 统一管理
+            if (tool.requiresConfirmation()) {
+                String confirmationId =
+                        "confirm_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                return ToolResult.pendingConfirmation(
+                        confirmationId, buildConfirmationMessage(tool, params), tool.riskLevel());
+            }
+
             // 执行
             ToolResult result = tool.executor().execute(params != null ? params : Map.of());
             return result.withExecutionTime(System.currentTimeMillis() - startTime);
@@ -253,9 +272,26 @@ public class DefaultToolRegistry implements ToolRegistry {
         }
     }
 
+    /** 构建确认提示消息 */
+    private String buildConfirmationMessage(ToolDefinition tool, Map<String, Object> params) {
+        return String.format("即将执行 %s（%s），参数: %s", tool.name(), tool.description(), params);
+    }
+
     @Override
     public List<ToolDefinition> getToolsByCategory(ToolCategory category) {
         return tools.values().stream().filter(t -> t.category() == category).toList();
+    }
+
+    /** 按风险等级获取工具 */
+    public List<ToolDefinition> getToolsByRiskLevel(RiskLevel riskLevel) {
+        return tools.values().stream().filter(t -> t.riskLevel() == riskLevel).toList();
+    }
+
+    /** 按角色获取可用工具 */
+    public List<ToolDefinition> getToolsByRole(String role) {
+        return tools.values().stream()
+                .filter(t -> t.allowedRoles().isEmpty() || t.allowedRoles().contains(role))
+                .toList();
     }
 
     @Override
@@ -267,6 +303,7 @@ public class DefaultToolRegistry implements ToolRegistry {
         return tools.values().stream().filter(t -> hasRequiredPermissions(t, permissions)).toList();
     }
 
+    /** 检查用户是否拥有工具所需的全部权限 */
     private boolean hasRequiredPermissions(ToolDefinition tool, List<String> userPermissions) {
         if (tool.requiredPermissions() == null || tool.requiredPermissions().isEmpty()) {
             return true;
