@@ -6,7 +6,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 工具方法注解 用于标记可以作为 AI 工具调用的方法
+ * 工具方法注解（增强版）
+ *
+ * <p>用于标记可以作为 AI 工具调用的方法。
+ *
+ * <p>新增属性： - riskLevel: 风险等级（LOW/MEDIUM/HIGH/CRITICAL） - requiresConfirmation: 是否需要用户确认 -
+ * allowedRoles: 允许执行该工具的角色列表
  *
  * @author jonychen
  */
@@ -22,8 +27,17 @@ public @interface AgentTool {
     /** 工具分类 */
     ToolCategory category() default ToolCategory.CUSTOM;
 
+    /** 风险等级 */
+    RiskLevel riskLevel() default RiskLevel.LOW;
+
+    /** 是否需要用户确认 */
+    boolean requiresConfirmation() default false;
+
     /** 所需权限 */
     String[] requiredPermissions() default {};
+
+    /** 允许执行该工具的角色列表（空数组表示不限制） */
+    String[] allowedRoles() default {};
 
     /** 超时时间（毫秒） */
     long timeoutMs() default 30000;

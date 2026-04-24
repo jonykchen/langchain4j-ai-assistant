@@ -100,6 +100,10 @@ public class SecurityConfig {
                                         .requestMatchers("/api/admin/**")
                                         .hasRole("ADMIN")
 
+                                        // Agent 执行接口（需要认证）
+                                        .requestMatchers("/api/agent/**")
+                                        .authenticated()
+
                                         // 其他接口需要认证
                                         .anyRequest()
                                         .authenticated())

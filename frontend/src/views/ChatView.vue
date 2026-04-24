@@ -65,6 +65,14 @@ function handleRename(id: string, title: string) {
         <h1 class="chat-title">{{ currentConversation?.title || 'AI 助手' }}</h1>
         <div class="header-actions">
           <el-button
+            text
+            @click="router.push('/agent')"
+            class="agent-btn"
+          >
+            <el-icon><Cpu /></el-icon>
+            Agent 执行
+          </el-button>
+          <el-button
             v-if="isAdmin"
             text
             @click="router.push('/admin')"
