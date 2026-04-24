@@ -10,6 +10,9 @@ public enum ToolCategory {
     SEARCH("搜索工具", "网络搜索、文档搜索"),
     DATABASE("数据库工具", "查询数据库"),
     FILE("文件工具", "读写文件"),
+    MODEL_STATE("模型状态", "查询和调整模型状态"),
+    PROMPT("Prompt", "Prompt 版本管理"),
+    TEST("测试", "测试生成和执行"),
     EXTERNAL("外部服务", "API 调用"),
     CUSTOM("自定义工具", "用户自定义工具");
 

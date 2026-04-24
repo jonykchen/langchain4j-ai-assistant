@@ -42,6 +42,9 @@ public class LoadBalancedChatModel implements ChatModel {
     private final Map<String, ModelHealthStatus> healthStatuses;
     private final Counter failoverCounter;
 
+    /** 运行时禁用的模型名称集合（P0: 内存态，重启后恢复） */
+    private final java.util.Set<String> disabledModels = ConcurrentHashMap.newKeySet();
+
     public LoadBalancedChatModel(
             List<ModelProvider> providers,
             CircuitBreakerRegistry registry,
@@ -199,7 +202,10 @@ public class LoadBalancedChatModel implements ChatModel {
     }
 
     private List<ModelInstance> getAvailableModels() {
-        return models.stream().filter(m -> !isCircuitBreakerOpen(m.provider.name())).toList();
+        return models.stream()
+                .filter(m -> !isCircuitBreakerOpen(m.provider.name()))
+                .filter(m -> !disabledModels.contains(m.provider.name()))
+                .toList();
     }
 
     private boolean isCircuitBreakerOpen(String modelName) {
@@ -238,6 +244,90 @@ public class LoadBalancedChatModel implements ChatModel {
         Map<String, CircuitBreaker.State> result = new HashMap<>();
         circuitBreakers.forEach((name, cb) -> result.put(name, cb.getState()));
         return result;
+    }
+
+    // ===== 运行时配置方法（P0: 内存态，重启后恢复） =====
+
+    /**
+     * 调整模型权重
+     *
+     * <p>在运行时修改模型的负载均衡权重。权重越高，分配的请求越多。 注意：此修改仅在内存中生效，应用重启后恢复为配置文件中的值。
+     *
+     * @param modelName 模型名称
+     * @param weight 新权重值（1-100）
+     * @return 是否成功
+     */
+    public boolean adjustModelWeight(String modelName, int weight) {
+        if (weight < 1 || weight > 100) {
+            LOG.warn("权重值 {} 不在有效范围 [1, 100]", weight);
+            return false;
+        }
+
+        for (int i = 0; i < models.size(); i++) {
+            ModelInstance instance = models.get(i);
+            if (instance.provider.name().equals(modelName)) {
+                ModelProvider updated =
+                        new ModelProvider(
+                                instance.provider.name(),
+                                instance.provider.baseUrl(),
+                                instance.provider.apiKey(),
+                                instance.provider.modelName(),
+                                weight,
+                                instance.provider.priority(),
+                                instance.provider.enabled());
+                models.set(i, new ModelInstance(updated, instance.chatModel));
+                LOG.info("已调整模型 {} 的权重为 {}", modelName, weight);
+                return true;
+            }
+        }
+        LOG.warn("未找到模型: {}", modelName);
+        return false;
+    }
+
+    /**
+     * 启用或禁用模型
+     *
+     * <p>在运行时启用或禁用指定模型。禁用后该模型不再接收请求。 注意：此修改仅在内存中生效，应用重启后恢复为配置文件中的值。
+     *
+     * @param modelName 模型名称
+     * @param enabled 是否启用
+     * @return 是否成功
+     */
+    public boolean toggleModelEnabled(String modelName, boolean enabled) {
+        boolean found = models.stream().anyMatch(m -> m.provider.name().equals(modelName));
+        if (!found) {
+            LOG.warn("未找到模型: {}", modelName);
+            return false;
+        }
+
+        if (enabled) {
+            disabledModels.remove(modelName);
+            LOG.info("已启用模型: {}", modelName);
+        } else {
+            disabledModels.add(modelName);
+            LOG.info("已禁用模型: {}", modelName);
+        }
+        return true;
+    }
+
+    /**
+     * 重置熔断器
+     *
+     * <p>将指定模型的熔断器从 OPEN 状态强制重置为 CLOSED。 用于在确认模型已恢复后手动恢复服务。
+     *
+     * @param modelName 模型名称
+     * @return 是否成功
+     */
+    public boolean resetCircuitBreaker(String modelName) {
+        CircuitBreaker cb = circuitBreakers.get(modelName);
+        if (cb == null) {
+            LOG.warn("未找到模型的熔断器: {}", modelName);
+            return false;
+        }
+
+        cb.reset();
+        LOG.info("已重置模型 {} 的熔断器", modelName);
+        return true;
     }
 
     private static class ModelInstance {

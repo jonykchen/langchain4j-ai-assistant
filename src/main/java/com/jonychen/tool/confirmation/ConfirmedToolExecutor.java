@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
+import com.jonychen.tool.RiskLevel;
 import com.jonychen.tool.ToolDefinition;
 import com.jonychen.tool.ToolNotFoundException;
 import com.jonychen.tool.ToolRegistry;
@@ -60,7 +61,9 @@ public class ConfirmedToolExecutor {
 
             // 返回待确认状态
             return ToolResult.pendingConfirmation(
-                    confirmationId, "高风险操作需要确认。风险等级: " + riskLevel.getDisplayName());
+                    confirmationId,
+                    "高风险操作需要确认。风险等级: " + riskLevel.getDisplayName(),
+                    RiskLevel.valueOf(riskLevel.name()));
         }
 
         // 4. 直接执行

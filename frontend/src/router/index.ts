@@ -31,6 +31,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: 'AI 助手' }
   },
   {
+    path: '/agent',
+    name: 'AgentExecution',
+    component: () => import('@/views/AgentExecutionView.vue'),
+    meta: { requiresAuth: true, title: 'Agent 执行' }
+  },
+  {
     path: '/admin',
     component: () => import('@/views/admin/AdminLayout.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
