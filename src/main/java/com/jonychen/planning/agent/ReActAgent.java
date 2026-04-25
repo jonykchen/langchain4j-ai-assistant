@@ -25,9 +25,12 @@ import lombok.extern.slf4j.Slf4j;
  * <p>工作流程： 1. Thought: LLM 思考下一步该做什么 2. Action: 选择并执行工具 3. Observation: 观察执行结果 4. 循环直到得出最终答案
  *
  * @author jonychen
+ * @deprecated 已迁移到 {@link com.jonychen.agent.core.AbstractAgent} 中的 ReAct 循环实现。 新代码应继承
+ *     AbstractAgent。此类使用正则解析，不推荐继续使用。
  */
 @Slf4j
 @Component
+@Deprecated
 public class ReActAgent {
 
     private static final String REACT_PROMPT_TEMPLATE =

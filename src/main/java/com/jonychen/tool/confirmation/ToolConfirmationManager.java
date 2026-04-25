@@ -3,17 +3,22 @@ package com.jonychen.tool.confirmation;
 import java.time.Duration;
 import java.util.Optional;
 
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * 工具确认管理器
+ *
+ * <p>管理工具确认请求的生命周期，创建、获取、确认、取消。
+ *
+ * <p>底层存储通过 {@link ConfirmationStore} 接口抽象，支持：
+ *
+ * <ul>
+ *   <li>{@link InMemoryConfirmationStore} - 测试/开发环境内存实现
+ *   <li>Redis 实现 - 生产环境（需配置 RedisConfirmationStore）
+ * </ul>
  *
  * @author jonychen
  */
@@ -22,13 +27,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ToolConfirmationManager {
 
-    private final RedisTemplate<String, String> redisTemplate;
-    private final ObjectMapper objectMapper;
+    private final ConfirmationStore confirmationStore;
 
     /** 确认请求 TTL（默认 5 分钟） */
     private static final Duration CONFIRMATION_TTL = Duration.ofMinutes(5);
-
-    private static final String KEY_PREFIX = "tool:confirmation:";
 
     /**
      * 创建待确认请求
@@ -53,8 +55,8 @@ public class ToolConfirmationManager {
         String message = generateConfirmationMessage(toolName, params, riskLevel);
         confirmation = confirmation.withMessage(message);
 
-        // 存储到 Redis
-        storeConfirmation(confirmation);
+        // 存储确认请求
+        confirmationStore.store(confirmation.confirmationId(), confirmation, CONFIRMATION_TTL);
 
         log.info(
                 "Created confirmation request: {} for tool: {}",
@@ -88,7 +90,7 @@ public class ToolConfirmationManager {
 
         // 检查是否过期
         if (confirmation.isExpired()) {
-            removeConfirmation(confirmationId);
+            confirmationStore.delete(confirmationId);
             return ConfirmationResult.expired();
         }
 
@@ -98,7 +100,7 @@ public class ToolConfirmationManager {
         confirmation = confirmation.withStatus(newStatus).withConfirmedBy(userId);
 
         // 存储
-        storeConfirmation(confirmation);
+        confirmationStore.update(confirmationId, confirmation);
 
         log.info(
                 "Confirmation {} {} by user: {}",
@@ -118,21 +120,7 @@ public class ToolConfirmationManager {
      * @return 待确认请求（可选）
      */
     public Optional<PendingConfirmation> getConfirmation(String confirmationId) {
-        String key = KEY_PREFIX + confirmationId;
-        String json = redisTemplate.opsForValue().get(key);
-
-        if (json == null) {
-            return Optional.empty();
-        }
-
-        try {
-            PendingConfirmation confirmation =
-                    objectMapper.readValue(json, PendingConfirmation.class);
-            return Optional.of(confirmation);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to deserialize confirmation: {}", e.getMessage());
-            return Optional.empty();
-        }
+        return confirmationStore.get(confirmationId);
     }
 
     /**
@@ -145,26 +133,9 @@ public class ToolConfirmationManager {
         if (optConfirmation.isPresent()) {
             PendingConfirmation confirmation =
                     optConfirmation.get().withStatus(ConfirmationStatus.CANCELLED);
-            storeConfirmation(confirmation);
+            confirmationStore.update(confirmationId, confirmation);
             log.info("Confirmation {} cancelled", confirmationId);
         }
-    }
-
-    /** 存储确认请求 */
-    private void storeConfirmation(PendingConfirmation confirmation) {
-        String key = KEY_PREFIX + confirmation.confirmationId();
-        try {
-            String json = objectMapper.writeValueAsString(confirmation);
-            redisTemplate.opsForValue().set(key, json, CONFIRMATION_TTL);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize confirmation: {}", e.getMessage());
-        }
-    }
-
-    /** 移除确认请求 */
-    private void removeConfirmation(String confirmationId) {
-        String key = KEY_PREFIX + confirmationId;
-        redisTemplate.delete(key);
     }
 
     /** 生成确认消息 */

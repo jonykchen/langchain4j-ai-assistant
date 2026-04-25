@@ -347,6 +347,42 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_user ON app.api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_status ON app.api_keys(status);
 CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON app.api_keys(key_prefix);
 
+-- ==================== Agent 审计日志表 ====================
+
+CREATE TABLE IF NOT EXISTS app.agent_audit_logs (
+    id              BIGSERIAL       PRIMARY KEY,
+    event_id        VARCHAR(36)     UNIQUE NOT NULL,
+    trace_id        VARCHAR(36),
+    user_id         VARCHAR(64),
+    agent_name      VARCHAR(50),
+    event_type      VARCHAR(30)     NOT NULL,
+    timestamp       TIMESTAMPTZ     NOT NULL,
+    client_ip       VARCHAR(50),
+    user_agent      VARCHAR(500),
+    details         JSONB,
+    created_at      TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Agent 审计日志索引
+CREATE INDEX IF NOT EXISTS idx_audit_trace ON app.agent_audit_logs(trace_id);
+CREATE INDEX IF NOT EXISTS idx_audit_user ON app.agent_audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_type_time ON app.agent_audit_logs(event_type, timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON app.agent_audit_logs(created_at);
+
+-- Agent 审计日志字段注释
+COMMENT ON TABLE app.agent_audit_logs IS 'Agent审计日志 - 记录Agent执行的完整审计信息';
+COMMENT ON COLUMN app.agent_audit_logs.id IS '审计ID，自增主键';
+COMMENT ON COLUMN app.agent_audit_logs.event_id IS '事件ID，唯一标识';
+COMMENT ON COLUMN app.agent_audit_logs.trace_id IS '追踪ID，关联执行';
+COMMENT ON COLUMN app.agent_audit_logs.user_id IS '用户ID';
+COMMENT ON COLUMN app.agent_audit_logs.agent_name IS 'Agent名称';
+COMMENT ON COLUMN app.agent_audit_logs.event_type IS '事件类型：EXECUTION_START, EXECUTION_END, TOOL_CALL等';
+COMMENT ON COLUMN app.agent_audit_logs.timestamp IS '事件时间戳';
+COMMENT ON COLUMN app.agent_audit_logs.client_ip IS '客户端IP';
+COMMENT ON COLUMN app.agent_audit_logs.user_agent IS '客户端User-Agent';
+COMMENT ON COLUMN app.agent_audit_logs.details IS '事件详情，JSON格式';
+COMMENT ON COLUMN app.agent_audit_logs.created_at IS '创建时间';
+
 -- ==================== 触发器 ====================
 
 -- 更新时间触发器函数

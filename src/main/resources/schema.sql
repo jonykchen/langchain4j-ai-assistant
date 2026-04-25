@@ -198,3 +198,26 @@ CREATE TABLE IF NOT EXISTS ai_model_test_results (
 CREATE INDEX IF NOT EXISTS idx_ai_results_job ON ai_model_test_results(job_id);
 CREATE INDEX IF NOT EXISTS idx_ai_results_category ON ai_model_test_results(category);
 CREATE INDEX IF NOT EXISTS idx_ai_results_passed ON ai_model_test_results(passed);
+
+-- ================================================================================
+-- Agent 审计日志表
+-- ================================================================================
+
+CREATE TABLE IF NOT EXISTS agent_audit_logs (
+    id              BIGSERIAL       PRIMARY KEY,
+    event_id        VARCHAR(36)     UNIQUE NOT NULL,
+    trace_id        VARCHAR(36),
+    user_id         VARCHAR(64),
+    agent_name      VARCHAR(50),
+    event_type      VARCHAR(30)     NOT NULL,
+    timestamp       TIMESTAMPTZ     NOT NULL,
+    client_ip       VARCHAR(50),
+    user_agent      VARCHAR(500),
+    details         JSONB,
+    created_at      TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_trace ON agent_audit_logs(trace_id);
+CREATE INDEX IF NOT EXISTS idx_audit_user ON agent_audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_type_time ON agent_audit_logs(event_type, timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON agent_audit_logs(created_at);

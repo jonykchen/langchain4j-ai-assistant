@@ -30,6 +30,7 @@ import { storeToRefs } from 'pinia'
 import type { RiskLevel } from '@/types/agent'
 import AgentSelector from '@/components/agent/AgentSelector.vue'
 import ExecutionStepCard from '@/components/agent/ExecutionStepCard.vue'
+import VirtualStepList from '@/components/agent/VirtualStepList.vue'
 import ExecutionStats from '@/components/agent/ExecutionStats.vue'
 import ReconnectAlert from '@/components/agent/ReconnectAlert.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -344,8 +345,14 @@ onUnmounted(() => {
 
         <!-- 步骤列表 -->
         <div ref="stepsContainer" class="steps-container">
-          <h3 class="steps-title">执行步骤</h3>
-          <div class="steps-list">
+          <h3 class="steps-title">执行步骤 ({{ activeExecution.steps.length }})</h3>
+          <!-- 步骤数 > 30 时使用虚拟滚动 -->
+          <VirtualStepList
+            v-if="activeExecution.steps.length > 30"
+            :steps="activeExecution.steps"
+          />
+          <!-- 否则使用普通列表 -->
+          <div v-else class="steps-list">
             <ExecutionStepCard
               v-for="(step, index) in activeExecution.steps"
               :key="step.id"

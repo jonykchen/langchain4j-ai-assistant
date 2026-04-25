@@ -7,7 +7,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.jonychen.agent.entity.AgentAuditLog;
+import com.jonychen.agent.repository.AgentAuditLogRepository;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * Agent 审计服务
@@ -45,20 +52,23 @@ import org.springframework.stereotype.Service;
  *   <li>User-Agent
  * </ul>
  *
+ * <h2>存储策略</h2>
+ *
+ * <p>采用双写策略：内存缓存（实时查询）+ 异步数据库持久化（持久化存储）。
+ *
  * @author jonychen
  */
 @Service
+@RequiredArgsConstructor
 public class AgentAuditService {
 
     private static final Logger log = LoggerFactory.getLogger(AgentAuditService.class);
     private static final Logger AUDIT_LOG = LoggerFactory.getLogger("AGENT_AUDIT");
 
-    /** 审计事件缓存（内存存储，生产环境可替换为数据库或消息队列） */
-    private final ConcurrentHashMap<String, AuditEvent> eventCache = new ConcurrentHashMap<>();
+    private final AgentAuditLogRepository auditLogRepository;
 
-    public AgentAuditService() {
-        log.info("[AgentAuditService] 初始化完成");
-    }
+    /** 审计事件缓存（用于实时查询，数据库持久化后仍可保留短期缓存） */
+    private final ConcurrentHashMap<String, AuditEvent> eventCache = new ConcurrentHashMap<>();
 
     /**
      * 记录执行开始
@@ -356,15 +366,15 @@ public class AgentAuditService {
     }
 
     /**
-     * 记录审计事件
+     * 记录审计事件（双写：内存缓存 + 异步数据库持久化）
      *
      * @param event 审计事件
      */
     private void recordEvent(AuditEvent event) {
-        // 缓存事件
+        // 1. 缓存事件（内存）
         eventCache.put(event.eventId(), event);
 
-        // 写入审计日志
+        // 2. 写入审计日志（SLF4J）
         AUDIT_LOG.info(
                 "[AUDIT] event={} traceId={} user={} agent={} type={} details={}",
                 event.eventId(),
@@ -374,10 +384,39 @@ public class AgentAuditService {
                 event.eventType(),
                 event.details());
 
+        // 3. 异步写入数据库
+        persistAuditLogAsync(event);
+
         log.debug(
                 "[AgentAuditService] 审计事件已记录: eventId={}, type={}",
                 event.eventId(),
                 event.eventType());
+    }
+
+    /** 异步持久化审计日志到数据库 */
+    @Async
+    @Transactional
+    public void persistAuditLogAsync(AuditEvent event) {
+        try {
+            AgentAuditLog auditLog =
+                    AgentAuditLog.create(
+                            event.traceId(),
+                            event.userId(),
+                            event.agentName(),
+                            event.eventType(),
+                            event.clientIp(),
+                            event.userAgent(),
+                            event.details());
+            auditLog.setEventId(event.eventId());
+            auditLog.setTimestamp(event.timestamp());
+            auditLogRepository.save(auditLog);
+        } catch (Exception e) {
+            log.error(
+                    "[AgentAuditService] 审计日志持久化失败: eventId={}, error={}",
+                    event.eventId(),
+                    e.getMessage(),
+                    e);
+        }
     }
 
     private String generateEventId() {
