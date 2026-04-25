@@ -5,6 +5,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Flux;
@@ -41,13 +43,20 @@ public class AgentDelegationService {
     /** 最大委托深度（防止无限递归） */
     private static final int MAX_DELEGATION_DEPTH = 3;
 
-    private final AgentRegistry agentRegistry;
+    private AgentRegistry agentRegistry;
     private final AgentMetricsService metricsService;
 
-    public AgentDelegationService(AgentRegistry agentRegistry, AgentMetricsService metricsService) {
-        this.agentRegistry = agentRegistry;
+    public AgentDelegationService(AgentMetricsService metricsService) {
         this.metricsService = metricsService;
         log.info("[AgentDelegationService] 初始化完成，最大委托深度: {}", MAX_DELEGATION_DEPTH);
+    }
+
+    /** 延迟注入 AgentRegistry（打破循环依赖） */
+    @Autowired
+    @Lazy
+    public void setAgentRegistry(AgentRegistry agentRegistry) {
+        this.agentRegistry = agentRegistry;
+        log.debug("[AgentDelegationService] AgentRegistry 已注入");
     }
 
     /**

@@ -18,8 +18,7 @@ import com.jonychen.agent.quota.QuotaProvider;
 @ExtendWith(MockitoExtension.class)
 class TokenUsageTrackerTest {
 
-    @Mock
-    private QuotaProvider quotaProvider;
+    @Mock private QuotaProvider quotaProvider;
 
     private TokenUsageTracker tracker;
 

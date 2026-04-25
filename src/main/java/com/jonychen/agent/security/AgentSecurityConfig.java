@@ -44,9 +44,7 @@ public class AgentSecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    /**
-     * Agent 路径安全过滤器链
-     */
+    /** Agent 路径安全过滤器链 */
     @Bean
     public SecurityFilterChain agentSecurityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -62,40 +60,42 @@ public class AgentSecurityConfig {
 
                 // 配置请求授权
                 .authorizeHttpRequests(
-                        auth -> auth
-                                // Agent 列表接口 - 所有认证用户可访问
-                                .requestMatchers("/api/agent/list")
-                                .authenticated()
+                        auth ->
+                                auth
+                                        // Agent 列表接口 - 所有认证用户可访问
+                                        .requestMatchers("/api/agent/list")
+                                        .authenticated()
 
-                                // Agent 执行历史 - 所有认证用户可访问
-                                .requestMatchers("/api/agent/history")
-                                .authenticated()
+                                        // Agent 执行历史 - 所有认证用户可访问
+                                        .requestMatchers("/api/agent/history")
+                                        .authenticated()
 
-                                // Agent 执行历史详情 - 所有认证用户可访问
-                                .requestMatchers("/api/agent/history/**")
-                                .authenticated()
+                                        // Agent 执行历史详情 - 所有认证用户可访问
+                                        .requestMatchers("/api/agent/history/**")
+                                        .authenticated()
 
-                                // Agent 执行接口 - 所有认证用户可访问
-                                .requestMatchers("/api/agent/execute")
-                                .authenticated()
+                                        // Agent 执行接口 - 所有认证用户可访问
+                                        .requestMatchers("/api/agent/execute")
+                                        .authenticated()
 
-                                // Agent 确认接口 - 所有认证用户可访问
-                                .requestMatchers("/api/agent/confirm")
-                                .authenticated()
+                                        // Agent 确认接口 - 所有认证用户可访问
+                                        .requestMatchers("/api/agent/confirm")
+                                        .authenticated()
 
-                                // Agent 取消执行 - 所有认证用户可访问
-                                .requestMatchers("/api/agent/cancel/**")
-                                .authenticated()
+                                        // Agent 取消执行 - 所有认证用户可访问
+                                        .requestMatchers("/api/agent/cancel/**")
+                                        .authenticated()
 
-                                // Agent 管理接口 - 仅 ADMIN
-                                .requestMatchers("/api/admin/agent/**")
-                                .hasRole("ADMIN"))
+                                        // Agent 管理接口 - 仅 ADMIN
+                                        .requestMatchers("/api/admin/agent/**")
+                                        .hasRole("ADMIN"))
 
                 // 异常处理
                 .exceptionHandling(
-                        exception -> exception
-                                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                                .accessDeniedHandler(jwtAccessDeniedHandler))
+                        exception ->
+                                exception
+                                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                                        .accessDeniedHandler(jwtAccessDeniedHandler))
 
                 // 添加 JWT 过滤器
                 .addFilterBefore(

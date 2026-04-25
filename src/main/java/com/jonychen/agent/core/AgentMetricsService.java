@@ -587,10 +587,7 @@ public class AgentMetricsService {
      * @return Counter 实例
      */
     public Counter getOrCreateCounter(String name, String description, String... tags) {
-        return Counter.builder(name)
-                .description(description)
-                .tags(tags)
-                .register(meterRegistry);
+        return Counter.builder(name).description(description).tags(tags).register(meterRegistry);
     }
 
     // ==================== Token 使用量相关方法 ====================

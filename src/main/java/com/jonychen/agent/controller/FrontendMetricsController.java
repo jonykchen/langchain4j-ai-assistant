@@ -52,7 +52,10 @@ public class FrontendMetricsController {
             try {
                 processMetricReport(report);
             } catch (Exception e) {
-                log.warn("[FrontendMetrics] 处理指标失败: type={}, error={}", report.type(), e.getMessage());
+                log.warn(
+                        "[FrontendMetrics] 处理指标失败: type={}, error={}",
+                        report.type(),
+                        e.getMessage());
             }
         }
 
@@ -62,29 +65,34 @@ public class FrontendMetricsController {
     private void processMetricReport(MetricReport report) {
         switch (report.type()) {
             case "reconnect" -> {
-                Counter counter = metricsService.getOrCreateCounter(
-                        "agent_frontend_reconnects",
-                        "Frontend SSE reconnect count");
+                Counter counter =
+                        metricsService.getOrCreateCounter(
+                                "agent_frontend_reconnects", "Frontend SSE reconnect count");
                 counter.increment(report.count());
-                log.debug("[FrontendMetrics] reconnect: traceId={}, attempt={}",
+                log.debug(
+                        "[FrontendMetrics] reconnect: traceId={}, attempt={}",
                         report.traceId(),
                         report.details() != null ? report.details().get("attempt") : null);
             }
             case "event_gap" -> {
-                Counter counter = metricsService.getOrCreateCounter(
-                        "agent_frontend_event_gaps",
-                        "Frontend SSE event sequence gap count");
+                Counter counter =
+                        metricsService.getOrCreateCounter(
+                                "agent_frontend_event_gaps",
+                                "Frontend SSE event sequence gap count");
                 counter.increment(report.count());
-                log.debug("[FrontendMetrics] event_gap: traceId={}, gap={}",
+                log.debug(
+                        "[FrontendMetrics] event_gap: traceId={}, gap={}",
                         report.traceId(),
                         report.details() != null ? report.details().get("gap") : null);
             }
             case "state_restore_failure" -> {
-                Counter counter = metricsService.getOrCreateCounter(
-                        "agent_frontend_state_restore_failures",
-                        "Frontend state restore failure count");
+                Counter counter =
+                        metricsService.getOrCreateCounter(
+                                "agent_frontend_state_restore_failures",
+                                "Frontend state restore failure count");
                 counter.increment(report.count());
-                log.debug("[FrontendMetrics] state_restore_failure: sessionId={}, reason={}",
+                log.debug(
+                        "[FrontendMetrics] state_restore_failure: sessionId={}, reason={}",
                         report.sessionId(),
                         report.details() != null ? report.details().get("reason") : null);
             }
@@ -97,5 +105,9 @@ public class FrontendMetricsController {
 
     /** 单个指标报告 */
     public record MetricReport(
-            String type, int count, String traceId, String sessionId, java.util.Map<String, Object> details) {}
+            String type,
+            int count,
+            String traceId,
+            String sessionId,
+            java.util.Map<String, Object> details) {}
 }
