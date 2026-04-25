@@ -4,10 +4,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,11 +28,11 @@ import lombok.extern.slf4j.Slf4j;
  *
  * {@code tool:confirmation:{confirmationId}}
  *
+ * <p>Bean 创建由 {@link com.jonychen.tool.config.ConfirmationStoreConfig} 管理。
+ *
  * @author jonychen
  */
 @Slf4j
-@Component
-@Profile({"prod", "staging"})
 public class RedisConfirmationStore implements ConfirmationStore {
 
     private static final String KEY_PREFIX = "tool:confirmation:";
@@ -43,9 +40,7 @@ public class RedisConfirmationStore implements ConfirmationStore {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public RedisConfirmationStore(
-            StringRedisTemplate redisTemplate,
-            @Qualifier("agentObjectMapper") ObjectMapper objectMapper) {
+    public RedisConfirmationStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         log.info("[RedisConfirmationStore] 初始化完成");

@@ -565,6 +565,34 @@ public class AgentMetricsService {
         return activeExecutions.get();
     }
 
+    /**
+     * 获取或创建动态 Counter
+     *
+     * <p>用于前端可靠性等需要动态创建指标的场景
+     *
+     * @param name 指标名称
+     * @param description 指标描述
+     * @return Counter 实例
+     */
+    public Counter getOrCreateCounter(String name, String description) {
+        return meterRegistry.find(name).counter();
+    }
+
+    /**
+     * 获取或创建动态 Counter（带标签）
+     *
+     * @param name 指标名称
+     * @param description 指标描述
+     * @param tags 标签键值对
+     * @return Counter 实例
+     */
+    public Counter getOrCreateCounter(String name, String description, String... tags) {
+        return Counter.builder(name)
+                .description(description)
+                .tags(tags)
+                .register(meterRegistry);
+    }
+
     // ==================== Token 使用量相关方法 ====================
 
     /**

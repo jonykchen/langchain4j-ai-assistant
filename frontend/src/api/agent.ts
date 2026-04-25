@@ -6,6 +6,7 @@
  *   <li>自动重连（指数退避，最多 5 次）</li>
  *   <li>事件序号检测，去重 + 乱序处理</li>
  *   <li>心跳超时检测（35s 无事件触发重连）</li>
+ *   <li>前端可靠性指标上报</li>
  * </ol>
  *
  * @author jonychen
@@ -17,6 +18,15 @@ import type {
   ExecuteRequest,
   ConfirmRequest
 } from '@/types/agent'
+import {
+  recordReconnect,
+  recordEventGap,
+  recordStateRestoreFailure,
+  startMetricsReporting
+} from '@/utils/frontendReliability'
+
+// 启动指标上报
+startMetricsReporting()
 
 const API_BASE = '/api/agent'
 
@@ -142,6 +152,8 @@ export async function* executeAgent(
         // 连接失败，等待指数退避后重连
         reconnectCount++
         if (options.onReconnect) options.onReconnect(reconnectCount)
+        // 记录重连指标
+        recordReconnect(reconnectCount, request.sessionId)
         const delay = Math.min(1000 * Math.pow(2, reconnectCount - 1), 30000)
         console.info(`[AgentAPI] 第 ${reconnectCount}/${MAX_RECONNECT} 次重连，${delay}ms 后重试`)
         await new Promise(r => setTimeout(r, delay))
@@ -206,6 +218,8 @@ export async function* executeAgent(
                     console.warn(
                       `[AgentAPI] SSE event gap: expected ${lastSequenceNumber + 1}, got ${event.sequenceNumber}`
                     )
+                    // 记录事件间隙指标
+                    recordEventGap(lastSequenceNumber + 1, event.sequenceNumber, event.traceId)
                   }
 
                   processedSequences.add(event.sequenceNumber)
@@ -289,6 +303,177 @@ export async function cancelExecution(traceId: string): Promise<{ success: boole
  */
 export async function listAgents(): Promise<AgentMetadata[]> {
   const response = await fetch(API_BASE + '/list', {
+    headers: {
+      ...getAuthHeaders()
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+// ==================== 执行历史 API ====================
+
+export interface ExecutionHistoryVO {
+  traceId: string
+  userId: string
+  agentName: string
+  eventType: string
+  status: string
+  timestamp: string
+  clientIp: string
+  details: Record<string, any>
+}
+
+export interface ExecutionDetailVO {
+  traceId: string
+  userId: string
+  agentName: string
+  status: string
+  startTime: string
+  endTime: string
+  durationMs: number
+  totalSteps: number
+  steps: StepDetail[]
+  summary: Record<string, any>
+}
+
+export interface StepDetail {
+  eventType: string
+  timestamp: string
+  agentName: string
+  details: Record<string, any>
+}
+
+export interface AuditStats {
+  totalExecutions: number
+  successCount: number
+  errorCount: number
+  cancelCount: number
+  toolCalls: number
+  confirmations: number
+  hoursRange: number
+}
+
+export interface CleanupResult {
+  deletedCount: number
+  daysBefore: number
+}
+
+export interface PageResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  size: number
+}
+
+/**
+ * 分页查询执行历史
+ */
+export async function getHistory(params: {
+  page?: number
+  size?: number
+  userId?: string
+  agentName?: string
+  eventType?: string
+}): Promise<PageResponse<ExecutionHistoryVO>> {
+  const query = new URLSearchParams()
+  if (params.page !== undefined) query.set('page', String(params.page))
+  if (params.size !== undefined) query.set('size', String(params.size))
+  if (params.userId) query.set('userId', params.userId)
+  if (params.agentName) query.set('agentName', params.agentName)
+  if (params.eventType) query.set('eventType', params.eventType)
+
+  const response = await fetch(`${API_BASE}/history?${query}`, {
+    headers: {
+      ...getAuthHeaders()
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+/**
+ * 获取执行详情
+ */
+export async function getExecutionDetail(traceId: string): Promise<ExecutionDetailVO> {
+  const response = await fetch(`${API_BASE}/history/${traceId}`, {
+    headers: {
+      ...getAuthHeaders()
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+// ==================== 管理员审计 API ====================
+
+const ADMIN_API_BASE = '/api/admin/agent/audit'
+
+/**
+ * 分页查询审计日志（管理员）
+ */
+export async function queryAuditLogs(params: {
+  page?: number
+  size?: number
+  userId?: string
+  agentName?: string
+  eventType?: string
+}): Promise<PageResponse<ExecutionHistoryVO>> {
+  const query = new URLSearchParams()
+  if (params.page !== undefined) query.set('page', String(params.page))
+  if (params.size !== undefined) query.set('size', String(params.size))
+  if (params.userId) query.set('userId', params.userId)
+  if (params.agentName) query.set('agentName', params.agentName)
+  if (params.eventType) query.set('eventType', params.eventType)
+
+  const response = await fetch(`${ADMIN_API_BASE}/logs?${query}`, {
+    headers: {
+      ...getAuthHeaders()
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+/**
+ * 获取审计统计（管理员）
+ */
+export async function getAuditStats(hours: number = 24): Promise<AuditStats> {
+  const response = await fetch(`${ADMIN_API_BASE}/stats?hours=${hours}`, {
+    headers: {
+      ...getAuthHeaders()
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+/**
+ * 清理过期日志（管理员）
+ */
+export async function cleanupAuditLogs(daysBefore: number = 30): Promise<CleanupResult> {
+  const response = await fetch(`${ADMIN_API_BASE}/cleanup?daysBefore=${daysBefore}`, {
+    method: 'DELETE',
     headers: {
       ...getAuthHeaders()
     }

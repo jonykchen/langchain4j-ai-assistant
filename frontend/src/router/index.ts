@@ -66,6 +66,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '任务规划' }
       },
       {
+        path: 'agent-audit',
+        name: 'AdminAgentAudit',
+        component: () => import('@/views/admin/AgentAuditView.vue'),
+        meta: { title: 'Agent 审计' }
+      },
+      {
         path: 'test',
         name: 'AdminTest',
         component: () => import('@/views/admin/TestDashboardView.vue'),

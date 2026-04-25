@@ -1,0 +1,354 @@
+# Agent 执行告警规则
+#
+# 此文件定义 Agent 系统的关键告警规则。
+# 请将此配置添加到 Prometheus 的 alertmanager 配置中。
+
+groups:
+  - name: agent_execution_alerts
+    rules:
+      # ==================== 执行状态告警 ====================
+
+      # 执行失败率过高
+      - alert: AgentHighFailureRate
+        expr: |
+          (
+            sum(rate(agent_executions_total{status="failure"}[5m]))
+            /
+            sum(rate(agent_executions_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: agent_execution
+        annotations:
+          summary: "Agent 执行失败率过高"
+          description: |
+            Agent 执行失败率在过去 5 分钟内超过 10%。
+            当前值: {{ $value | humanizePercentage }}
+          runbook_url: "https://wiki.internal/agent/troubleshooting#high-failure-rate"
+
+      # 执行超时过多
+      - alert: AgentHighTimeoutRate
+        expr: rate(agent_errors_total{type="TIMEOUT"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          category: agent_execution
+        annotations:
+          summary: "Agent 执行超时率过高"
+          description: |
+            Agent 执行超时在过去 3 分钟内超过 0.05 次/秒。
+            超时次数: {{ $value }} 次/秒
+            请检查 LLM 模型响应时间或调整 Agent 超时配置。
+
+      # 活跃执行数过多
+      - alert: AgentTooManyActiveExecutions
+        expr: agent_active_executions > 15
+        for: 2m
+        labels:
+          severity: warning
+          category: agent_execution
+        annotations:
+          summary: "活跃 Agent 执行数过多"
+          description: |
+            当前活跃的 Agent 执行数为 {{ $value }}，超过阈值 15。
+            系统可能负载过高，请考虑增加资源或调整并发限制。
+
+      # 活跃执行数严重过多
+      - alert: AgentCriticalActiveExecutions
+        expr: agent_active_executions > 18
+        for: 1m
+        labels:
+          severity: critical
+          category: agent_execution
+        annotations:
+          summary: "活跃 Agent 执行数严重过多"
+          description: |
+            当前活跃的 Agent 执行数为 {{ $value }}，接近系统上限 20。
+            新的执行请求可能被拒绝。
+
+      # ==================== 错误告警 ====================
+
+      # 特定 Agent 错误过多
+      - alert: AgentSpecificErrorsHigh
+        expr: |
+          sum by (agent) (rate(agent_errors_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: agent_execution
+        annotations:
+          summary: "Agent {{ $labels.agent }} 错误率过高"
+          description: |
+            Agent {{ $labels.agent }} 在过去 5 分钟内错误率超过 0.1 次/秒。
+            错误次数: {{ $value }} 次/秒
+
+      # 认证错误
+      - alert: AgentAuthenticationErrors
+        expr: rate(agent_errors_total{type="AUTH_ERROR"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Agent 认证错误"
+          description: |
+            检测到 Agent 认证错误，可能存在未授权访问尝试。
+            错误次数: {{ $value }} 次/秒
+
+      # ==================== 工具告警 ====================
+
+      # 工具调用失败率过高
+      - alert: ToolHighFailureRate
+        expr: |
+          (
+            sum(rate(agent_tool_calls_total{status="failure"}[5m]))
+            /
+            sum(rate(agent_tool_calls_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: agent_tools
+        annotations:
+          summary: "工具调用失败率过高"
+          description: |
+            工具调用失败率超过 10%。
+            当前值: {{ $value | humanizePercentage }}
+
+      # 特定工具失败过多
+      - alert: SpecificToolFailures
+        expr: |
+          sum by (tool) (rate(agent_tool_calls_by_tool{status="failure"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: agent_tools
+        annotations:
+          summary: "工具 {{ $labels.tool }} 调用失败率过高"
+          description: |
+            工具 {{ $labels.tool }} 调用失败率超过阈值。
+            失败次数: {{ $value }} 次/秒
+
+      # 工具执行超时
+      - alert: ToolExecutionTimeout
+        expr: |
+          histogram_quantile(0.95, rate(agent_tool_execution_duration_bucket[5m])) > 30000
+        for: 5m
+        labels:
+          severity: warning
+          category: agent_tools
+        annotations:
+          summary: "工具执行时间过长"
+          description: |
+            工具执行 P95 延迟超过 30 秒。
+            当前值: {{ $value | humanizeDuration }} 毫秒
+
+      # ==================== 路由告警 ====================
+
+      # 低置信度路由过多
+      - alert: LowConfidenceRoutingHigh
+        expr: |
+          (
+            rate(agent_routing_low_confidence[5m])
+            /
+            rate(agent_routing_total[5m])
+          ) > 0.2
+        for: 10m
+        labels:
+          severity: info
+          category: agent_routing
+        annotations:
+          summary: "低置信度路由比例过高"
+          description: |
+            超过 20% 的路由决策置信度低于 70%。
+            请考虑优化 RouterAgent 的提示词或添加更多 Agent 配置。
+
+      # 路由被拒绝过多
+      - alert: RoutingRejectionHigh
+        expr: rate(agent_routing_confirmation{result="rejected"}[1h]) > 0.1
+        for: 5m
+        labels:
+          severity: info
+          category: agent_routing
+        annotations:
+          summary: "路由确认被拒绝率过高"
+          description: |
+            用户频繁拒绝路由建议，可能路由决策不符合预期。
+            拒绝次数: {{ $value }} 次/秒
+
+      # ==================== 限流告警 ====================
+
+      # 限流触发频繁
+      - alert: RateLimitHitsHigh
+        expr: rate(agent_rate_limit_hits_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: info
+          category: agent_rate_limit
+        annotations:
+          summary: "Agent 限流触发频繁"
+          description: |
+            Agent 限流触发次数过多，请考虑调整配额配置。
+            触发次数: {{ $value }} 次/秒
+
+      # 全局并发限流触发
+      - alert: GlobalConcurrencyLimitHit
+        expr: rate(agent_rate_limit_hits_by_type{type="global_concurrent"}[5m]) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          category: agent_rate_limit
+        annotations:
+          summary: "全局并发限制触发频繁"
+          description: |
+            系统全局并发执行数达到上限，新请求被拒绝。
+            触发次数: {{ $value }} 次/秒
+            请考虑增加 MAX_GLOBAL_CONCURRENT 配置或优化执行时间。
+
+      # 用户级限流触发
+      - alert: UserRateLimitHit
+        expr: rate(agent_rate_limit_hits_by_type{type="user_limit"}[1h]) > 0.1
+        for: 10m
+        labels:
+          severity: info
+          category: agent_rate_limit
+        annotations:
+          summary: "用户级限流触发"
+          description: |
+            某些用户触发限流，可能需要调整用户配额。
+            触发次数: {{ $value }} 次/秒
+
+      # ==================== Token 消耗告警 ====================
+
+      # Token 消耗异常高
+      - alert: TokenUsageHigh
+        expr: rate(agent_token_usage_total{type="total"}[1h]) > 100000
+        for: 10m
+        labels:
+          severity: warning
+          category: agent_cost
+        annotations:
+          summary: "Token 消耗异常高"
+          description: |
+            Token 消耗率超过 100,000 tokens/hour。
+            当前值: {{ $value | humanize }} tokens/秒
+            请检查是否有异常执行或优化 Agent 提示词。
+
+      # 特定模型 Token 消耗高
+      - alert: ModelTokenUsageHigh
+        expr: |
+          sum by (model) (rate(agent_token_usage_total{type="total"}[1h])) > 50000
+        for: 30m
+        labels:
+          severity: info
+          category: agent_cost
+        annotations:
+          summary: "模型 {{ $labels.model }} Token 消耗较高"
+          description: |
+            模型 {{ $labels.model }} Token 消耗率较高。
+            当前值: {{ $value | humanize }} tokens/秒
+
+      # ==================== 委托告警 ====================
+
+      # 委托失败率高
+      - alert: DelegationFailureHigh
+        expr: |
+          (
+            rate(agent_delegations_total{status="failure"}[5m])
+            /
+            rate(agent_delegations_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: agent_delegation
+        annotations:
+          summary: "Agent 委托失败率过高"
+          description: |
+            Agent 间委托调用失败率超过 10%。
+            当前值: {{ $value | humanizePercentage }}
+
+      # 委托深度过深
+      - alert: DeepDelegationDetected
+        expr: rate(agent_delegation_depth{depth=~"[3-9]|10+"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: agent_delegation
+        annotations:
+          summary: "检测到深度委托调用"
+          description: |
+            Agent 委托链深度超过 3 层，可能导致性能问题。
+            请检查是否存在循环委托或优化 Agent 协作流程。
+
+      # ==================== 前端可靠性告警 ====================
+
+      # SSE 重连频繁
+      - alert: SseReconnectHigh
+        expr: rate(agent_frontend_reconnects[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: frontend_reliability
+        annotations:
+          summary: "前端 SSE 重连频繁"
+          description: |
+            前端 SSE 连接重连次数异常，可能存在网络问题。
+            重连次数: {{ $value }} 次/秒
+
+      # 事件丢失率高
+      - alert: EventGapsHigh
+        expr: rate(agent_frontend_event_gaps[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: info
+          category: frontend_reliability
+        annotations:
+          summary: "前端 SSE 事件丢失率较高"
+          description: |
+            前端检测到 SSE 事件序号间隙，可能存在事件丢失。
+            丢失次数: {{ $value }} 次/秒
+
+      # 状态恢复失败
+      - alert: StateRestoreFailure
+        expr: rate(agent_frontend_state_restore_failure[1h]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          category: frontend_reliability
+        annotations:
+          summary: "前端状态恢复失败"
+          description: |
+            页面刷新后状态恢复失败，用户体验受影响。
+            失败次数: {{ $value }} 次/秒
+
+      # ==================== 系统健康告警 ====================
+
+      # Agent 服务不可用
+      - alert: AgentServiceDown
+        expr: up{job="agent-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: system
+        annotations:
+          summary: "Agent 服务不可用"
+          description: |
+            Agent 服务已停止响应。
+            请立即检查服务状态。
+
+      # 内存使用率高（如果 Prometheus 监控了）
+      - alert: AgentMemoryHigh
+        expr: |
+          jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "Agent 服务内存使用率高"
+          description: |
+            JVM 堆内存使用率超过 85%。
+            当前值: {{ $value | humanizePercentage }}
+            请考虑增加内存配置或检查内存泄漏。
