@@ -16,30 +16,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.jonychen.agent.impl.RouterAgent;
 import com.jonychen.agent.impl.DataAgent;
 import com.jonychen.agent.impl.OpsAgent;
+import com.jonychen.agent.impl.RouterAgent;
 
 @ExtendWith(MockitoExtension.class)
 class AgentOrchestratorTest {
 
-    @Mock
-    private RouterAgent routerAgent;
+    @Mock private RouterAgent routerAgent;
 
-    @Mock
-    private DataAgent dataAgent;
+    @Mock private DataAgent dataAgent;
 
-    @Mock
-    private OpsAgent opsAgent;
+    @Mock private OpsAgent opsAgent;
 
-    @Mock
-    private AgentAuditService auditService;
+    @Mock private AgentAuditService auditService;
 
-    @Mock
-    private AgentMetricsService metricsService;
+    @Mock private AgentMetricsService metricsService;
 
-    @Mock
-    private AgentExecutionControlService executionControl;
+    @Mock private AgentExecutionControlService executionControl;
 
     private AgentOrchestrator orchestrator;
 
@@ -55,12 +49,12 @@ class AgentOrchestratorTest {
         // 配置 OpsAgent
         when(opsAgent.getMetadata()).thenReturn(AgentMetadata.ops());
 
-        orchestrator = new AgentOrchestrator(
-                List.of(routerAgent, dataAgent, opsAgent),
-                auditService,
-                metricsService,
-                executionControl
-        );
+        orchestrator =
+                new AgentOrchestrator(
+                        List.of(routerAgent, dataAgent, opsAgent),
+                        auditService,
+                        metricsService,
+                        executionControl);
     }
 
     @Nested
@@ -102,10 +96,15 @@ class AgentOrchestratorTest {
         @Test
         @DisplayName("应根据 canHandle 置信度选择最佳 Agent")
         void shouldSelectBestAgentBasedOnConfidence() {
-            AgentRequest request = AgentRequest.of(
-                    "sess-1", "user-1", "查询数据库", Map.of(),
-                    AgentRequestOptions.defaults(), "127.0.0.1", "test"
-            );
+            AgentRequest request =
+                    AgentRequest.of(
+                            "sess-1",
+                            "user-1",
+                            "查询数据库",
+                            Map.of(),
+                            AgentRequestOptions.defaults(),
+                            "127.0.0.1",
+                            "test");
 
             Agent selected = orchestrator.selectAgent(request);
 

@@ -2,15 +2,10 @@ package com.jonychen.agent.security;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Map;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import com.jonychen.tool.ToolResult;
-import com.jonychen.tool.builtin.DatabaseTools;
 
 /**
  * SQL 注入安全测试
@@ -35,9 +30,7 @@ class AgentSqlInjectionTest {
     private static final java.util.Set<String> ALLOWED_TABLES =
             java.util.Set.of("users", "agent_traces", "token_usage_logs", "messages");
 
-    /**
-     * 测试 UNION 注入攻击
-     */
+    /** 测试 UNION 注入攻击 */
     @Test
     @DisplayName("UNION 注入应被拦截")
     void testUnionInjection() {
@@ -47,9 +40,7 @@ class AgentSqlInjectionTest {
         assertTrue(containsSensitiveKeyword(maliciousSql, "UNION"));
     }
 
-    /**
-     * 测试堆叠查询注入
-     */
+    /** 测试堆叠查询注入 */
     @Test
     @DisplayName("堆叠查询注入应被拦截")
     void testStackedQueryInjection() {
@@ -58,9 +49,7 @@ class AgentSqlInjectionTest {
         assertTrue(containsSensitiveKeyword(maliciousSql, "DROP"));
     }
 
-    /**
-     * 测试子查询绕过白名单
-     */
+    /** 测试子查询绕过白名单 */
     @Test
     @DisplayName("子查询应检查内部表是否在白名单")
     void testSubqueryBypass() {
@@ -73,15 +62,14 @@ class AgentSqlInjectionTest {
         assertTrue(containsSensitiveKeyword(maliciousSql, "sensitive_table"));
     }
 
-    /**
-     * 测试注释绕过
-     */
+    /** 测试注释绕过 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "SELECT * FROM users WHERE id=1/**/OR/**/1=1",
-        "SELECT * FROM users WHERE id=1--comment\nOR 1=1",
-        "SELECT * FROM users WHERE id=1#comment\nOR 1=1"
-    })
+    @ValueSource(
+            strings = {
+                "SELECT * FROM users WHERE id=1/**/OR/**/1=1",
+                "SELECT * FROM users WHERE id=1--comment\nOR 1=1",
+                "SELECT * FROM users WHERE id=1#comment\nOR 1=1"
+            })
     @DisplayName("注释绕过注入应被拦截")
     void testCommentBypass(String sql) {
         // 验证：注释不应影响 SQL 校验
@@ -89,32 +77,29 @@ class AgentSqlInjectionTest {
         assertNotNull(sql);
     }
 
-    /**
-     * 测试 DML 注入
-     */
+    /** 测试 DML 注入 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "INSERT INTO users VALUES (1, 'hacker', 'password')",
-        "UPDATE users SET password='hacked' WHERE 1=1",
-        "DELETE FROM users WHERE 1=1"
-    })
+    @ValueSource(
+            strings = {
+                "INSERT INTO users VALUES (1, 'hacker', 'password')",
+                "UPDATE users SET password='hacked' WHERE 1=1",
+                "DELETE FROM users WHERE 1=1"
+            })
     @DisplayName("DML 注入应被拦截")
     void testDmlInjection(String sql) {
         // 验证：只允许 SELECT，其他 DML 应被拦截
-        assertFalse(sql.trim().toUpperCase().startsWith("SELECT"),
-                "DML 应被识别为非 SELECT 语句");
+        assertFalse(sql.trim().toUpperCase().startsWith("SELECT"), "DML 应被识别为非 SELECT 语句");
     }
 
-    /**
-     * 测试 DDL 注入
-     */
+    /** 测试 DDL 注入 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "DROP TABLE users",
-        "ALTER TABLE users ADD COLUMN hacked VARCHAR(100)",
-        "CREATE TABLE hacked (id INT)",
-        "TRUNCATE TABLE users"
-    })
+    @ValueSource(
+            strings = {
+                "DROP TABLE users",
+                "ALTER TABLE users ADD COLUMN hacked VARCHAR(100)",
+                "CREATE TABLE hacked (id INT)",
+                "TRUNCATE TABLE users"
+            })
     @DisplayName("DDL 注入应被拦截")
     void testDdlInjection(String sql) {
         // 验证：DDL 语句应被拦截
@@ -127,9 +112,7 @@ class AgentSqlInjectionTest {
                 "DDL 语句应被识别");
     }
 
-    /**
-     * 测试权限提升注入
-     */
+    /** 测试权限提升注入 */
     @Test
     @DisplayName("权限提升注入应被拦截")
     void testPrivilegeEscalation() {
@@ -138,15 +121,14 @@ class AgentSqlInjectionTest {
         assertTrue(containsSensitiveKeyword(maliciousSql, "GRANT"));
     }
 
-    /**
-     * 测试合法 SQL 应通过
-     */
+    /** 测试合法 SQL 应通过 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "SELECT * FROM users WHERE id = 1",
-        "SELECT id, username FROM users ORDER BY created_at DESC LIMIT 10",
-        "SELECT COUNT(*) FROM token_usage_logs WHERE request_time > '2026-01-01'"
-    })
+    @ValueSource(
+            strings = {
+                "SELECT * FROM users WHERE id = 1",
+                "SELECT id, username FROM users ORDER BY created_at DESC LIMIT 10",
+                "SELECT COUNT(*) FROM token_usage_logs WHERE request_time > '2026-01-01'"
+            })
     @DisplayName("合法 SQL 应通过校验")
     void testValidSqlShouldPass(String sql) {
         // 验证：合法的 SELECT 语句应通过校验
@@ -155,9 +137,7 @@ class AgentSqlInjectionTest {
         // 实际实现需要解析 SQL 获取表名并校验
     }
 
-    /**
-     * 测试 LIMIT 限制
-     */
+    /** 测试 LIMIT 限制 */
     @Test
     @DisplayName("查询结果应有 LIMIT 限制")
     void testLimitRestriction() {

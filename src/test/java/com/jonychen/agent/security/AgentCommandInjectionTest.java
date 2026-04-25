@@ -33,147 +33,122 @@ class AgentCommandInjectionTest {
     // 测试方法名合法字符正则
     private static final Pattern METHOD_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+$");
 
-    /**
-     * 测试类名校验 - 合法类名
-     */
+    /** 测试类名校验 - 合法类名 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "com.jonychen.ChatControllerTest",
-        "com.jonychen.agent.core.AgentAuditServiceTest",
-        "com.jonychen.tool.builtin.DatabaseToolsTest"
-    })
+    @ValueSource(
+            strings = {
+                "com.jonychen.ChatControllerTest",
+                "com.jonychen.agent.core.AgentAuditServiceTest",
+                "com.jonychen.tool.builtin.DatabaseToolsTest"
+            })
     @DisplayName("合法类名应通过校验")
     void testValidTestClassNames(String className) {
         assertTrue(isValidTestClass(className));
     }
 
-    /**
-     * 测试类名校验 - 非法类名
-     */
+    /** 测试类名校验 - 非法类名 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "java.lang.Runtime",
-        "org.example.MaliciousTest",
-        "com.jonychen;rm -rf /",
-        "com.jonychen.Test && cat /etc/passwd",
-        "com.jonychen.Test`whoami`",
-        "com.jonychen.Test$(id)"
-    })
+    @ValueSource(
+            strings = {
+                "java.lang.Runtime",
+                "org.example.MaliciousTest",
+                "com.jonychen;rm -rf /",
+                "com.jonychen.Test && cat /etc/passwd",
+                "com.jonychen.Test`whoami`",
+                "com.jonychen.Test$(id)"
+            })
     @DisplayName("非法类名应被拦截")
     void testInvalidTestClassNames(String className) {
-        assertFalse(isValidTestClass(className),
-                "非法类名应被拦截: " + className);
+        assertFalse(isValidTestClass(className), "非法类名应被拦截: " + className);
     }
 
-    /**
-     * 测试方法名校验 - 合法方法名
-     */
+    /** 测试方法名校验 - 合法方法名 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "testChat",
-        "test_chat",
-        "testChat1",
-        "test"
-    })
+    @ValueSource(strings = {"testChat", "test_chat", "testChat1", "test"})
     @DisplayName("合法方法名应通过校验")
     void testValidMethodNames(String methodName) {
         assertTrue(METHOD_NAME_PATTERN.matcher(methodName).matches());
     }
 
-    /**
-     * 测试方法名校验 - 非法方法名
-     */
+    /** 测试方法名校验 - 非法方法名 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "test;rm -rf /",
-        "test && whoami",
-        "test`id`",
-        "test$(cat /etc/passwd)",
-        "test|ls",
-        "test\ncat /etc/passwd",
-        "../../../bin/bash"
-    })
+    @ValueSource(
+            strings = {
+                "test;rm -rf /",
+                "test && whoami",
+                "test`id`",
+                "test$(cat /etc/passwd)",
+                "test|ls",
+                "test\ncat /etc/passwd",
+                "../../../bin/bash"
+            })
     @DisplayName("非法方法名应被拦截")
     void testInvalidMethodNames(String methodName) {
-        assertFalse(METHOD_NAME_PATTERN.matcher(methodName).matches(),
-                "非法方法名应被拦截: " + methodName);
+        assertFalse(METHOD_NAME_PATTERN.matcher(methodName).matches(), "非法方法名应被拦截: " + methodName);
     }
 
-    /**
-     * 测试路径遍历攻击 - 非法路径
-     */
+    /** 测试路径遍历攻击 - 非法路径 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "../../../etc/passwd",
-        "..\\..\\..\\windows\\system32\\config\\sam",
-        "/etc/passwd",
-        "\\etc\\passwd",
-        "~/../../etc/passwd",
-        "src/../../../etc/passwd",
-        "src/..\\..\\..\\etc\\passwd"
-    })
+    @ValueSource(
+            strings = {
+                "../../../etc/passwd",
+                "..\\..\\..\\windows\\system32\\config\\sam",
+                "/etc/passwd",
+                "\\etc\\passwd",
+                "~/../../etc/passwd",
+                "src/../../../etc/passwd",
+                "src/..\\..\\..\\etc\\passwd"
+            })
     @DisplayName("路径遍历攻击应被拦截")
     void testPathTraversalAttacks(String path) {
-        assertFalse(isValidPath(path),
-                "路径遍历攻击应被拦截: " + path);
+        assertFalse(isValidPath(path), "路径遍历攻击应被拦截: " + path);
     }
 
-    /**
-     * 测试路径遍历攻击 - 合法路径
-     */
+    /** 测试路径遍历攻击 - 合法路径 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "src/main/java/com/jonychen/ChatController.java",
-        "src/test/java/ChatControllerTest.java",
-        "frontend/src/components/ChatView.vue",
-        "docs/README.md"
-    })
+    @ValueSource(
+            strings = {
+                "src/main/java/com/jonychen/ChatController.java",
+                "src/test/java/ChatControllerTest.java",
+                "frontend/src/components/ChatView.vue",
+                "docs/README.md"
+            })
     @DisplayName("合法路径应通过校验")
     void testValidPaths(String path) {
-        assertTrue(isValidPath(path),
-                "合法路径应通过校验: " + path);
+        assertTrue(isValidPath(path), "合法路径应通过校验: " + path);
     }
 
-    /**
-     * 测试绝对路径攻击
-     */
+    /** 测试绝对路径攻击 */
     @Test
     @DisplayName("绝对路径应被拦截")
     void testAbsolutePathAttack() {
         String[] absolutePaths = {
-            "/etc/passwd",
-            "C:\\Windows\\System32\\config\\SAM",
-            "file:///etc/passwd"
+            "/etc/passwd", "C:\\Windows\\System32\\config\\SAM", "file:///etc/passwd"
         };
 
         for (String path : absolutePaths) {
-            assertFalse(isValidPath(path),
-                    "绝对路径应被拦截: " + path);
+            assertFalse(isValidPath(path), "绝对路径应被拦截: " + path);
         }
     }
 
-    /**
-     * 测试文件名注入
-     */
+    /** 测试文件名注入 */
     @ParameterizedTest
-    @ValueSource(strings = {
-        "test;echo pwned",
-        "test&&whoami",
-        "test|cat /etc/passwd",
-        "test`id`",
-        "test$(whoami)",
-        "test\necho pwned",
-        "test\twhoami"
-    })
+    @ValueSource(
+            strings = {
+                "test;echo pwned",
+                "test&&whoami",
+                "test|cat /etc/passwd",
+                "test`id`",
+                "test$(whoami)",
+                "test\necho pwned",
+                "test\twhoami"
+            })
     @DisplayName("文件名注入应被拦截")
     void testFileNameInjection(String fileName) {
-        assertFalse(isValidFileName(fileName),
-                "文件名注入应被拦截: " + fileName);
+        assertFalse(isValidFileName(fileName), "文件名注入应被拦截: " + fileName);
     }
 
-    /**
-     * 测试参数注入 - SQL 命令组合
-     */
+    /** 测试参数注入 - SQL 命令组合 */
     @Test
     @DisplayName("参数不应包含命令分隔符")
     void testParameterInjection() {
@@ -186,14 +161,11 @@ class AgentCommandInjectionTest {
         };
 
         for (String param : injections) {
-            assertTrue(containsCommandInjection(param),
-                    "应检测到命令注入: " + param);
+            assertTrue(containsCommandInjection(param), "应检测到命令注入: " + param);
         }
     }
 
-    /**
-     * 测试空值和边界情况
-     */
+    /** 测试空值和边界情况 */
     @Test
     @DisplayName("空值和边界情况应正确处理")
     void testNullAndBoundaryCases() {
@@ -214,20 +186,16 @@ class AgentCommandInjectionTest {
         assertTrue(isValidFileName("A"));
     }
 
-    /**
-     * 测试 Unicode 绕过尝试
-     */
+    /** 测试 Unicode 绕过尝试 */
     @Test
     @DisplayName("Unicode 绕过应被检测")
     void testUnicodeBypass() {
-        // Unicode 换行符
-        String unicodeNewline = "test
-cat /etc/passwd";
+        // Unicode 换行符 (U+000A)
+        String unicodeNewline = "test\n cat /etc/passwd";
         assertFalse(isValidFileName(unicodeNewline));
 
-        // Unicode 控制字符
-        String unicodeControl = "test
-whoami";
+        // Unicode 控制字符 (U+0009)
+        String unicodeControl = "test\t whoami";
         assertFalse(isValidFileName(unicodeControl));
     }
 
