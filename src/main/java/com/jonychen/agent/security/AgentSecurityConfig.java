@@ -1,5 +1,8 @@
 package com.jonychen.agent.security;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -9,6 +12,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.jonychen.auth.JwtAccessDeniedHandler;
 import com.jonychen.auth.JwtAuthenticationEntryPoint;
@@ -53,6 +59,9 @@ public class AgentSecurityConfig {
 
                 // 禁用 CSRF（使用 JWT 无状态认证）
                 .csrf(AbstractHttpConfigurer::disable)
+
+                // 配置 CORS
+                .cors(cors -> cors.configurationSource(agentCorsConfigurationSource()))
 
                 // 无状态 Session
                 .sessionManagement(
@@ -110,5 +119,22 @@ public class AgentSecurityConfig {
                         jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /** Agent 路径 CORS 配置 */
+    @Bean
+    public CorsConfigurationSource agentCorsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(
+                Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/agent/**", configuration);
+        source.registerCorsConfiguration("/api/admin/agent/**", configuration);
+        return source;
     }
 }
