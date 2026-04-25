@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jonychen.model.ApiResponse;
-import com.jonychen.planning.AgentOrchestrator;
+import com.jonychen.planning.PlanningOrchestrator;
 import com.jonychen.planning.Step;
 import com.jonychen.planning.StepResult;
 import com.jonychen.planning.Task;
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PlanningController {
 
-    private final AgentOrchestrator agentOrchestrator;
+    private final PlanningOrchestrator planningOrchestrator;
     private final TaskExecutor taskExecutor;
 
     private static final String LOG_PREFIX = "════════════════════════════════════════";
@@ -52,7 +52,7 @@ public class PlanningController {
         TaskContext context = TaskContext.create(request.sessionId());
 
         log.info("[Planning] 调用 AgentOrchestrator.execute()...");
-        TaskResult result = agentOrchestrator.execute(request.goal(), context);
+        TaskResult result = planningOrchestrator.execute(request.goal(), context);
 
         log.info(
                 "[Planning] 执行完成 | 耗时: {}ms | 成功: {} | 步骤数: {}",
@@ -78,7 +78,7 @@ public class PlanningController {
         TaskContext context = TaskContext.create(request.sessionId());
 
         log.info("[Planning] 调用 AgentOrchestrator.executeReAct()...");
-        TaskResult result = agentOrchestrator.executeReAct(request.question(), context);
+        TaskResult result = planningOrchestrator.executeReAct(request.question(), context);
 
         log.info(
                 "[Planning] ReAct完成 | 耗时: {}ms | 迭代次数: {} | 成功: {}",
@@ -104,7 +104,7 @@ public class PlanningController {
         TaskContext context = TaskContext.create(request.sessionId());
 
         log.info("[Planning] 调用 AgentOrchestrator.executePlanExecute()...");
-        TaskResult result = agentOrchestrator.executePlanExecute(request.goal(), context);
+        TaskResult result = planningOrchestrator.executePlanExecute(request.goal(), context);
 
         log.info(
                 "[Planning] Plan-Execute完成 | 耗时: {}ms | 步骤数: {} | 成功: {}",
