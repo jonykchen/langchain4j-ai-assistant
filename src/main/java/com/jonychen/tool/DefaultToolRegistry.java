@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.stereotype.Component;
 
@@ -25,6 +27,9 @@ public class DefaultToolRegistry implements ToolRegistry {
 
     private final Map<String, ToolDefinition> tools = new ConcurrentHashMap<>();
     private final Map<String, ToolSpecification> specifications = new ConcurrentHashMap<>();
+
+    /** 工具调用统计：toolName -> ToolStatsCounter */
+    private final Map<String, ToolStatsCounter> statisticsMap = new ConcurrentHashMap<>();
 
     @Override
     public void register(ToolDefinition tool) {
@@ -250,7 +255,9 @@ public class DefaultToolRegistry implements ToolRegistry {
             // 执行前验证
             String validationError = tool.executor().validate(params);
             if (validationError != null) {
-                return ToolResult.failure(validationError);
+                long execTime = System.currentTimeMillis() - startTime;
+                recordFailure(toolName, execTime, validationError);
+                return ToolResult.failure(validationError).withExecutionTime(execTime);
             }
 
             // 敏感操作确认检查（仅返回 pending 状态，不发送 SSE 事件）
@@ -258,17 +265,29 @@ public class DefaultToolRegistry implements ToolRegistry {
             if (tool.requiresConfirmation()) {
                 String confirmationId =
                         "confirm_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                // 确认不算成功也不算失败，不记录统计
                 return ToolResult.pendingConfirmation(
                         confirmationId, buildConfirmationMessage(tool, params), tool.riskLevel());
             }
 
             // 执行
             ToolResult result = tool.executor().execute(params != null ? params : Map.of());
-            return result.withExecutionTime(System.currentTimeMillis() - startTime);
+            long execTime = System.currentTimeMillis() - startTime;
+
+            // 记录统计
+            if (result.success()) {
+                recordSuccess(toolName, execTime);
+            } else {
+                recordFailure(toolName, execTime, result.error());
+            }
+
+            return result.withExecutionTime(execTime);
         } catch (Exception e) {
+            long execTime = System.currentTimeMillis() - startTime;
             log.error("Tool '{}' execution error: {}", toolName, e.getMessage(), e);
+            recordFailure(toolName, execTime, e.getMessage());
             ToolResult result = ToolResult.failure("Execution error: " + e.getMessage());
-            return result.withExecutionTime(System.currentTimeMillis() - startTime);
+            return result.withExecutionTime(execTime);
         }
     }
 
@@ -314,5 +333,100 @@ public class DefaultToolRegistry implements ToolRegistry {
     @Override
     public int size() {
         return tools.size();
+    }
+
+    @Override
+    public ToolStatistics getStatistics(String toolName) {
+        if (toolName == null) {
+            return null;
+        }
+        ToolStatsCounter counter = statisticsMap.get(toolName);
+        if (counter == null) {
+            return ToolStatistics.empty(toolName);
+        }
+        ToolStatistics stats = counter.toStatistics();
+        return new ToolStatistics(
+                toolName,
+                stats.totalCalls(),
+                stats.successCount(),
+                stats.failureCount(),
+                stats.avgExecutionTimeMs(),
+                stats.lastCallTime(),
+                stats.lastError());
+    }
+
+    @Override
+    public List<ToolStatistics> getAllStatistics() {
+        List<ToolStatistics> result = new ArrayList<>();
+        for (String toolName : tools.keySet()) {
+            result.add(getStatistics(toolName));
+        }
+        return result;
+    }
+
+    @Override
+    public void resetStatistics(String toolName) {
+        if (toolName != null) {
+            statisticsMap.remove(toolName);
+            log.debug("Reset statistics for tool: {}", toolName);
+        }
+    }
+
+    @Override
+    public void resetAllStatistics() {
+        statisticsMap.clear();
+        log.debug("Reset all tool statistics");
+    }
+
+    /** 记录工具调用成功 */
+    private void recordSuccess(String toolName, long executionTimeMs) {
+        ToolStatsCounter counter =
+                statisticsMap.computeIfAbsent(toolName, k -> new ToolStatsCounter());
+        counter.recordSuccess(executionTimeMs);
+    }
+
+    /** 记录工具调用失败 */
+    private void recordFailure(String toolName, long executionTimeMs, String error) {
+        ToolStatsCounter counter =
+                statisticsMap.computeIfAbsent(toolName, k -> new ToolStatsCounter());
+        counter.recordFailure(executionTimeMs, error);
+    }
+
+    /** 工具统计计数器（线程安全） */
+    private static class ToolStatsCounter {
+        private final AtomicLong totalCalls = new AtomicLong(0);
+        private final AtomicLong successCount = new AtomicLong(0);
+        private final AtomicLong failureCount = new AtomicLong(0);
+        private final AtomicLong totalTimeMs = new AtomicLong(0);
+        private final AtomicLong lastCallTime = new AtomicLong(0);
+        private final AtomicReference<String> lastError = new AtomicReference<>(null);
+
+        void recordSuccess(long executionTimeMs) {
+            totalCalls.incrementAndGet();
+            successCount.incrementAndGet();
+            totalTimeMs.addAndGet(executionTimeMs);
+            lastCallTime.set(System.currentTimeMillis());
+        }
+
+        void recordFailure(long executionTimeMs, String error) {
+            totalCalls.incrementAndGet();
+            failureCount.incrementAndGet();
+            totalTimeMs.addAndGet(executionTimeMs);
+            lastCallTime.set(System.currentTimeMillis());
+            lastError.set(error);
+        }
+
+        ToolStatistics toStatistics() {
+            long total = totalCalls.get();
+            double avgTime = total > 0 ? (double) totalTimeMs.get() / total : 0.0;
+            return new ToolStatistics(
+                    null, // toolName 由外部设置
+                    total,
+                    successCount.get(),
+                    failureCount.get(),
+                    avgTime,
+                    lastCallTime.get(),
+                    lastError.get());
+        }
     }
 }

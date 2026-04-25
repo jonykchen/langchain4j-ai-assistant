@@ -194,7 +194,8 @@ public class RouterAgent implements Agent {
                                 "routing_confirm",
                                 "路由选择",
                                 buildConfirmationMessage(decision),
-                                com.jonychen.tool.RiskLevel.LOW));
+                                com.jonychen.tool.RiskLevel.LOW,
+                                java.util.Map.of("targetAgent", decision.targetAgent())));
                 // 注意：这里不继续执行，等待 AgentOrchestrator 处理确认
             } else {
                 // 发送路由结果事件

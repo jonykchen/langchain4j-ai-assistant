@@ -564,4 +564,37 @@ public class AgentMetricsService {
     public long getActiveExecutions() {
         return activeExecutions.get();
     }
+
+    // ==================== Token 使用量相关方法 ====================
+
+    /**
+     * 记录 Token 使用量
+     *
+     * @param modelName 模型名称
+     * @param promptTokens 输入 Token 数
+     * @param completionTokens 输出 Token 数
+     */
+    public void recordTokenUsage(String modelName, int promptTokens, int completionTokens) {
+        int totalTokens = promptTokens + completionTokens;
+
+        // 记录 Token 使用总数
+        meterRegistry
+                .counter("agent_token_usage_total", "model", modelName, "type", "total")
+                .increment(totalTokens);
+
+        meterRegistry
+                .counter("agent_token_usage_total", "model", modelName, "type", "prompt")
+                .increment(promptTokens);
+
+        meterRegistry
+                .counter("agent_token_usage_total", "model", modelName, "type", "completion")
+                .increment(completionTokens);
+
+        log.debug(
+                "[AgentMetrics] Token 使用记录: model={}, prompt={}, completion={}, total={}",
+                modelName,
+                promptTokens,
+                completionTokens,
+                totalTokens);
+    }
 }

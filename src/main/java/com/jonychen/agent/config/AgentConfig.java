@@ -5,17 +5,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.jonychen.agent.core.Agent;
 import com.jonychen.agent.core.AgentAuditService;
-import com.jonychen.agent.core.AgentContext;
 import com.jonychen.agent.core.AgentDelegationService;
-import com.jonychen.agent.core.AgentEvent;
-import com.jonychen.agent.core.AgentMetadata;
 import com.jonychen.agent.core.AgentMetricsService;
 import com.jonychen.agent.core.AgentRegistry;
-import com.jonychen.agent.core.AgentRequest;
-import com.jonychen.agent.core.AgentResult;
-import com.jonychen.agent.core.TokenUsage;
+import com.jonychen.agent.core.TokenUsageTracker;
+import com.jonychen.agent.impl.ChatAgent;
 import com.jonychen.agent.impl.DataAgent;
 import com.jonychen.agent.impl.OpsAgent;
 import com.jonychen.agent.impl.PromptAgent;
@@ -28,8 +23,6 @@ import com.jonychen.tool.builtin.DatabaseTools;
 import com.jonychen.tool.builtin.ExportTools;
 import com.jonychen.tool.builtin.PromptTools;
 import com.jonychen.tool.builtin.TestGeneratorTools;
-
-import reactor.core.publisher.Flux;
 
 /**
  * Agent 配置类
@@ -100,7 +93,8 @@ public class AgentConfig {
             ExportTools exportTools,
             AgentDelegationService delegationService,
             AgentAuditService auditService,
-            AgentMetricsService metricsService) {
+            AgentMetricsService metricsService,
+            TokenUsageTracker tokenUsageTracker) {
 
         log.info("[AgentConfig] 创建 DataAgent Bean，依赖: DatabaseTools, ChartTools, ExportTools");
 
@@ -119,6 +113,8 @@ public class AgentConfig {
         agent.setAuditService(auditService);
         // 注入指标服务
         agent.setMetricsService(metricsService);
+        // 注入 Token 追踪服务
+        agent.setTokenUsageTracker(tokenUsageTracker);
 
         log.info(
                 "[AgentConfig] DataAgent 创建成功，元信息: name={}, displayName={}",
@@ -212,7 +208,8 @@ public class AgentConfig {
             TestGeneratorTools testGeneratorTools,
             AgentDelegationService delegationService,
             AgentAuditService auditService,
-            AgentMetricsService metricsService) {
+            AgentMetricsService metricsService,
+            TokenUsageTracker tokenUsageTracker) {
 
         log.info("[AgentConfig] 创建 TestAgent Bean");
 
@@ -220,9 +217,49 @@ public class AgentConfig {
         agent.setDelegationService(delegationService);
         agent.setAuditService(auditService);
         agent.setMetricsService(metricsService);
+        agent.setTokenUsageTracker(tokenUsageTracker);
 
         log.info(
                 "[AgentConfig] TestAgent 创建成功，元信息: name={}, displayName={}",
+                agent.getMetadata().name(),
+                agent.getMetadata().displayName());
+
+        return agent;
+    }
+
+    /**
+     * 创建 ChatAgent Bean
+     *
+     * <p>ChatAgent 作为通用对话 Agent，是 RouterAgent 的兜底选择。
+     *
+     * @param chatModel LangChain4j 聊天模型
+     * @param toolRegistry 工具注册中心
+     * @param traceService 追踪服务
+     * @param delegationService 委托服务
+     * @param auditService 审计服务
+     * @param metricsService 指标服务
+     * @return ChatAgent 实例
+     */
+    @Bean
+    public ChatAgent chatAgent(
+            dev.langchain4j.model.chat.ChatModel chatModel,
+            ToolRegistry toolRegistry,
+            AgentTraceService traceService,
+            AgentDelegationService delegationService,
+            AgentAuditService auditService,
+            AgentMetricsService metricsService,
+            TokenUsageTracker tokenUsageTracker) {
+
+        log.info("[AgentConfig] 创建 ChatAgent Bean");
+
+        ChatAgent agent = new ChatAgent(chatModel, toolRegistry, traceService);
+        agent.setDelegationService(delegationService);
+        agent.setAuditService(auditService);
+        agent.setMetricsService(metricsService);
+        agent.setTokenUsageTracker(tokenUsageTracker);
+
+        log.info(
+                "[AgentConfig] ChatAgent 创建成功，元信息: name={}, displayName={}",
                 agent.getMetadata().name(),
                 agent.getMetadata().displayName());
 
@@ -238,11 +275,16 @@ public class AgentConfig {
      * @param dataAgent 数据分析助手（需 USER 权限）
      * @param promptAgent Prompt 工程助手（需 ADMIN 权限）
      * @param testAgent 测试生成助手（需 ADMIN 权限）
+     * @param chatAgent 通用对话助手（兜底 Agent）
      * @return Agent 注册表
      */
     @Bean
     public AgentRegistry agentRegistry(
-            OpsAgent opsAgent, DataAgent dataAgent, PromptAgent promptAgent, TestAgent testAgent) {
+            OpsAgent opsAgent,
+            DataAgent dataAgent,
+            PromptAgent promptAgent,
+            TestAgent testAgent,
+            ChatAgent chatAgent) {
         log.info("[AgentConfig] 开始注册 Agent...");
 
         AgentRegistry registry = new AgentRegistry();
@@ -263,9 +305,9 @@ public class AgentConfig {
         registry.register(testAgent);
         log.debug("[AgentConfig] TestAgent 注册成功: {}", testAgent.getMetadata().name());
 
-        // 注册 ChatAgent（通用对话，简单内部实现）
-        registry.register(new ChatAgent(null, null, null));
-        log.debug("[AgentConfig] ChatAgent 注册成功");
+        // 注册 ChatAgent（通用对话助手，作为兜底）
+        registry.register(chatAgent);
+        log.debug("[AgentConfig] ChatAgent 注册成功: {}", chatAgent.getMetadata().name());
 
         log.info(
                 "[AgentConfig] Agent 注册完成，共 {} 个: {}",
@@ -273,87 +315,5 @@ public class AgentConfig {
                 registry.getAgentNames());
 
         return registry;
-    }
-
-    /**
-     * 通用对话 Agent（简单内部实现）
-     *
-     * <p>不继承 AbstractAgent，直接实现 Agent 接口。 不调用工具，直接使用 LLM 回答问题。
-     */
-    static class ChatAgent implements Agent {
-
-        private final dev.langchain4j.model.chat.ChatModel chatModel;
-        private final ToolRegistry toolRegistry;
-        private final AgentTraceService traceService;
-
-        ChatAgent(
-                dev.langchain4j.model.chat.ChatModel chatModel,
-                ToolRegistry toolRegistry,
-                AgentTraceService traceService) {
-            this.chatModel = chatModel;
-            this.toolRegistry = toolRegistry;
-            this.traceService = traceService;
-        }
-
-        @Override
-        public AgentMetadata getMetadata() {
-            return AgentMetadata.chat();
-        }
-
-        @Override
-        public AgentResult execute(AgentRequest request, AgentContext context) {
-            if (chatModel == null) {
-                return AgentResult.failure(context.getTraceId(), "ChatModel 未配置");
-            }
-
-            try {
-                dev.langchain4j.model.chat.request.ChatRequest chatRequest =
-                        dev.langchain4j.model.chat.request.ChatRequest.builder()
-                                .messages(
-                                        java.util.List.of(
-                                                new dev.langchain4j.data.message.SystemMessage(
-                                                        "你是一个友好的 AI 助手。"),
-                                                new dev.langchain4j.data.message.UserMessage(
-                                                        request.userInput())))
-                                .build();
-
-                dev.langchain4j.model.chat.response.ChatResponse response =
-                        chatModel.chat(chatRequest);
-                String output = response.aiMessage().text();
-
-                return AgentResult.success(context.getTraceId(), output, java.util.List.of());
-            } catch (Exception e) {
-                return AgentResult.failure(context.getTraceId(), e.getMessage());
-            }
-        }
-
-        @Override
-        public Flux<AgentEvent> executeStream(AgentRequest request, AgentContext context) {
-            var result = execute(request, context);
-            if (result.isSuccess()) {
-                return Flux.just(
-                        AgentEvent.done(
-                                context.getTraceId(),
-                                0,
-                                getMetadata().name(),
-                                result.output(),
-                                0,
-                                TokenUsage.empty(),
-                                result.durationMs()));
-            }
-            return Flux.just(
-                    AgentEvent.error(
-                            context.getTraceId(),
-                            0,
-                            "EXECUTION_ERROR",
-                            result.errorMessage(),
-                            null,
-                            true));
-        }
-
-        @Override
-        public double canHandle(AgentRequest request) {
-            return 0.1;
-        }
     }
 }

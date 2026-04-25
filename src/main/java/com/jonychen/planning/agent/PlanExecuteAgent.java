@@ -29,9 +29,11 @@ import lombok.extern.slf4j.Slf4j;
  * <p>工作流程： 1. Planning: LLM 生成完整计划 2. Execution: 按顺序执行每个步骤 3. Replanning: 遇到失败时重新规划
  *
  * @author jonychen
+ * @deprecated 计划迁移到 agent/impl/ 包，新代码应使用 agent/core 包下的 AbstractAgent。
  */
 @Slf4j
 @Component
+@Deprecated
 public class PlanExecuteAgent {
 
     private static final String PLANNING_PROMPT =

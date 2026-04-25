@@ -38,6 +38,7 @@ export interface StepEndEvent extends BaseAgentEvent {
   stepIndex: number
   success: boolean
   summary: string
+  durationMs: number
 }
 
 /** 思考过程事件 */
@@ -63,6 +64,7 @@ export interface ToolResultEvent extends BaseAgentEvent {
   result: unknown
   success: boolean
   error: string | null
+  executionTimeMs: number
 }
 
 /** Agent 委托事件 */
@@ -90,6 +92,7 @@ export interface ConfirmationRequiredEvent extends BaseAgentEvent {
   operation: string
   description: string
   riskLevel: RiskLevel
+  params: Record<string, unknown>
 }
 
 /** 执行完成事件 */

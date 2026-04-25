@@ -89,6 +89,7 @@ public sealed interface AgentEvent
      * @param stepIndex 步骤序号
      * @param success 是否成功
      * @param summary 步骤摘要
+     * @param durationMs 步骤耗时（毫秒）
      */
     record StepEnd(
             String traceId,
@@ -96,7 +97,8 @@ public sealed interface AgentEvent
             Instant timestamp,
             int stepIndex,
             boolean success,
-            String summary)
+            String summary,
+            long durationMs)
             implements AgentEvent {
         @Override
         public String eventType() {
@@ -157,6 +159,7 @@ public sealed interface AgentEvent
      * @param result 工具返回结果
      * @param success 是否成功
      * @param error 错误信息
+     * @param executionTimeMs 工具执行耗时（毫秒）
      */
     record ToolResult(
             String traceId,
@@ -166,7 +169,8 @@ public sealed interface AgentEvent
             String toolName,
             Object result,
             boolean success,
-            String error)
+            String error,
+            long executionTimeMs)
             implements AgentEvent {
         @Override
         public String eventType() {
@@ -235,6 +239,7 @@ public sealed interface AgentEvent
      * @param operation 操作名称
      * @param description 操作描述
      * @param riskLevel 风险等级
+     * @param params 操作参数
      */
     record ConfirmationRequired(
             String traceId,
@@ -244,7 +249,8 @@ public sealed interface AgentEvent
             String confirmationId,
             String operation,
             String description,
-            RiskLevel riskLevel)
+            RiskLevel riskLevel,
+            Map<String, Object> params)
             implements AgentEvent {
         @Override
         public String eventType() {
@@ -330,8 +336,14 @@ public sealed interface AgentEvent
 
     /** 创建步骤结束事件 */
     static StepEnd stepEnd(
-            String traceId, int sequenceNumber, int stepIndex, boolean success, String summary) {
-        return new StepEnd(traceId, sequenceNumber, Instant.now(), stepIndex, success, summary);
+            String traceId,
+            int sequenceNumber,
+            int stepIndex,
+            boolean success,
+            String summary,
+            long durationMs) {
+        return new StepEnd(
+                traceId, sequenceNumber, Instant.now(), stepIndex, success, summary, durationMs);
     }
 
     /** 创建思考过程事件 */
@@ -357,7 +369,8 @@ public sealed interface AgentEvent
             String toolName,
             Object result,
             boolean success,
-            String error) {
+            String error,
+            long executionTimeMs) {
         return new ToolResult(
                 traceId,
                 sequenceNumber,
@@ -366,7 +379,8 @@ public sealed interface AgentEvent
                 toolName,
                 result,
                 success,
-                error);
+                error,
+                executionTimeMs);
     }
 
     /** 创建 Agent 委托事件 */
@@ -395,7 +409,8 @@ public sealed interface AgentEvent
             String confirmationId,
             String operation,
             String description,
-            RiskLevel riskLevel) {
+            RiskLevel riskLevel,
+            Map<String, Object> params) {
         return new ConfirmationRequired(
                 traceId,
                 sequenceNumber,
@@ -404,7 +419,8 @@ public sealed interface AgentEvent
                 confirmationId,
                 operation,
                 description,
-                riskLevel);
+                riskLevel,
+                params);
     }
 
     /** 创建执行完成事件 */

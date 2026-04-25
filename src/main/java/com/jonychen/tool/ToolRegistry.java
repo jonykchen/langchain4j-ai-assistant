@@ -110,4 +110,29 @@ public interface ToolRegistry {
      * @return 工具数量
      */
     int size();
+
+    /**
+     * 获取指定工具的统计数据
+     *
+     * @param toolName 工具名称
+     * @return 工具统计信息
+     */
+    ToolStatistics getStatistics(String toolName);
+
+    /**
+     * 获取所有工具的统计数据
+     *
+     * @return 工具统计列表
+     */
+    List<ToolStatistics> getAllStatistics();
+
+    /**
+     * 重置指定工具的统计数据
+     *
+     * @param toolName 工具名称
+     */
+    void resetStatistics(String toolName);
+
+    /** 重置所有工具的统计数据 */
+    void resetAllStatistics();
 }
