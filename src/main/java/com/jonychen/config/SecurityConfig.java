@@ -37,10 +37,13 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    /** 安全过滤器链配置 */
+    /** 安全过滤器链配置（排除 Agent 路径，由 AgentSecurityConfig 处理） */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 排除 Agent 路径（由 AgentSecurityConfig 独立处理）
+                .securityMatcher(request -> !request.getRequestURI().startsWith("/api/agent"))
+
                 // 禁用 CSRF（使用 JWT 无状态认证）
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -99,8 +102,6 @@ public class SecurityConfig {
                                         // 管理员接口（排除 Agent 管理接口，由 AgentSecurityConfig 处理）
                                         .requestMatchers("/api/admin/**")
                                         .hasRole("ADMIN")
-
-                                        // Agent 执行接口由 AgentSecurityConfig 独立处理，此处不再配置
 
                                         // 其他接口需要认证
                                         .anyRequest()
