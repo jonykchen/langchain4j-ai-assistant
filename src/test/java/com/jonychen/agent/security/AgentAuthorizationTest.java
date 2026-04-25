@@ -15,9 +15,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.jonychen.agent.core.AgentMetadata;
-import com.jonychen.agent.core.AgentType;
-import com.jonychen.tool.ToolDefinition;
 import com.jonychen.tool.RiskLevel;
+import com.jonychen.tool.ToolDefinition;
 
 /**
  * Agent 越权安全测试
@@ -38,11 +37,9 @@ import com.jonychen.tool.RiskLevel;
 @ExtendWith(MockitoExtension.class)
 class AgentAuthorizationTest {
 
-    @Mock
-    private Authentication adminAuth;
+    @Mock private Authentication adminAuth;
 
-    @Mock
-    private Authentication userAuth;
+    @Mock private Authentication userAuth;
 
     private AgentPermissionService permissionService;
 
@@ -56,41 +53,32 @@ class AgentAuthorizationTest {
         when(adminAuth.isAuthenticated()).thenReturn(true);
 
         // 配置普通用户
-        when(userAuth.getAuthorities())
-                .thenReturn(Set.of(new SimpleGrantedAuthority("ROLE_USER")));
+        when(userAuth.getAuthorities()).thenReturn(Set.of(new SimpleGrantedAuthority("ROLE_USER")));
         when(userAuth.isAuthenticated()).thenReturn(true);
     }
 
-    /**
-     * 测试 ADMIN 用户可以执行 OpsAgent
-     */
+    /** 测试 ADMIN 用户可以执行 OpsAgent */
     @Test
     @DisplayName("ADMIN 用户可以执行 OpsAgent")
     void testAdminCanExecuteOpsAgent() {
         assertTrue(permissionService.canExecuteAgent(adminAuth, "ops"));
     }
 
-    /**
-     * 测试普通用户不能执行 OpsAgent
-     */
+    /** 测试普通用户不能执行 OpsAgent */
     @Test
     @DisplayName("普通用户不能执行 OpsAgent")
     void testUserCannotExecuteOpsAgent() {
         assertFalse(permissionService.canExecuteAgent(userAuth, "ops"));
     }
 
-    /**
-     * 测试普通用户可以执行 DataAgent
-     */
+    /** 测试普通用户可以执行 DataAgent */
     @Test
     @DisplayName("普通用户可以执行 DataAgent")
     void testUserCanExecuteDataAgent() {
         assertTrue(permissionService.canExecuteAgent(userAuth, "data"));
     }
 
-    /**
-     * 测试 CRITICAL 级别工具需要确认（ADMIN 也不例外）
-     */
+    /** 测试 CRITICAL 级别工具需要确认（ADMIN 也不例外） */
     @Test
     @DisplayName("CRITICAL 级别工具即使 ADMIN 也需要确认")
     void testCriticalToolRequiresConfirmationEvenForAdmin() {
@@ -102,9 +90,7 @@ class AgentAuthorizationTest {
         assertTrue(permissionService.requiresConfirmation(adminAuth, criticalTool));
     }
 
-    /**
-     * 测试 HIGH 级别工具 ADMIN 可以豁免确认
-     */
+    /** 测试 HIGH 级别工具 ADMIN 可以豁免确认 */
     @Test
     @DisplayName("HIGH 级别工具 ADMIN 可以豁免确认")
     void testHighToolCanBeWaivedForAdmin() {
@@ -116,9 +102,7 @@ class AgentAuthorizationTest {
         assertFalse(permissionService.requiresConfirmationForAdmin(highTool));
     }
 
-    /**
-     * 测试 HIGH 级别工具普通用户必须确认
-     */
+    /** 测试 HIGH 级别工具普通用户必须确认 */
     @Test
     @DisplayName("HIGH 级别工具普通用户必须确认")
     void testHighToolRequiresConfirmationForUser() {
@@ -130,27 +114,21 @@ class AgentAuthorizationTest {
         assertTrue(permissionService.requiresConfirmation(userAuth, highTool));
     }
 
-    /**
-     * 测试工具权限校验 - ADMIN 拥有 model:write 权限
-     */
+    /** 测试工具权限校验 - ADMIN 拥有 model:write 权限 */
     @Test
     @DisplayName("ADMIN 拥有 model:write 权限")
     void testAdminHasModelWritePermission() {
         assertTrue(permissionService.hasPermission(adminAuth, AgentPermission.MODEL_WRITE));
     }
 
-    /**
-     * 测试工具权限校验 - 普通用户没有 model:write 权限
-     */
+    /** 测试工具权限校验 - 普通用户没有 model:write 权限 */
     @Test
     @DisplayName("普通用户没有 model:write 权限")
     void testUserDoesNotHaveModelWritePermission() {
         assertFalse(permissionService.hasPermission(userAuth, AgentPermission.MODEL_WRITE));
     }
 
-    /**
-     * 测试工具执行权限校验
-     */
+    /** 测试工具执行权限校验 */
     @Test
     @DisplayName("工具权限校验应正确执行")
     void testToolExecutionPermission() {
@@ -165,9 +143,7 @@ class AgentAuthorizationTest {
         assertFalse(permissionService.canExecuteTool(userAuth, tool));
     }
 
-    /**
-     * 测试角色限制校验
-     */
+    /** 测试角色限制校验 */
     @Test
     @DisplayName("角色限制校验应正确执行")
     void testRoleRestriction() {
@@ -182,17 +158,16 @@ class AgentAuthorizationTest {
         assertFalse(permissionService.canExecuteTool(userAuth, adminOnlyTool));
     }
 
-    /**
-     * 测试 Agent 元信息权限要求
-     */
+    /** 测试 Agent 元信息权限要求 */
     @Test
     @DisplayName("Agent 元信息权限校验")
     void testAgentMetadataPermissions() {
         AgentMetadata opsMetadata = AgentMetadata.ops();
 
         // OpsAgent 应该要求 ADMIN 权限
-        assertTrue(opsMetadata.requiredPermissions().contains("ADMIN")
-                || opsMetadata.requiredPermissions().stream()
-                        .anyMatch(p -> p.contains("ops") || p.contains("model")));
+        assertTrue(
+                opsMetadata.requiredPermissions().contains("ADMIN")
+                        || opsMetadata.requiredPermissions().stream()
+                                .anyMatch(p -> p.contains("ops") || p.contains("model")));
     }
 }

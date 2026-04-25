@@ -50,16 +50,15 @@ public class AgentConfig {
     /**
      * 创建 AgentDelegationService Bean
      *
-     * <p>支持 Agent 间委托协作的核心服务。
+     * <p>支持 Agent 间委托协作的核心服务。 使用 @Lazy 延迟注入 AgentRegistry 打破循环依赖。
      *
-     * @param agentRegistry Agent 注册表
+     * @param metricsService 指标服务
      * @return 委托服务实例
      */
     @Bean
-    public AgentDelegationService agentDelegationService(
-            AgentRegistry agentRegistry, AgentMetricsService metricsService) {
+    public AgentDelegationService agentDelegationService(AgentMetricsService metricsService) {
         log.info("[AgentConfig] 创建 AgentDelegationService Bean");
-        return new AgentDelegationService(agentRegistry, metricsService);
+        return new AgentDelegationService(metricsService);
     }
 
     /**

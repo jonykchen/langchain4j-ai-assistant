@@ -16,20 +16,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import com.jonychen.tool.ToolDefinition;
 import com.jonychen.tool.RiskLevel;
+import com.jonychen.tool.ToolDefinition;
 
 @ExtendWith(MockitoExtension.class)
 class AgentPermissionServiceTest {
 
-    @Mock
-    private Authentication adminAuth;
+    @Mock private Authentication adminAuth;
 
-    @Mock
-    private Authentication userAuth;
+    @Mock private Authentication userAuth;
 
-    @Mock
-    private ToolDefinition tool;
+    @Mock private ToolDefinition tool;
 
     private AgentPermissionService permissionService;
 
@@ -43,8 +40,7 @@ class AgentPermissionServiceTest {
         when(adminAuth.isAuthenticated()).thenReturn(true);
 
         // 配置普通用户
-        when(userAuth.getAuthorities())
-                .thenReturn(Set.of(new SimpleGrantedAuthority("ROLE_USER")));
+        when(userAuth.getAuthorities()).thenReturn(Set.of(new SimpleGrantedAuthority("ROLE_USER")));
         when(userAuth.isAuthenticated()).thenReturn(true);
     }
 
@@ -163,14 +159,16 @@ class AgentPermissionServiceTest {
         @DisplayName("ADMIN 拥有所有权限")
         void adminHasAllPermissions() {
             assertTrue(permissionService.hasPermission(adminAuth, AgentPermission.MODEL_WRITE));
-            assertTrue(permissionService.hasPermission(adminAuth, AgentPermission.EXECUTE_CRITICAL));
+            assertTrue(
+                    permissionService.hasPermission(adminAuth, AgentPermission.EXECUTE_CRITICAL));
         }
 
         @Test
         @DisplayName("普通用户只有基本权限")
         void userHasBasicPermissions() {
             assertFalse(permissionService.hasPermission(userAuth, AgentPermission.MODEL_WRITE));
-            assertFalse(permissionService.hasPermission(userAuth, AgentPermission.EXECUTE_CRITICAL));
+            assertFalse(
+                    permissionService.hasPermission(userAuth, AgentPermission.EXECUTE_CRITICAL));
         }
     }
 }

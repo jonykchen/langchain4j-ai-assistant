@@ -22,20 +22,15 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 @ExtendWith(MockitoExtension.class)
 class AgentDelegationServiceTest {
 
-    @Mock
-    private DataAgent dataAgent;
+    @Mock private DataAgent dataAgent;
 
-    @Mock
-    private OpsAgent opsAgent;
+    @Mock private OpsAgent opsAgent;
 
-    @Mock
-    private AgentAuditService auditService;
+    @Mock private AgentAuditService auditService;
 
-    @Mock
-    private AgentMetricsService metricsService;
+    @Mock private AgentMetricsService metricsService;
 
-    @Mock
-    private AgentTraceService traceService;
+    @Mock private AgentTraceService traceService;
 
     private AgentDelegationService delegationService;
 
@@ -45,12 +40,12 @@ class AgentDelegationServiceTest {
         when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
         when(opsAgent.getMetadata()).thenReturn(AgentMetadata.ops());
 
-        delegationService = new AgentDelegationService(
-                Map.of("data", dataAgent, "ops", opsAgent),
-                auditService,
-                metricsService,
-                traceService
-        );
+        delegationService =
+                new AgentDelegationService(
+                        Map.of("data", dataAgent, "ops", opsAgent),
+                        auditService,
+                        metricsService,
+                        traceService);
     }
 
     @Nested
@@ -65,56 +60,66 @@ class AgentDelegationServiceTest {
             when(dataAgent.execute(any(AgentRequest.class), any(AgentContext.class)))
                     .thenReturn(mockResult);
 
-            AgentContext context = new AgentContext(
-                    "trace-1", "sess-1", "user-1",
-                    AgentType.DATA, null,
-                    MessageWindowChatMemory.withMaxMessages(10),
-                    traceService,
-                    AgentRequestOptions.defaults()
-            );
+            AgentContext context =
+                    new AgentContext(
+                            "trace-1",
+                            "sess-1",
+                            "user-1",
+                            AgentType.DATA,
+                            null,
+                            MessageWindowChatMemory.withMaxMessages(10),
+                            traceService,
+                            AgentRequestOptions.defaults());
 
-            AgentResult result = delegationService.delegate(
-                    "source-agent", "data", "查询用户数据", context
-            );
+            AgentResult result =
+                    delegationService.delegate("source-agent", "data", "查询用户数据", context);
 
             assertTrue(result.isSuccess());
-            verify(metricsService).recordDelegation(eq("source-agent"), eq("data"), eq(true), anyInt());
+            verify(metricsService)
+                    .recordDelegation(eq("source-agent"), eq("data"), eq(true), anyInt());
         }
 
         @Test
         @DisplayName("不存在的目标 Agent 应返回失败")
         void shouldReturnFailureForNonExistentTarget() {
-            AgentContext context = new AgentContext(
-                    "trace-1", "sess-1", "user-1",
-                    AgentType.DATA, null,
-                    MessageWindowChatMemory.withMaxMessages(10),
-                    traceService,
-                    AgentRequestOptions.defaults()
-            );
+            AgentContext context =
+                    new AgentContext(
+                            "trace-1",
+                            "sess-1",
+                            "user-1",
+                            AgentType.DATA,
+                            null,
+                            MessageWindowChatMemory.withMaxMessages(10),
+                            traceService,
+                            AgentRequestOptions.defaults());
 
-            AgentResult result = delegationService.delegate(
-                    "source-agent", "nonexistent", "测试", context
-            );
+            AgentResult result =
+                    delegationService.delegate("source-agent", "nonexistent", "测试", context);
 
             assertFalse(result.isSuccess());
-            verify(metricsService).recordDelegation(eq("source-agent"), eq("nonexistent"), eq(false), anyInt());
+            verify(metricsService)
+                    .recordDelegation(eq("source-agent"), eq("nonexistent"), eq(false), anyInt());
         }
 
         @Test
         @DisplayName("委托深度限制应正确检查")
         void shouldCheckDelegationDepthLimit() {
             // 深度超过限制时应拒绝
-            assertDoesNotThrow(() -> {
-                delegationService.checkDelegationDepth(1);
-            });
+            assertDoesNotThrow(
+                    () -> {
+                        delegationService.checkDelegationDepth(1);
+                    });
 
-            assertDoesNotThrow(() -> {
-                delegationService.checkDelegationDepth(2);
-            });
+            assertDoesNotThrow(
+                    () -> {
+                        delegationService.checkDelegationDepth(2);
+                    });
 
-            assertThrows(AgentException.class, () -> {
-                delegationService.checkDelegationDepth(5);
-            });
+            assertThrows(
+                    AgentException.class,
+                    () -> {
+                        delegationService.checkDelegationDepth(5);
+                    });
         }
     }
 
