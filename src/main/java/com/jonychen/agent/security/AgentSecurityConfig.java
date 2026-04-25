@@ -86,9 +86,17 @@ public class AgentSecurityConfig {
                                         .requestMatchers("/api/agent/cancel/**")
                                         .authenticated()
 
+                                        // Agent 前端指标上报 - 所有认证用户可访问
+                                        .requestMatchers("/api/agent/metrics/**")
+                                        .authenticated()
+
                                         // Agent 管理接口 - 仅 ADMIN
                                         .requestMatchers("/api/admin/agent/**")
-                                        .hasRole("ADMIN"))
+                                        .hasRole("ADMIN")
+
+                                        // 其他 Agent 路径需要认证
+                                        .anyRequest()
+                                        .authenticated())
 
                 // 异常处理
                 .exceptionHandling(
