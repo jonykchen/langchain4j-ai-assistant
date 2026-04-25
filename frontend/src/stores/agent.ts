@@ -7,6 +7,7 @@
  *   <li>处理 SSE 事件流（带批量更新）</li>
  *   <li>管理确认操作</li>
  *   <li>状态持久化（sessionStorage，30分钟有效）</li>
+ *   <li>前端可靠性指标上报</li>
  * </ol>
  *
  * <h2>生产级增强</h2>
@@ -15,6 +16,7 @@
  *   <li>事件去重（基于 sequenceNumber）</li>
  *   <li>状态持久化（页面刷新后恢复）</li>
  *   <li>错误分级处理</li>
+ *   <li>可靠性监控（重连/事件间隙/恢复失败）</li>
  * </ul>
  *
  * @author jonychen
@@ -34,6 +36,7 @@ import {
   cancelExecution,
   listAgents
 } from '@/api/agent'
+import { recordStateRestoreFailure } from '@/utils/frontendReliability'
 
 /** 错误类型分级 */
 export type AgentErrorType =
@@ -135,6 +138,10 @@ export const useAgentStore = defineStore('agent', () => {
       if (Date.now() - data.timestamp > STATE_EXPIRE_MS) {
         console.info('[AgentStore] 持久化状态已过期，清理')
         sessionStorage.removeItem(STATE_KEY)
+        // 记录状态恢复失败（过期）
+        if (data.traceId) {
+          recordStateRestoreFailure(data.traceId, 'expired')
+        }
         return false
       }
 
@@ -162,6 +169,8 @@ export const useAgentStore = defineStore('agent', () => {
     } catch (e) {
       console.warn('[AgentStore] 状态恢复失败:', e)
       sessionStorage.removeItem(STATE_KEY)
+      // 记录状态恢复失败（解析错误）
+      recordStateRestoreFailure('unknown', 'parse_error')
       return false
     }
   }
