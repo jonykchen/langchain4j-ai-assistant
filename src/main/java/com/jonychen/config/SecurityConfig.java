@@ -7,6 +7,7 @@ import jakarta.servlet.DispatcherType;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -16,6 +17,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -26,24 +30,31 @@ import com.jonychen.auth.JwtAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
-/** Spring Security 安全配置 */
+/** Spring Security 安全配置（非 Agent 路径） */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
+@Order(2) // 低于 AgentSecurityConfig，确保 Agent 路径由 AgentSecurityConfig 处理
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    /** 安全过滤器链配置（排除 Agent 路径，由 AgentSecurityConfig 处理） */
+    /** 安全过滤器链配置（排除 Agent 路径） */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 排除 Agent 路径（由 AgentSecurityConfig 独立处理）
-                .securityMatcher(request -> !request.getRequestURI().startsWith("/api/agent"))
+        // 创建匹配器：排除 /api/agent/** 和 /api/admin/agent/**
+        var agentMatcher =
+                new OrRequestMatcher(
+                        new AntPathRequestMatcher("/api/agent/**"),
+                        new AntPathRequestMatcher("/api/admin/agent/**"));
+        var nonAgentMatcher = new NegatedRequestMatcher(agentMatcher);
 
+        http
+                // 仅处理非 Agent 路径（Agent 路径由 AgentSecurityConfig 处理）
+                .securityMatcher(nonAgentMatcher)
                 // 禁用 CSRF（使用 JWT 无状态认证）
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -99,7 +110,7 @@ public class SecurityConfig {
                                                 "/openapi.yml")
                                         .permitAll()
 
-                                        // 管理员接口（排除 Agent 管理接口，由 AgentSecurityConfig 处理）
+                                        // 管理员接口
                                         .requestMatchers("/api/admin/**")
                                         .hasRole("ADMIN")
 
