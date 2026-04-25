@@ -37,6 +37,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String uri = request.getRequestURI();
+        log.info("[JwtAuthenticationFilter] 处理请求: {}, Authorization: {}",
+            uri, request.getHeader("Authorization") != null ? "存在" : "不存在");
+
         // 1. 从请求头中提取 Token
         String token = resolveToken(request);
 
@@ -44,6 +48,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
             String userId = jwtTokenProvider.getUserIdFromToken(token);
             String role = jwtTokenProvider.getRoleFromToken(token);
+
+            log.info("[JwtAuthenticationFilter] Token 验证成功, userId={}, role={}", userId, role);
 
             if (userId != null && role != null) {
                 // 创建认证对象
@@ -56,8 +62,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 设置到安全上下文
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.trace("JWT 认证成功, userId={}, role={}", userId, role);
+                log.debug("[JwtAuthenticationFilter] 认证成功, userId={}, role={}", userId, role);
             }
+        } else {
+            log.warn("[JwtAuthenticationFilter] Token 无效或不存在, uri={}", uri);
         }
 
         // 3. 继续过滤器链

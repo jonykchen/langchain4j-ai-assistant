@@ -125,7 +125,13 @@ public class AgentSecurityConfig {
     @Bean
     public CorsConfigurationSource agentCorsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // 明确指定允许的源，包含前端和后端实际使用的端口
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:5173",   // Vite 默认端口（开发环境）
+                "http://localhost:8082",   // Spring Boot 后端端口
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:8082"
+        ));
         configuration.setAllowedMethods(
                 Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
