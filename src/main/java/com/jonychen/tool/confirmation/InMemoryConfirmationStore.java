@@ -10,9 +10,6 @@ import java.util.concurrent.TimeUnit;
 
 import jakarta.annotation.PreDestroy;
 
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -26,13 +23,13 @@ import lombok.extern.slf4j.Slf4j;
  *   <li>线程安全
  * </ul>
  *
- * <p>注意：生产环境请使用 Redis 实现（{@link ToolConfirmationManager} 中的 Redis 操作）
+ * <p>注意：生产环境请使用 Redis 实现（{@link RedisConfirmationStore}）
+ *
+ * <p>Bean 创建由 {@link com.jonychen.tool.config.ConfirmationStoreConfig} 管理。
  *
  * @author jonychen
  */
 @Slf4j
-@Component
-@Profile({"test", "dev"})
 public class InMemoryConfirmationStore implements ConfirmationStore {
 
     private final ConcurrentHashMap<String, CacheEntry> cache = new ConcurrentHashMap<>();

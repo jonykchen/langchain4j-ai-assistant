@@ -96,13 +96,11 @@ public class SecurityConfig {
                                                 "/openapi.yml")
                                         .permitAll()
 
-                                        // 管理员接口
+                                        // 管理员接口（排除 Agent 管理接口，由 AgentSecurityConfig 处理）
                                         .requestMatchers("/api/admin/**")
                                         .hasRole("ADMIN")
 
-                                        // Agent 执行接口（需要认证）
-                                        .requestMatchers("/api/agent/**")
-                                        .authenticated()
+                                        // Agent 执行接口由 AgentSecurityConfig 独立处理，此处不再配置
 
                                         // 其他接口需要认证
                                         .anyRequest()
