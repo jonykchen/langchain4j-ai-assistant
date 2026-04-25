@@ -59,7 +59,14 @@ public class ObservabilityController {
             @RequestParam(required = false) String agentType,
             @RequestParam(defaultValue = "50") int limit) {
 
-        List<AgentTrace> traces = traceService.queryTraces(userId, status, agentType, limit);
+        // 将空字符串转换为 null，避免 JPA 查询空字符串无法匹配 NULL 的问题
+        String normalizedUserId = (userId == null || userId.isBlank()) ? null : userId;
+        String normalizedStatus = (status == null || status.isBlank()) ? null : status;
+        String normalizedAgentType = (agentType == null || agentType.isBlank()) ? null : agentType;
+
+        List<AgentTrace> traces =
+                traceService.queryTraces(
+                        normalizedUserId, normalizedStatus, normalizedAgentType, limit);
         List<AgentTraceVO> vos = traces.stream().map(AgentTraceVO::from).toList();
         return ApiResponse.success(vos);
     }
@@ -82,7 +89,8 @@ public class ObservabilityController {
     @GetMapping("/traces/active")
     public ApiResponse<List<AgentTraceVO>> getActiveTraces(
             @RequestParam(required = false) String userId) {
-        List<AgentTrace> traces = traceService.getActiveTraces(userId);
+        String normalizedUserId = (userId == null || userId.isBlank()) ? null : userId;
+        List<AgentTrace> traces = traceService.getActiveTraces(normalizedUserId);
         List<AgentTraceVO> vos = traces.stream().map(AgentTraceVO::from).toList();
         return ApiResponse.success(vos);
     }
