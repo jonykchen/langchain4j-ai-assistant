@@ -9,19 +9,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Agent 编排器
+ * Planning 编排器
  *
- * <p>根据任务类型选择合适的 Agent 执行
+ * <p>根据任务类型选择合适的 Agent 执行（ReAct, Plan-Execute, Simple）
+ *
+ * <p>注意：这是 planning 包的编排器，用于任务规划系统。
+ * 多 Agent 系统请使用 {@link com.jonychen.agent.core.AgentOrchestrator}。
  *
  * @author jonychen
- * @deprecated 已迁移到 {@link com.jonychen.agent.core.AgentOrchestrator}， 新代码应使用 agent/core 包下的实现。
- *     此类仅为向后兼容 PlanningController 保留。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Deprecated
-public class AgentOrchestrator {
+public class PlanningOrchestrator {
 
     private final ReActAgent reActAgent;
     private final PlanExecuteAgent planExecuteAgent;
