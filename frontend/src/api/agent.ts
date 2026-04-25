@@ -1,11 +1,14 @@
 /**
- * Agent API 模块
+ * Agent API 模块（生产级 SSE 客户端）
  *
- * 提供 Agent 执行相关的 API 调用：
- * - executeAgent: SSE 流式执行
- * - confirmOperation: 确认敏感操作
- * - cancelExecution: 取消执行
- * - listAgents: 获取可用 Agent 列表
+ * <p>提供 Agent 执行相关的 API 调用，增强能力：
+ * <ol>
+ *   <li>自动重连（指数退避，最多 5 次）</li>
+ *   <li>事件序号检测，去重 + 乱序处理</li>
+ *   <li>心跳超时检测（35s 无事件触发重连）</li>
+ * </ol>
+ *
+ * @author jonychen
  */
 
 import type {
@@ -17,6 +20,14 @@ import type {
 
 const API_BASE = '/api/agent'
 
+/** SSE 连接选项 */
+export interface SSEOptions {
+  /** 重连时的回调，参数为当前重连次数 */
+  onReconnect?: (attempt: number) => void
+  /** 连接成功时的回调 */
+  onConnected?: () => void
+}
+
 /** 从 localStorage 获取认证头 */
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('access_token')
@@ -24,87 +35,212 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 /**
- * 执行 Agent（SSE 流式响应）
+ * 执行 Agent（SSE 流式响应，带自动重连）
+ *
+ * <p>增强功能：
+ * <ul>
+ *   <li>连接断开后自动重连，指数退避（1s, 2s, 4s, 8s, 16s），最多 5 次</li>
+ *   <li>心跳超时检测：35s 无事件触发重连</li>
+ *   <li>事件序号去重：同一 sequenceNumber 的事件只处理一次</li>
+ *   <li>认证错误直接抛出，不重连</li>
+ * </ul>
  *
  * @param request 执行请求
+ * @param options SSE 事件回调
  * @returns AsyncGenerator，每次 yield 一个 AgentEvent
  *
- * 使用方式：
+ * @example
  * for await (const event of executeAgent({ userInput: '检查模型健康状态' })) {
  *   console.log(event.eventType, event)
  * }
  */
-export async function* executeAgent(request: ExecuteRequest): AsyncGenerator<AgentEvent> {
-  const response = await fetch(`${API_BASE}/execute`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
-    },
-    body: JSON.stringify(request)
-  })
+export async function* executeAgent(
+  request: ExecuteRequest,
+  options: SSEOptions = {}
+): AsyncGenerator<AgentEvent> {
+  const token = localStorage.getItem('access_token')
+  let lastSequenceNumber = 0
+  let reconnectCount = 0
+  const MAX_RECONNECT = 5
+  const HEARTBEAT_TIMEOUT_MS = 35000 // 心跳间隔 30s，超时 35s
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+  let isDone = false
+  const processedSequences = new Set<number>()
+
+  /**
+   * 建立 SSE 连接
+   *
+   * <p>认证/授权错误直接抛出，不触发重连。其他错误返回 null 触发重连逻辑。
+   *
+   * @returns ReadableStream reader 或 null（连接失败）
+   */
+  async function connect(): Promise<ReadableStreamDefaultReader<Uint8Array> | null> {
+    try {
+      const response = await fetch(`${API_BASE}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(request)
+      })
+
+      // 认证/授权错误直接抛出，不重连
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`Auth error: ${response.status}`)
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+
+      // 连接成功，重置重连计数
+      if (options.onConnected) options.onConnected()
+      reconnectCount = 0
+
+      return response.body?.getReader() || null
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e)
+      // 认证错误直接抛出，不重连
+      if (errMsg.startsWith('Auth error')) {
+        throw e
+      }
+      // 超过最大重连次数，抛出错误
+      if (reconnectCount >= MAX_RECONNECT) {
+        throw e
+      }
+      // 其他错误返回 null，触发重连
+      console.warn('[AgentAPI] 连接失败，准备重连:', errMsg)
+      return null
+    }
   }
 
-  const reader = response.body?.getReader()
-  if (!reader) {
-    throw new Error('No response body')
-  }
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
+  let heartbeatTimer: number | null = null
 
-  const decoder = new TextDecoder()
-  let buffer = ''
+  /**
+   * 重置心跳计时器
+   *
+   * <p>每次收到数据后重置计时器。如果 35s 内没有收到任何事件，
+   * 则认为连接已断开，取消当前 reader 触发重连。
+   */
+  function resetHeartbeat() {
+    if (heartbeatTimer) window.clearTimeout(heartbeatTimer)
+    heartbeatTimer = window.setTimeout(() => {
+      console.warn('[AgentAPI] 心跳超时，触发重连')
+      reader?.cancel().catch(() => {})
+    }, HEARTBEAT_TIMEOUT_MS)
+  }
 
   try {
-    let currentEvent: string | null = null
-    let currentData: string = ''
+    while (!isDone) {
+      reader = await connect()
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-
-      // 按换行分割
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith('event:')) {
-          // 事件类型行
-          currentEvent = line.slice(6).trim()
-        } else if (line.startsWith('data:')) {
-          // 数据行
-          const dataContent = line.slice(5)
-          currentData += (currentData ? '\n' : '') + (dataContent.startsWith(' ') ? dataContent.slice(1) : dataContent)
-        } else if (line === '' && currentEvent && currentData) {
-          // 空行表示事件结束
-          try {
-            const parsed = JSON.parse(currentData) as AgentEvent
-            yield parsed
-          } catch (e) {
-            console.warn('[AgentAPI] JSON 解析失败:', currentData, e)
-          }
-          // 重置
-          currentEvent = null
-          currentData = ''
-        }
+      if (!reader) {
+        // 连接失败，等待指数退避后重连
+        reconnectCount++
+        if (options.onReconnect) options.onReconnect(reconnectCount)
+        const delay = Math.min(1000 * Math.pow(2, reconnectCount - 1), 30000)
+        console.info(`[AgentAPI] 第 ${reconnectCount}/${MAX_RECONNECT} 次重连，${delay}ms 后重试`)
+        await new Promise(r => setTimeout(r, delay))
+        continue
       }
-    }
 
-    // 处理剩余数据
-    if (currentEvent && currentData) {
+      resetHeartbeat()
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let currentEvent = ''
+      let currentData = ''
+
       try {
-        const parsed = JSON.parse(currentData) as AgentEvent
-        yield parsed
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          // 收到数据，重置心跳
+          resetHeartbeat()
+
+          buffer += decoder.decode(value, { stream: true })
+
+          // 按换行分割
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              currentEvent = line.slice(6).trim()
+            } else if (line.startsWith('data:')) {
+              const dataContent = line.slice(5)
+              currentData += (currentData ? '\n' : '') + (dataContent.startsWith(' ') ? dataContent.slice(1) : dataContent)
+            } else if (line === '' && currentEvent && currentData) {
+              // 空行表示事件结束
+
+              // 检查是否是 SSE 结束标记
+              if (currentEvent === 'done' && currentData === '[DONE]') {
+                isDone = true
+                return
+              }
+
+              try {
+                const parsed = JSON.parse(currentData)
+                const event: AgentEvent = {
+                  eventType: currentEvent as AgentEvent['eventType'],
+                  ...parsed,
+                }
+
+                // 事件序号检测 + 去重
+                if (event.sequenceNumber !== undefined && event.sequenceNumber !== null) {
+                  if (processedSequences.has(event.sequenceNumber)) {
+                    // 重复事件，跳过
+                    console.debug(`[AgentAPI] 跳过重复事件: seq=${event.sequenceNumber}, type=${event.eventType}`)
+                    currentEvent = ''
+                    currentData = ''
+                    continue
+                  }
+
+                  // 检测事件间隔（乱序或丢包）
+                  if (event.sequenceNumber > lastSequenceNumber + 1) {
+                    console.warn(
+                      `[AgentAPI] SSE event gap: expected ${lastSequenceNumber + 1}, got ${event.sequenceNumber}`
+                    )
+                  }
+
+                  processedSequences.add(event.sequenceNumber)
+                  lastSequenceNumber = event.sequenceNumber
+                }
+
+                yield event
+              } catch (e) {
+                console.warn('[AgentAPI] JSON 解析失败:', currentData, e)
+                // 解析错误不中断，继续消费后续事件
+              }
+
+              currentEvent = ''
+              currentData = ''
+            }
+          }
+        }
       } catch (e) {
-        console.warn('[AgentAPI] JSON 解析失败:', currentData, e)
+        // 读取异常，尝试重连
+        if (!isDone && reconnectCount < MAX_RECONNECT) {
+          reconnectCount++
+          if (options.onReconnect) options.onReconnect(reconnectCount)
+          const delay = Math.min(1000 * Math.pow(2, reconnectCount - 1), 30000)
+          console.warn(`[AgentAPI] 读取异常，${delay}ms 后重连:`, e)
+          await new Promise(r => setTimeout(r, delay))
+          continue
+        }
+        throw e
+      } finally {
+        reader?.releaseLock()
       }
     }
   } finally {
-    reader.releaseLock()
+    // 清理心跳计时器
+    if (heartbeatTimer) window.clearTimeout(heartbeatTimer)
   }
 }
 

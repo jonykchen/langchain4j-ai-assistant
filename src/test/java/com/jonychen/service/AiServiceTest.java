@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.jonychen.admin.service.TokenUsageService;
 import com.jonychen.exception.BusinessException;
+import com.jonychen.metrics.BusinessMetricsService;
 import com.jonychen.model.ErrorCode;
 import com.jonychen.model.LoadBalancedChatModel;
 import com.jonychen.model.LoadBalancedStreamingChatModel;
@@ -31,11 +32,15 @@ class AiServiceTest {
 
     @Mock private TokenUsageService tokenUsageService;
 
+    @Mock private BusinessMetricsService businessMetricsService;
+
     private AiService aiService;
 
     @BeforeEach
     void setUp() {
-        aiService = new AiService(chatModel, streamingChatModel, tokenUsageService);
+        aiService =
+                new AiService(
+                        chatModel, streamingChatModel, tokenUsageService, businessMetricsService);
     }
 
     @Test
