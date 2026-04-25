@@ -6,14 +6,18 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jonychen.agent.core.AbstractAgent;
+import com.jonychen.agent.core.AgentAuditService;
 import com.jonychen.agent.core.AgentContext;
+import com.jonychen.agent.core.AgentDelegationService;
 import com.jonychen.agent.core.AgentExecutor;
 import com.jonychen.agent.core.AgentMetadata;
+import com.jonychen.agent.core.AgentMetricsService;
 import com.jonychen.agent.core.AgentRequest;
 import com.jonychen.agent.core.ToolCallRequest;
 import com.jonychen.observability.trace.AgentTraceService;
@@ -66,6 +70,39 @@ public class OpsAgent extends AbstractAgent {
         this.modelStateTools = modelStateTools;
         this.circuitBreakerTools = circuitBreakerTools;
         this.tokenUsageTools = tokenUsageTools;
+    }
+
+    /**
+     * 注入委托服务（延迟注入，避免循环依赖）
+     *
+     * @param delegationService 委托服务
+     */
+    @Autowired
+    public void setDelegationService(AgentDelegationService delegationService) {
+        super.setDelegationService(delegationService);
+        log.info("[OpsAgent] 委托服务注入成功");
+    }
+
+    /**
+     * 注入审计服务（延迟注入，避免循环依赖）
+     *
+     * @param auditService 审计服务
+     */
+    @Autowired
+    public void setAuditService(AgentAuditService auditService) {
+        super.setAuditService(auditService);
+        log.info("[OpsAgent] 审计服务注入成功");
+    }
+
+    /**
+     * 注入指标服务（延迟注入，避免循环依赖）
+     *
+     * @param metricsService 指标服务
+     */
+    @Autowired
+    public void setMetricsService(AgentMetricsService metricsService) {
+        super.setMetricsService(metricsService);
+        log.info("[OpsAgent] 指标服务注入成功");
     }
 
     @Override

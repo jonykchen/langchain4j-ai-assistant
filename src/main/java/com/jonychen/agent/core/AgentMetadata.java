@@ -74,4 +74,49 @@ public record AgentMetadata(
                 Duration.ofMinutes(2),
                 true);
     }
+
+    /** 创建 Prompt 工程 Agent 元信息 */
+    public static AgentMetadata prompt() {
+        return new AgentMetadata(
+                "prompt",
+                AgentType.PROMPT,
+                "Prompt 工程助手",
+                "Prompt 版本管理、优化、A/B 测试",
+                "1.0.0",
+                Set.of("prompt:read", "prompt:write"),
+                Set.of("ADMIN"),
+                10,
+                Duration.ofMinutes(5),
+                true);
+    }
+
+    /** 创建测试生成 Agent 元信息 */
+    public static AgentMetadata test() {
+        return new AgentMetadata(
+                "test",
+                AgentType.TEST,
+                "测试生成助手",
+                "单元/集成/E2E 测试生成与执行",
+                "1.0.0",
+                Set.of("test:generate", "test:execute"),
+                Set.of("ADMIN"),
+                10,
+                Duration.ofMinutes(5),
+                true);
+    }
+
+    /** 创建路由 Agent 元信息 */
+    public static AgentMetadata router() {
+        return new AgentMetadata(
+                "router",
+                AgentType.ROUTER,
+                "智能路由",
+                "分析意图，选择最合适的 Agent",
+                "1.0.0",
+                Set.of("routing"),
+                Set.of(),
+                3,
+                Duration.ofSeconds(30),
+                true);
+    }
 }

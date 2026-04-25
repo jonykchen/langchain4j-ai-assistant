@@ -45,7 +45,9 @@
       "Bash(grep -E \"^[A-Z_]+$\")",
       "Bash(unzip -p ~/.m2/repository/io/github/resilience4j/resilience4j-circuitbreaker/2.2.0/resilience4j-circuitbreaker-2.2.0-sources.jar io/github/resilience4j/circuitbreaker/CircuitBreaker.java)",
       "Bash(unzip -p ~/.m2/repository/dev/langchain4j/langchain4j-core/1.13.0/langchain4j-core-1.13.0-sources.jar dev/langchain4j/service/tool/ToolExecutor.java)",
-      "Bash(unzip *)"
+      "Bash(unzip *)",
+      "Bash(grep -v '\\\\$')",
+      "Bash(javac *)"
     ]
   }
 }
