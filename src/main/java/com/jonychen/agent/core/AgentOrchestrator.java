@@ -1,6 +1,7 @@
 package com.jonychen.agent.core;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -216,7 +217,8 @@ public class AgentOrchestrator {
                                         "routing_confirm",
                                         "路由选择",
                                         confirmationMessage,
-                                        com.jonychen.tool.RiskLevel.LOW));
+                                        com.jonychen.tool.RiskLevel.LOW,
+                                        Map.of("targetAgent", routingDecision.targetAgent())));
 
                         // 审计：确认请求
                         auditService.recordConfirmationRequired(

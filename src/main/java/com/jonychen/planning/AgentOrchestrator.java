@@ -14,10 +14,13 @@ import lombok.extern.slf4j.Slf4j;
  * <p>根据任务类型选择合适的 Agent 执行
  *
  * @author jonychen
+ * @deprecated 已迁移到 {@link com.jonychen.agent.core.AgentOrchestrator}， 新代码应使用 agent/core 包下的实现。
+ *     此类仅为向后兼容 PlanningController 保留。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Deprecated
 public class AgentOrchestrator {
 
     private final ReActAgent reActAgent;

@@ -2,6 +2,7 @@ package com.jonychen.agent.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,6 +60,9 @@ public abstract class AbstractAgent implements Agent {
     /** 指标服务（可选，用于记录 Prometheus 指标） */
     protected AgentMetricsService metricsService;
 
+    /** Token 追踪服务（可选，用于记录 Token 使用量） */
+    protected TokenUsageTracker tokenUsageTracker;
+
     protected AbstractAgent(
             ChatModel chatModel, ToolRegistry toolRegistry, AgentTraceService traceService) {
         this.chatModel = chatModel;
@@ -91,6 +95,15 @@ public abstract class AbstractAgent implements Agent {
      */
     public void setMetricsService(AgentMetricsService metricsService) {
         this.metricsService = metricsService;
+    }
+
+    /**
+     * 设置 Token 追踪服务
+     *
+     * @param tokenUsageTracker Token 追踪服务
+     */
+    public void setTokenUsageTracker(TokenUsageTracker tokenUsageTracker) {
+        this.tokenUsageTracker = tokenUsageTracker;
     }
 
     @Override
@@ -292,7 +305,8 @@ public abstract class AbstractAgent implements Agent {
                                 sequenceCounter.getAndIncrement(),
                                 stepIndex,
                                 stepResult.success(),
-                                stepResult.summary()));
+                                stepResult.summary(),
+                                0L));
 
                 if (stepResult.done()) {
                     // 执行完成
@@ -462,7 +476,8 @@ public abstract class AbstractAgent implements Agent {
                                 toolResult.confirmationId(),
                                 toolCall.name(),
                                 toolResult.confirmationMessage(),
-                                toolResult.riskLevel()));
+                                toolResult.riskLevel(),
+                                toolCall.params() != null ? toolCall.params() : Map.of()));
                 return AgentStepResult.pendingConfirmation(toolResult.confirmationId());
             }
 
@@ -476,7 +491,8 @@ public abstract class AbstractAgent implements Agent {
                             toolCall.name(),
                             toolResult.data(),
                             toolResult.success(),
-                            toolResult.error()));
+                            toolResult.error(),
+                            toolResult.executionTimeMs()));
             log.info(
                     "[{}] 步骤 {} 工具结果: {} success={} duration={}ms",
                     getMetadata().name(),

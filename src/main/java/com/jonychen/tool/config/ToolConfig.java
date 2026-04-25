@@ -8,6 +8,9 @@ import com.jonychen.tool.DefaultToolRegistry;
 import com.jonychen.tool.ToolRegistry;
 import com.jonychen.tool.builtin.CalculatorTools;
 import com.jonychen.tool.builtin.DateTimeTools;
+import com.jonychen.tool.builtin.EvaluationTools;
+import com.jonychen.tool.builtin.SourceCodeTools;
+import com.jonychen.tool.builtin.TestRunnerTools;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,8 +35,17 @@ public class ToolConfig {
     public ToolRegistryInitializer toolRegistryInitializer(
             ToolRegistry toolRegistry,
             DateTimeTools dateTimeTools,
-            CalculatorTools calculatorTools) {
-        return new ToolRegistryInitializer(toolRegistry, dateTimeTools, calculatorTools);
+            CalculatorTools calculatorTools,
+            EvaluationTools evaluationTools,
+            SourceCodeTools sourceCodeTools,
+            TestRunnerTools testRunnerTools) {
+        return new ToolRegistryInitializer(
+                toolRegistry,
+                dateTimeTools,
+                calculatorTools,
+                evaluationTools,
+                sourceCodeTools,
+                testRunnerTools);
     }
 
     /** 工具注册初始化器 */
@@ -42,7 +54,10 @@ public class ToolConfig {
         public ToolRegistryInitializer(
                 ToolRegistry toolRegistry,
                 DateTimeTools dateTimeTools,
-                CalculatorTools calculatorTools) {
+                CalculatorTools calculatorTools,
+                EvaluationTools evaluationTools,
+                SourceCodeTools sourceCodeTools,
+                TestRunnerTools testRunnerTools) {
             log.info("Registering builtin tools...");
 
             // 注册日期时间工具
@@ -50,6 +65,15 @@ public class ToolConfig {
 
             // 注册计算器工具
             toolRegistry.registerAnnotatedTools(calculatorTools);
+
+            // 注册 Prompt 评测工具
+            toolRegistry.registerAnnotatedTools(evaluationTools);
+
+            // 注册源代码工具
+            toolRegistry.registerAnnotatedTools(sourceCodeTools);
+
+            // 注册测试执行工具
+            toolRegistry.registerAnnotatedTools(testRunnerTools);
 
             log.info("Registered {} builtin tools", toolRegistry.size());
         }
