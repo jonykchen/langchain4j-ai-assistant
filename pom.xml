@@ -299,6 +299,15 @@
             <artifactId>jackson-dataformat-csv</artifactId>
         </dependency>
 
+        <!-- ==================== SQL 解析 ==================== -->
+
+        <!-- JSqlParser：SQL AST 解析，用于 DatabaseTools 安全校验 -->
+        <dependency>
+            <groupId>com.github.jsqlparser</groupId>
+            <artifactId>jsqlparser</artifactId>
+            <version>4.9</version>
+        </dependency>
+
         <!-- ==================== 测试依赖 ==================== -->
 
         <!-- Spring Boot Test 启动器：包含 JUnit 5, Mockito, AssertJ 等测试框架 -->

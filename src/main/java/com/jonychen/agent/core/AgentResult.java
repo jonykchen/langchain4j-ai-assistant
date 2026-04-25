@@ -131,6 +131,34 @@ public record AgentResult(
     }
 
     /**
+     * 创建等待确认结果
+     *
+     * <p>路由 Agent 低置信度时使用，返回待确认的路由选择。
+     *
+     * @param traceId 追踪 ID
+     * @param message 确认消息
+     * @param targetAgent 推荐的目标 Agent
+     * @param alternativeAgent 备选 Agent
+     * @param confidencePercent 置信度百分比
+     * @return 等待确认结果
+     */
+    public static AgentResult pendingConfirmation(
+            String traceId,
+            String message,
+            String targetAgent,
+            String alternativeAgent,
+            int confidencePercent) {
+        return new AgentResult(
+                traceId,
+                AgentStatus.PENDING_CONFIRMATION,
+                message,
+                Collections.emptyList(),
+                TokenUsage.empty(),
+                0,
+                null);
+    }
+
+    /**
      * 判断是否执行成功
      *
      * @return 是否成功

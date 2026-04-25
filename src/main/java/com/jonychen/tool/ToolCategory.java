@@ -7,6 +7,7 @@ package com.jonychen.tool;
  */
 public enum ToolCategory {
     SYSTEM("系统工具", "时间、计算器等系统内置工具"),
+    AGENT("Agent 协作", "Agent 间委托和协作"),
     SEARCH("搜索工具", "网络搜索、文档搜索"),
     DATABASE("数据库工具", "查询数据库"),
     FILE("文件工具", "读写文件"),

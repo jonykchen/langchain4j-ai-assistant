@@ -34,6 +34,7 @@ import reactor.core.publisher.FluxSink;
  * <ol>
  *   <li>启动追踪（Trace）
  *   <li>执行循环（LLM 调用 → 工具调用 → 工具结果）
+ *   <li>委托处理（可选：委托给其他 Agent）
  *   <li>超时/取消检查
  *   <li>步骤事件推送
  *   <li>完成
@@ -49,11 +50,47 @@ public abstract class AbstractAgent implements Agent {
     protected final ToolRegistry toolRegistry;
     protected final AgentTraceService traceService;
 
+    /** 委托服务（可选，用于 Agent 间协作） */
+    protected AgentDelegationService delegationService;
+
+    /** 审计服务（可选，用于记录审计日志） */
+    protected AgentAuditService auditService;
+
+    /** 指标服务（可选，用于记录 Prometheus 指标） */
+    protected AgentMetricsService metricsService;
+
     protected AbstractAgent(
             ChatModel chatModel, ToolRegistry toolRegistry, AgentTraceService traceService) {
         this.chatModel = chatModel;
         this.toolRegistry = toolRegistry;
         this.traceService = traceService;
+    }
+
+    /**
+     * 设置委托服务
+     *
+     * @param delegationService 委托服务
+     */
+    public void setDelegationService(AgentDelegationService delegationService) {
+        this.delegationService = delegationService;
+    }
+
+    /**
+     * 设置审计服务
+     *
+     * @param auditService 审计服务
+     */
+    public void setAuditService(AgentAuditService auditService) {
+        this.auditService = auditService;
+    }
+
+    /**
+     * 设置指标服务
+     *
+     * @param metricsService 指标服务
+     */
+    public void setMetricsService(AgentMetricsService metricsService) {
+        this.metricsService = metricsService;
     }
 
     @Override
@@ -404,7 +441,15 @@ public abstract class AbstractAgent implements Agent {
                     toolCall.params());
 
             // 执行工具
-            ToolResult toolResult = executeTool(toolCall, context);
+            ToolResult toolResult;
+
+            // 检查是否是委托工具调用
+            if ("delegate_to_agent".equals(toolCall.name()) && delegationService != null) {
+                toolResult =
+                        executeDelegationTool(toolCall, context, sink, sequenceCounter, stepIndex);
+            } else {
+                toolResult = executeTool(toolCall, context);
+            }
 
             // 处理待确认
             if (toolResult.pending()) {
@@ -454,11 +499,45 @@ public abstract class AbstractAgent implements Agent {
 
     /** 执行工具 */
     protected ToolResult executeTool(ToolCallRequest toolCall, AgentContext context) {
+        long startTime = System.currentTimeMillis();
         try {
-            return toolRegistry.execute(toolCall.name(), toolCall.params());
+            ToolResult result = toolRegistry.execute(toolCall.name(), toolCall.params());
+            long durationMs = System.currentTimeMillis() - startTime;
+            // 审计：工具调用
+            if (auditService != null) {
+                auditService.recordToolCall(
+                        context.getTraceId(),
+                        context.getUserId(),
+                        getMetadata().name(),
+                        toolCall.name(),
+                        toolCall.params(),
+                        result.success(),
+                        durationMs);
+            }
+            // 指标：工具调用
+            if (metricsService != null) {
+                metricsService.recordToolCall(toolCall.name(), result.success(), durationMs);
+            }
+            return result;
         } catch (Exception e) {
+            long durationMs = System.currentTimeMillis() - startTime;
             log.error(
                     "[{}] 工具执行失败: {} - {}", getMetadata().name(), toolCall.name(), e.getMessage());
+            // 审计：工具调用失败
+            if (auditService != null) {
+                auditService.recordToolCall(
+                        context.getTraceId(),
+                        context.getUserId(),
+                        getMetadata().name(),
+                        toolCall.name(),
+                        toolCall.params(),
+                        false,
+                        durationMs);
+            }
+            // 指标：工具调用失败
+            if (metricsService != null) {
+                metricsService.recordToolCall(toolCall.name(), false, durationMs);
+            }
             return ToolResult.failure("工具执行失败: " + e.getMessage());
         }
     }
@@ -468,6 +547,68 @@ public abstract class AbstractAgent implements Agent {
 
     /** 构建系统提示词（子类实现） */
     protected abstract String buildSystemPrompt();
+
+    /**
+     * 执行委托工具
+     *
+     * <p>处理 delegate_to_agent 工具调用，发送 AgentCall/AgentResult 事件。 支持多 Agent 协作场景。
+     *
+     * @param toolCall 工具调用请求
+     * @param context 执行上下文
+     * @param sink 事件接收器
+     * @param sequenceCounter 序列号计数器
+     * @param stepIndex 步骤索引
+     * @return 工具结果
+     */
+    protected ToolResult executeDelegationTool(
+            ToolCallRequest toolCall,
+            AgentContext context,
+            FluxSink<AgentEvent> sink,
+            AtomicInteger sequenceCounter,
+            int stepIndex) {
+
+        String targetAgent = toolCall.getString("targetAgent");
+        String input = toolCall.getString("input");
+
+        log.info(
+                "[{}] 执行委托: targetAgent={}, input={}",
+                getMetadata().name(),
+                targetAgent,
+                truncate(input, 100));
+
+        if (targetAgent == null || targetAgent.isBlank()) {
+            return ToolResult.failure("目标 Agent 名称不能为空");
+        }
+
+        if (input == null || input.isBlank()) {
+            return ToolResult.failure("委托输入内容不能为空");
+        }
+
+        // 审计：Agent 委托
+        if (auditService != null) {
+            auditService.recordAgentDelegation(
+                    context.getTraceId(),
+                    context.getUserId(),
+                    getMetadata().name(),
+                    targetAgent,
+                    input);
+        }
+
+        // 设置源 Agent 名称到上下文
+        context.setVariable("sourceAgentName", getMetadata().name());
+
+        // 调用委托服务
+        AgentDelegationService.DelegationResult result =
+                delegationService.delegate(
+                        targetAgent, input, context, sink, sequenceCounter, stepIndex);
+
+        if (result.success()) {
+            // 委托成功，返回目标 Agent 的输出作为工具结果
+            return ToolResult.success(result.output());
+        } else {
+            return ToolResult.failure("委托失败: " + result.error());
+        }
+    }
 
     @Override
     public List<ToolDefinition> getAvailableTools() {
