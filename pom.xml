@@ -294,6 +294,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- P6Spy：输出完整可执行 SQL（含参数值） -->
+        <dependency>
+            <groupId>p6spy</groupId>
+            <artifactId>p6spy</artifactId>
+            <version>3.9.1</version>
+        </dependency>
+
         <!-- MySQL 数据库驱动 -->
         <dependency>
             <groupId>com.mysql</groupId>
