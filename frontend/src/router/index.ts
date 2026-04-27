@@ -118,9 +118,9 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // 初始化认证状态（首次访问时从 localStorage 恢复）
+  // 初始化认证状态（首次访问时从 localStorage 恢复，含自动刷新过期 Token）
   if (!authStore.token) {
-    authStore.initAuth()
+    await authStore.initAuth()
   }
 
   // 公开页面
