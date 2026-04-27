@@ -12,7 +12,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -36,15 +35,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(
-        name = "agent_audit_logs",
-        schema = "audit",
-        indexes = {
-            @Index(name = "idx_audit_trace", columnList = "traceId"),
-            @Index(name = "idx_audit_user", columnList = "userId"),
-            @Index(name = "idx_audit_type_time", columnList = "eventType, timestamp"),
-            @Index(name = "idx_audit_created", columnList = "createdAt")
-        })
+@Table(name = "agent_audit_logs", schema = "audit")
 public class AgentAuditLog {
 
     @Id
