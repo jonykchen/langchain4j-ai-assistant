@@ -1,7 +1,9 @@
 package com.jonychen.auth;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -26,10 +29,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
 
+    /** 跳过 JWT 验证的公开路径（与 SecurityConfig permitAll 保持一致） */
+    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
+            "/actuator/**",
+            "/auth/**",
+            "/",
+            "/index.html",
+            "/favicon.ico",
+            "/assets/**",
+            "/*.js",
+            "/*.css",
+            "/*.png",
+            "/*.svg",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
+            "/openapi.yml");
+
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
     @Override
-    protected boolean shouldNotFilterAsyncDispatch() {
-        // 异步分发时跳过过滤器，使用初始请求已设置的 SecurityContext
-        return true;
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return EXCLUDED_PATHS.stream().anyMatch(pattern -> pathMatcher.match(pattern, uri));
     }
 
     @Override
