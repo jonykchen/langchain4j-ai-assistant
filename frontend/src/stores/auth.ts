@@ -26,8 +26,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** 是否已认证 */
   const isAuthenticated = computed(() => {
-    return !!token.value && !isTokenExpired()
+    return !!token.value && (!isTokenExpired() || isRefreshing.value)
   })
+
+  /** Token 是否正在刷新 */
+  const isRefreshing = ref(false)
 
   /** 是否是管理员 */
   const isAdmin = computed(() => {
@@ -47,8 +50,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * 初始化认证状态（从 localStorage 恢复）
+   * @returns 是否成功初始化（含刷新结果）
    */
-  function initAuth(): void {
+  async function initAuth(): Promise<boolean> {
     const storedToken = localStorage.getItem('access_token')
     const storedRefreshToken = localStorage.getItem('refresh_token')
     const storedExpiry = localStorage.getItem('token_expiry')
@@ -67,11 +71,17 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
 
-      // 如果 Token 快过期，尝试刷新
+      // 如果 Token 快过期，尝试刷新并等待完成
       if (isTokenExpired() && storedRefreshToken) {
-        refreshAccessToken()
+        return await refreshAccessToken()
       }
+
+      // Token 未过期，直接返回已认证
+      return true
     }
+
+    // 无存储的 Token
+    return false
   }
 
   /**
@@ -141,6 +151,10 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
 
+    // 防止并发刷新
+    if (isRefreshing.value) return true
+
+    isRefreshing.value = true
     try {
       const data = await authApi.refreshToken({ refreshToken: refreshToken.value })
 
@@ -159,6 +173,8 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       clearAuth()
       return false
+    } finally {
+      isRefreshing.value = false
     }
   }
 

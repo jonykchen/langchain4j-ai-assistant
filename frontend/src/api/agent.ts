@@ -21,9 +21,10 @@ import type {
 import {
   recordReconnect,
   recordEventGap,
-  recordStateRestoreFailure,
   startMetricsReporting
 } from '@/utils/frontendReliability'
+import http from '@/utils/http'
+import { useAuthStore } from '@/stores/auth'
 
 // 启动指标上报
 startMetricsReporting()
@@ -36,12 +37,6 @@ export interface SSEOptions {
   onReconnect?: (attempt: number) => void
   /** 连接成功时的回调 */
   onConnected?: () => void
-}
-
-/** 从 localStorage 获取认证头 */
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('access_token')
-  return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
 
 /**
@@ -68,7 +63,6 @@ export async function* executeAgent(
   request: ExecuteRequest,
   options: SSEOptions = {}
 ): AsyncGenerator<AgentEvent> {
-  const token = localStorage.getItem('access_token')
   let lastSequenceNumber = 0
   let reconnectCount = 0
   const MAX_RECONNECT = 5
@@ -86,18 +80,49 @@ export async function* executeAgent(
    */
   async function connect(): Promise<ReadableStreamDefaultReader<Uint8Array> | null> {
     try {
+      // 每次连接前获取最新 token（可能已被其他请求刷新过）
+      const currentToken = localStorage.getItem('access_token')
       const response = await fetch(`${API_BASE}/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          ...(currentToken ? { 'Authorization': `Bearer ${currentToken}` } : {}),
         },
         body: JSON.stringify(request)
       })
 
-      // 认证/授权错误直接抛出，不重连
-      if (response.status === 401 || response.status === 403) {
+      // 认证错误：尝试刷新 Token 后重试一次
+      if (response.status === 401) {
+        console.warn('[AgentAPI] SSE 连接收到 401，尝试刷新 Token...')
+        const authStore = useAuthStore()
+        const refreshed = await authStore.refreshAccessToken()
+        if (refreshed) {
+          const newToken = localStorage.getItem('access_token')
+          console.info('[AgentAPI] Token 刷新成功，重新建立 SSE 连接')
+          const retryResponse = await fetch(`${API_BASE}/execute`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'text/event-stream',
+              ...(newToken ? { 'Authorization': `Bearer ${newToken}` } : {}),
+            },
+            body: JSON.stringify(request)
+          })
+          if (!retryResponse.ok) {
+            const errorData = await retryResponse.json().catch(() => ({}))
+            throw new Error(errorData.message || `HTTP error! status: ${retryResponse.status}`)
+          }
+          if (options.onConnected) options.onConnected()
+          reconnectCount = 0
+          return retryResponse.body?.getReader() || null
+        }
+        // 刷新失败，抛出认证错误（不触发重连）
+        throw new Error(`Auth error: ${response.status}`)
+      }
+
+      // 授权错误直接抛出，不重连
+      if (response.status === 403) {
         throw new Error(`Auth error: ${response.status}`)
       }
 
@@ -262,57 +287,21 @@ export async function* executeAgent(
  * 确认敏感操作
  */
 export async function confirmOperation(request: ConfirmRequest): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${API_BASE}/confirm`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
-    },
-    body: JSON.stringify(request)
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.post(API_BASE + '/confirm', request)
 }
 
 /**
  * 取消执行
  */
 export async function cancelExecution(traceId: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${API_BASE}/cancel/${traceId}`, {
-    method: 'POST',
-    headers: {
-      ...getAuthHeaders()
-    }
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.post(`${API_BASE}/cancel/${traceId}`)
 }
 
 /**
  * 获取可用 Agent 列表
  */
 export async function listAgents(): Promise<AgentMetadata[]> {
-  const response = await fetch(API_BASE + '/list', {
-    headers: {
-      ...getAuthHeaders()
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.get<AgentMetadata[]>(API_BASE + '/list')
 }
 
 // ==================== 执行历史 API ====================
@@ -387,34 +376,14 @@ export async function getHistory(params: {
   if (params.agentName) query.set('agentName', params.agentName)
   if (params.eventType) query.set('eventType', params.eventType)
 
-  const response = await fetch(`${API_BASE}/history?${query}`, {
-    headers: {
-      ...getAuthHeaders()
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.get<PageResponse<ExecutionHistoryVO>>(`${API_BASE}/history?${query}`)
 }
 
 /**
  * 获取执行详情
  */
 export async function getExecutionDetail(traceId: string): Promise<ExecutionDetailVO> {
-  const response = await fetch(`${API_BASE}/history/${traceId}`, {
-    headers: {
-      ...getAuthHeaders()
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.get<ExecutionDetailVO>(`${API_BASE}/history/${traceId}`)
 }
 
 // ==================== 管理员审计 API ====================
@@ -438,50 +407,19 @@ export async function queryAuditLogs(params: {
   if (params.agentName) query.set('agentName', params.agentName)
   if (params.eventType) query.set('eventType', params.eventType)
 
-  const response = await fetch(`${ADMIN_API_BASE}/logs?${query}`, {
-    headers: {
-      ...getAuthHeaders()
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.get<PageResponse<ExecutionHistoryVO>>(`${ADMIN_API_BASE}/logs?${query}`)
 }
 
 /**
  * 获取审计统计（管理员）
  */
 export async function getAuditStats(hours: number = 24): Promise<AuditStats> {
-  const response = await fetch(`${ADMIN_API_BASE}/stats?hours=${hours}`, {
-    headers: {
-      ...getAuthHeaders()
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.get<AuditStats>(`${ADMIN_API_BASE}/stats?hours=${hours}`)
 }
 
 /**
  * 清理过期日志（管理员）
  */
 export async function cleanupAuditLogs(daysBefore: number = 30): Promise<CleanupResult> {
-  const response = await fetch(`${ADMIN_API_BASE}/cleanup?daysBefore=${daysBefore}`, {
-    method: 'DELETE',
-    headers: {
-      ...getAuthHeaders()
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
+  return http.delete<CleanupResult>(`${ADMIN_API_BASE}/cleanup?daysBefore=${daysBefore}`)
 }
