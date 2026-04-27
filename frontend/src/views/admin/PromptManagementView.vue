@@ -1,7 +1,8 @@
 <template>
-  <div class="prompt-management">
+  <div class="admin-page">
+
     <!-- 顶部操作栏 -->
-    <div class="mb-4 flex justify-between items-center">
+    <div class="filter-bar">
       <el-button type="primary" @click="showCreateDialog">
         <el-icon><Plus /></el-icon>
         创建模板
@@ -24,7 +25,7 @@
         v-for="prompt in promptGroups"
         :key="prompt.name"
         :span="12"
-        class="mb-4"
+        class="card-col"
       >
         <el-card shadow="hover" class="prompt-card">
           <template #header>
@@ -214,6 +215,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Search } from '@element-plus/icons-vue'
 import { observabilityApi, type PromptTemplate } from '@/api/observability'
 
 const prompts = ref<PromptTemplate[]>([])

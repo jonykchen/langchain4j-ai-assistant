@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { testApi, type PerformanceResultSummary } from '@/api/admin'
+import { TrendCharts } from '@element-plus/icons-vue'
+import { testApi, type PerformanceResultSummary, type TestStatsSummary } from '@/api/admin'
 
 const emit = defineEmits<{
-  'stats-update': [stats: any]
+  'stats-update': [stats: Partial<TestStatsSummary>]
 }>()
 
 const loading = ref(false)
@@ -20,13 +21,16 @@ const formatTime = (ms: number) => {
 const summaryStats = computed(() => {
   if (results.value.length === 0) return null
   const latest = results.value[results.value.length - 1]
+  // 添加空值检查，防止 NaN
+  const startTime = latest.startTime ?? 0
+  const endTime = latest.endTime ?? 0
   return {
-    totalRequests: latest.requests,
-    successRate: latest.successRate,
-    avgResponseTime: latest.avgResponseTime,
-    p95ResponseTime: latest.p95ResponseTime,
-    p99ResponseTime: latest.p99ResponseTime,
-    duration: latest.endTime - latest.startTime
+    totalRequests: latest.requests ?? 0,
+    successRate: latest.successRate ?? 0,
+    avgResponseTime: latest.avgResponseTime ?? 0,
+    p95ResponseTime: latest.p95ResponseTime ?? 0,
+    p99ResponseTime: latest.p99ResponseTime ?? 0,
+    duration: endTime > 0 && startTime > 0 ? endTime - startTime : 0
   }
 })
 

@@ -29,7 +29,7 @@ class AuthSimulation extends Simulation {
 
   // Token 刷新场景
   val refreshTokenScenario = scenario("Token Refresh Load Test")
-    .feed(List(Map("token" -> "test-refresh-token")).circular)
+    .feed(csv("test-tokens.csv").circular)
     .exec(
       http("刷新 Token")
         .post("/auth/refresh")
@@ -41,7 +41,7 @@ class AuthSimulation extends Simulation {
 
   // 用户信息查询场景
   val userInfoScenario = scenario("User Info Load Test")
-    .feed(List(Map("token" -> "test-jwt-token")).circular)
+    .feed(csv("test-tokens.csv").circular)
     .exec(
       http("获取用户信息")
         .get("/auth/me")
@@ -62,17 +62,16 @@ class AuthSimulation extends Simulation {
 
   setUp(
     loginScenario.inject(rampUsers(100).during(2.minutes))
-      .protocols(httpProtocol)
-      .assertions(
-        global.responseTime.max.lt(5000),
-        global.responseTime.mean.lt(1000),
-        global.successfulRequests.percent.gt(98)
-      ),
+      .protocols(httpProtocol),
 
     refreshTokenScenario.inject(rampUsers(50).during(1.minute))
       .protocols(httpProtocol),
 
     userInfoScenario.inject(constantUsersPerSec(20).during(1.minute))
       .protocols(httpProtocol)
+  ).assertions(
+    global.responseTime.max.lt(5000),
+    global.responseTime.mean.lt(1000),
+    global.successfulRequests.percent.gt(98)
   ).maxDuration(5.minutes)
 }

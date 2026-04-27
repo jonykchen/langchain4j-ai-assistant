@@ -110,7 +110,12 @@ public class UserAdminService {
 
         // 不允许删除管理员
         if (user.getRole() == UserRole.ADMIN) {
-            throw new RuntimeException("Cannot delete admin user");
+            // 检查是否是最后一个管理员
+            long adminCount = userRepository.countByRole(UserRole.ADMIN);
+            if (adminCount <= 1) {
+                throw new RuntimeException("无法删除最后一个管理员账户");
+            }
+            throw new RuntimeException("不允许删除管理员用户");
         }
 
         userRepository.delete(user);

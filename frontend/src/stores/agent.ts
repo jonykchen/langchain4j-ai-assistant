@@ -52,8 +52,14 @@ export interface AgentError {
   type: AgentErrorType
 }
 
-/** SSE 连接状态 */
-export type ConnectionState = 'connected' | 'disconnected' | 'reconnecting'
+/** SSE 连接状态
+ *
+ * <p>状态流转：
+ * idle → connected → idle（正常流程）
+ * idle → connected → disconnected（异常断线）
+ * idle → connected → reconnecting → connected/disconnected（重连流程）
+ */
+export type ConnectionState = 'idle' | 'connected' | 'disconnected' | 'reconnecting'
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2)
@@ -74,8 +80,8 @@ export const useAgentStore = defineStore('agent', () => {
   /** 是否正在加载 Agent 列表 */
   const isLoadingAgents = ref(false)
 
-  /** SSE 连接状态 */
-  const connectionState = ref<ConnectionState>('disconnected')
+  /** SSE 连接状态（初始为 idle，表示尚未开始执行） */
+  const connectionState = ref<ConnectionState>('idle')
 
   /** 当前重连次数 */
   const reconnectAttempt = ref(0)
@@ -113,7 +119,6 @@ export const useAgentStore = defineStore('agent', () => {
             timestamp: Date.now()
           })
         )
-        console.debug('[AgentStore] 状态已持久化, traceId:', activeTraceId.value)
       } catch (e) {
         console.warn('[AgentStore] 状态持久化失败:', e)
       }
@@ -136,7 +141,6 @@ export const useAgentStore = defineStore('agent', () => {
 
       // 检查是否超时
       if (Date.now() - data.timestamp > STATE_EXPIRE_MS) {
-        console.info('[AgentStore] 持久化状态已过期，清理')
         sessionStorage.removeItem(STATE_KEY)
         // 记录状态恢复失败（过期）
         if (data.traceId) {
@@ -161,7 +165,6 @@ export const useAgentStore = defineStore('agent', () => {
           }))
         }
         executions.value = [exec]
-        console.info('[AgentStore] 状态恢复成功, traceId:', data.traceId)
         return true
       }
 
@@ -180,7 +183,6 @@ export const useAgentStore = defineStore('agent', () => {
    */
   function clearPersistedState() {
     sessionStorage.removeItem(STATE_KEY)
-    console.debug('[AgentStore] 持久化状态已清除')
   }
 
   // 关键状态变更时自动持久化
@@ -223,7 +225,7 @@ export const useAgentStore = defineStore('agent', () => {
     isLoadingAgents.value = true
     try {
       availableAgents.value = await listAgents()
-      console.info('[AgentStore] Agent 列表加载完成, 数量:', availableAgents.value.length)
+      // Agent 列表加载完成
     } catch (e) {
       console.error('[AgentStore] 加载 Agent 列表失败:', e)
     } finally {
@@ -260,8 +262,6 @@ export const useAgentStore = defineStore('agent', () => {
     reconnectAttempt.value = 0
     error.value = null
 
-    console.info('[AgentStore] 开始执行, traceId:', traceId, 'input:', userInput)
-
     // 清理事件缓存
     processedSequences.clear()
     updateBuffer = []
@@ -280,7 +280,6 @@ export const useAgentStore = defineStore('agent', () => {
         onConnected: () => {
           connectionState.value = 'connected'
           reconnectAttempt.value = 0
-          console.info('[AgentStore] SSE 连接成功')
         }
       })
 
@@ -288,15 +287,14 @@ export const useAgentStore = defineStore('agent', () => {
         // 检查执行是否已被取消
         const current = executions.value.find(e => e.traceId === traceId)
         if (!current || current.status === 'cancelled') {
-          console.info('[AgentStore] 执行已取消, traceId:', traceId)
           break
         }
 
         handleEvent(traceId, event)
       }
 
-      // 执行完成
-      connectionState.value = 'disconnected'
+      // 执行完成（正常结束），状态回到 idle
+      connectionState.value = 'idle'
 
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
@@ -310,6 +308,9 @@ export const useAgentStore = defineStore('agent', () => {
       }
 
       error.value = { message: errMsg, type: errType }
+      
+      // 异常断开，标记为 disconnected（非正常结束）
+      connectionState.value = 'disconnected'
 
       updateExecution(traceId, {
         status: 'error',
@@ -480,7 +481,6 @@ export const useAgentStore = defineStore('agent', () => {
           record.tokenUsage = event.tokenUsage
           record.durationMs = event.durationMs
           clearPersistedState()
-          console.info('[AgentStore] 执行完成, 耗时:', event.durationMs, 'ms')
           break
         }
 
@@ -520,8 +520,6 @@ export const useAgentStore = defineStore('agent', () => {
     const record = executions.value.find(e => e.traceId === traceId)
     if (!record?.pendingConfirmation) return
 
-    console.info('[AgentStore] 确认操作, approved:', approved)
-
     try {
       const result = await confirmOperation({
         traceId,
@@ -549,8 +547,6 @@ export const useAgentStore = defineStore('agent', () => {
   async function cancelCurrentExecution(traceId?: string) {
     const targetTraceId = traceId || activeTraceId.value
     if (!targetTraceId) return
-
-    console.info('[AgentStore] 取消执行, traceId:', targetTraceId)
 
     try {
       await cancelExecution(targetTraceId)

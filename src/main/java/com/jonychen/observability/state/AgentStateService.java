@@ -268,7 +268,7 @@ public class AgentStateService {
             int currentStepIndex,
             int totalSteps,
             List<Map<String, Object>> executionHistory) {
-        /** 获取状态中的特定字段 */
+        /** 获取状态中的特定字段（使用 ObjectMapper 安全转换） */
         public <T> T getStateField(String fieldName, Class<T> type) {
             if (internalState == null) {
                 return null;
@@ -277,7 +277,14 @@ public class AgentStateService {
             if (value == null) {
                 return null;
             }
-            return type.cast(value);
+            // 使用 ObjectMapper 进行安全转换，避免 ClassCastException
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                return mapper.convertValue(value, type);
+            } catch (IllegalArgumentException e) {
+                // 转换失败时返回 null
+                return null;
+            }
         }
     }
 

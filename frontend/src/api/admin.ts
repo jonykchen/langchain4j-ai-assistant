@@ -223,8 +223,8 @@ export interface TestComparisonResult {
   diffs: Array<{
     testName: string
     field: string
-    value1: any
-    value2: any
+    value1: unknown
+    value2: unknown
     changed: boolean
     changeDirection: string
   }>
@@ -266,7 +266,12 @@ export interface AIModelTestResultDetail {
   category: string
   score: number
   passed: boolean
-  details: any[]
+  details: Array<{
+    assertion: string
+    passed: boolean
+    expected?: string
+    actual?: string
+  }>
   responseTime: number
   actualOutput: string
   createdAt: string

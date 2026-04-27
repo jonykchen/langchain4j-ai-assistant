@@ -1,14 +1,15 @@
 <template>
-  <div class="test-history">
-    <el-card>
+  <div class="admin-page">
+    <div class="page-header">
+      <div class="header-actions">
+        <el-button type="primary" :icon="Download" @click="showExportDialog = true">导出</el-button>
+        <el-button type="warning" :icon="Delete" @click="showCleanupDialog = true">清理</el-button>
+      </div>
+    </div>
+
+    <el-card class="card-section">
       <template #header>
-        <div class="card-header">
-          <span>测试历史记录</span>
-          <div class="header-actions">
-            <el-button type="primary" :icon="Download" @click="showExportDialog = true">导出</el-button>
-            <el-button type="warning" :icon="Delete" @click="showCleanupDialog = true">清理</el-button>
-          </div>
-        </div>
+        <span>筛选条件</span>
       </template>
 
       <!-- 过滤条件 -->
@@ -250,8 +251,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download, Delete } from '@element-plus/icons-vue'
-import { testApi, type TestJobHistory, type TestResultHistoryQuery, type TestComparisonResult } from '@/api/admin'
+import { testApi, type TestJobHistory, type TestResultHistoryQuery, type TestComparisonResult, type E2ETestResultDetail, type PerformanceTestResultDetail, type AIModelTestResultDetail } from '@/api/admin'
 import TestExportDialog from '@/components/TestExportDialog.vue'
+
+interface JobResults {
+  e2e: E2ETestResultDetail[]
+  performance: PerformanceTestResultDetail[]
+  aiModel: AIModelTestResultDetail[]
+}
 
 const loading = ref(false)
 const jobs = ref<TestJobHistory[]>([])
@@ -280,7 +287,7 @@ const cleanupDays = ref(90)
 // 结果详情
 const showResultsDialog = ref(false)
 const resultsLoading = ref(false)
-const jobResults = ref<any>(null)
+const jobResults = ref<JobResults | null>(null)
 const resultsTab = ref('e2e')
 
 onMounted(() => {
@@ -290,7 +297,7 @@ onMounted(() => {
 async function loadHistory() {
   loading.value = true
   try {
-    const params: any = {
+    const params: Record<string, unknown> = {
       page: (filters.page || 1) - 1,
       size: filters.size || 20
     }
@@ -303,8 +310,9 @@ async function loadHistory() {
     const res = await testApi.getTestJobHistory(params)
     jobs.value = res.data || []
     total.value = res.total || 0
-  } catch (e: any) {
-    ElMessage.error('加载历史记录失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    const error = e instanceof Error ? e.message : '未知错误'
+    ElMessage.error('加载历史记录失败: ' + error)
   } finally {
     loading.value = false
   }
@@ -343,8 +351,9 @@ async function compareJobs() {
       selectedJobs.value[1].id
     )
     showCompareDialog.value = true
-  } catch (e: any) {
-    ElMessage.error('对比失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    const error = e instanceof Error ? e.message : '未知错误'
+    ElMessage.error('对比失败: ' + error)
   }
 }
 
@@ -353,8 +362,9 @@ async function viewJobResults(jobId: string) {
   resultsLoading.value = true
   try {
     jobResults.value = await testApi.getTestJobResults(jobId)
-  } catch (e: any) {
-    ElMessage.error('加载结果失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    const error = e instanceof Error ? e.message : '未知错误'
+    ElMessage.error('加载结果失败: ' + error)
   } finally {
     resultsLoading.value = false
   }
@@ -379,15 +389,16 @@ async function handleCleanup() {
     ElMessage.success(`清理完成，删除了 ${res.deleted} 条记录`)
     showCleanupDialog.value = false
     loadHistory()
-  } catch (e: any) {
-    ElMessage.error('清理失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    const error = e instanceof Error ? e.message : '未知错误'
+    ElMessage.error('清理失败: ' + error)
   }
 }
 
 async function handleExport(params: { type: string; format: string; from?: string; to?: string }) {
   try {
     const blob = await testApi.exportTestResults(params)
-    const url = window.URL.createObjectURL(new Blob([blob as any]))
+    const url = window.URL.createObjectURL(new Blob([blob as BlobPart]))
     const link = document.createElement('a')
     link.href = url
     const ext = params.format === 'excel' ? 'xlsx' : params.format
@@ -396,8 +407,9 @@ async function handleExport(params: { type: string; format: string; from?: strin
     window.URL.revokeObjectURL(url)
     showExportDialog.value = false
     ElMessage.success('导出成功')
-  } catch (e: any) {
-    ElMessage.error('导出失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    const error = e instanceof Error ? e.message : '未知错误'
+    ElMessage.error('导出失败: ' + error)
   }
 }
 
@@ -462,8 +474,8 @@ function getRowClassName({ row }: { row: TestJobHistory }) {
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background: #ecf5ff;
-  border-radius: 4px;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
   margin-bottom: 16px;
 }
 
@@ -478,7 +490,7 @@ function getRowClassName({ row }: { row: TestJobHistory }) {
   gap: 32px;
   margin-top: 16px;
   padding: 16px;
-  background: #f5f7fa;
-  border-radius: 4px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
 }
 </style>

@@ -55,7 +55,7 @@ const exportForm = reactive({
 async function handleExport() {
   exporting.value = true
   try {
-    const params: any = {
+    const params: { type: string; format: string; from?: string; to?: string } = {
       type: exportForm.type,
       format: exportForm.format
     }

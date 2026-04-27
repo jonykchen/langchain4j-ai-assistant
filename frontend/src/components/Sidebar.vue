@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { ElButton, ElDialog, ElInput } from 'element-plus'
-import { Plus, Delete } from '@element-plus/icons-vue'
+import { Plus, Delete, Search, Sunny, Moon } from '@element-plus/icons-vue'
+import { useThemeStore } from '@/stores/theme'
 import type { Conversation } from '@/types'
+
+const themeStore = useThemeStore()
 
 const emit = defineEmits<{
   newChat: []
@@ -11,10 +14,19 @@ const emit = defineEmits<{
   rename: [id: string, title: string]
 }>()
 
-defineProps<{
+const props = defineProps<{
   conversations: Conversation[]
   currentId: string | null
 }>()
+
+// 搜索过滤
+const searchQuery = ref('')
+
+const filteredConversations = computed(() => {
+  if (!searchQuery.value.trim()) return props.conversations
+  const q = searchQuery.value.trim().toLowerCase()
+  return props.conversations.filter(c => c.title.toLowerCase().includes(q))
+})
 
 // 重命名弹窗
 const renameVisible = ref(false)
@@ -55,9 +67,21 @@ function closeRename() {
           新对话
         </ElButton>
       </div>
+
+      <!-- 搜索过滤 -->
+      <div class="sidebar-search">
+        <ElInput
+          v-model="searchQuery"
+          placeholder="搜索对话..."
+          :prefix-icon="Search"
+          clearable
+          size="small"
+        />
+      </div>
+
       <div class="conversation-list">
         <div
-          v-for="conv in conversations"
+          v-for="conv in filteredConversations"
           :key="conv.id"
           class="conversation-item"
           :class="{ active: conv.id === currentId }"
@@ -77,6 +101,22 @@ function closeRename() {
             @click.stop="$emit('delete', conv.id)"
           />
         </div>
+
+        <!-- 空状态 -->
+        <div v-if="filteredConversations.length === 0" class="list-empty">
+          <p v-if="searchQuery">未找到匹配对话</p>
+          <p v-else>暂无对话，点击上方按钮开始</p>
+        </div>
+      </div>
+
+      <!-- 主题切换 -->
+      <div class="sidebar-footer">
+        <el-button text size="small" class="theme-toggle" @click="themeStore.toggle()">
+          <el-icon class="theme-icon">
+            <component :is="themeStore.effectiveTheme === 'dark' ? Sunny : Moon" />
+          </el-icon>
+          <span>{{ themeStore.effectiveTheme === 'dark' ? '浅色模式' : '深色模式' }}</span>
+        </el-button>
       </div>
     </aside>
 
@@ -118,54 +158,83 @@ function closeRename() {
 }
 
 .sidebar {
-  width: 260px;
-  background: #f9fafb;
-  border-right: 1px solid #e5e7eb;
+  width: var(--sidebar-width);
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  height: 100%;
+  padding: var(--space-lg);
+  gap: var(--space-lg);
 }
 
 .sidebar-header {
-  padding: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-shrink: 0;
 }
 
 .sidebar-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #1f2937;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.sidebar-search {
+  flex-shrink: 0;
+}
+
+.sidebar-search :deep(.el-input__wrapper) {
+  background: var(--bg-secondary);
+  box-shadow: none !important;
+  border-radius: var(--radius-lg);
+  padding: 4px 12px;
+}
+
+.sidebar-search :deep(.el-input__inner) {
+  background: transparent;
 }
 
 .conversation-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0 calc(-1 * var(--space-lg));
+  padding: 0 var(--space-lg);
 }
 
 .conversation-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
-  margin-bottom: 4px;
-  border-radius: 8px;
+  padding: 12px var(--space-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  gap: var(--space-sm);
 }
 
 .conversation-item:hover {
-  background: #e5e7eb;
+  background: var(--bg-secondary);
+  border-color: var(--border-light);
 }
 
 .conversation-item.active {
-  background: #dbeafe;
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
 }
 
 .conversation-title {
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -179,9 +248,9 @@ function closeRename() {
   width: 24px;
   height: 24px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #909399;
+  color: var(--text-tertiary);
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.2s;
@@ -193,22 +262,62 @@ function closeRename() {
 }
 
 .rename-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: #333;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .delete-btn {
   opacity: 0;
   transition: opacity 0.2s;
+  flex-shrink: 0;
 }
 
 .conversation-item:hover .delete-btn {
   opacity: 1;
 }
 
+.list-empty {
+  padding: var(--space-2xl) var(--space-md);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-sm);
+}
+
+.sidebar-footer {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.theme-toggle {
+  color: var(--text-secondary);
+  width: 100%;
+  justify-content: flex-start;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.theme-icon {
+  margin-right: 6px;
+}
+
+/* 移动端：侧边栏默认隐藏，通过外部 class 控制 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: var(--sidebar-width);
+  }
 }
 </style>

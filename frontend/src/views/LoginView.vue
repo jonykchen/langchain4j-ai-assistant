@@ -181,7 +181,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, CircleCheckFilled, Message, Phone } from '@element-plus/icons-vue'
+import { User, Lock, CircleCheckFilled, Message, Phone, ChatDotRound } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import type { FormInstance, FormRules } from 'element-plus'
 
@@ -224,8 +224,9 @@ const handleLogin = async () => {
       await authStore.login(loginForm.username, loginForm.password)
       ElMessage.success('登录成功')
       router.push('/')
-    } catch (error: any) {
-      ElMessage.error(error.message || '登录失败，请检查用户名和密码')
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '登录失败，请检查用户名和密码'
+      ElMessage.error(errorMsg)
     } finally {
       isLoggingIn.value = false
     }
@@ -240,9 +241,8 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
 
   try {
     await authStore.redirectToOAuth(provider)
-  } catch (error: any) {
+  } catch {
     ElMessage.error(`${provider === 'github' ? 'GitHub' : 'GitLab'} 登录失败`)
-    console.error('OAuth 登录失败', error)
   } finally {
     loading.value = null
   }
@@ -253,7 +253,7 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
 .login-container {
   min-height: 100vh;
   display: flex;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
 }
 
 /* ===== 左侧品牌区域 ===== */
@@ -361,7 +361,7 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
   min-width: 480px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--bg-primary);
   position: relative;
 }
 
@@ -380,13 +380,13 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
 .form-title {
   font-size: 28px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 8px;
 }
 
 .form-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -397,7 +397,7 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
 
 .login-form :deep(.el-input__wrapper) {
   padding: 4px 15px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .login-form :deep(.el-form-item) {
@@ -413,38 +413,29 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
 
 .forgot-link {
   font-size: 13px;
-  color: #1565c0;
+  color: var(--color-primary);
 }
 
 /* 覆盖 Element Plus 默认颜色以提高对比度 */
 .form-options :deep(.el-link--primary) {
-  color: #1565c0;
+  color: var(--color-primary);
 }
 
 .contact-link {
-  color: #1565c0;
+  color: var(--color-primary);
 }
 
 .form-footer :deep(.el-link--primary) {
-  color: #1565c0;
+  color: var(--color-primary);
 }
 
-/* 覆盖登录按钮颜色以提高对比度 */
-.login-btn {
-  --el-button-bg-color: #1565c0;
-  --el-button-border-color: #1565c0;
-  --el-button-hover-bg-color: #0d47a1;
-  --el-button-hover-border-color: #0d47a1;
-  --el-button-active-bg-color: #0d47a1;
-  --el-button-active-border-color: #0d47a1;
-}
-
+/* 登录按钮 */
 .login-btn {
   width: 100%;
   height: 48px;
   font-size: 16px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 /* ===== 分割线 ===== */
@@ -459,13 +450,13 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
   content: '';
   flex: 1;
   height: 1px;
-  background: #e5e7eb;
+  background: var(--border-color);
 }
 
 .divider-text {
   padding: 0 16px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-tertiary);
 }
 
 /* ===== OAuth 按钮 ===== */
@@ -480,8 +471,8 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -490,8 +481,8 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
 }
 
 .oauth-btn:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
@@ -530,7 +521,7 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
 }
 
 .footer-text {
-  color: #6b7280;
+  color: var(--text-tertiary);
   margin-right: 4px;
 }
 
@@ -538,8 +529,8 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
   padding: 20px;
   text-align: center;
   font-size: 12px;
-  color: #6b7280;
-  border-top: 1px solid #f3f4f6;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border-color);
 }
 
 /* ===== 联系管理员对话框 ===== */
@@ -552,13 +543,13 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
   padding: 12px 0;
 }
 
 .contact-tip {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
@@ -571,6 +562,16 @@ const handleOAuthLogin = async (provider: 'github' | 'gitlab') => {
   .login-form-section {
     width: 100%;
     min-width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-form-wrapper {
+    padding: 48px 40px;
+  }
+
+  .form-title {
+    font-size: 26px;
   }
 }
 

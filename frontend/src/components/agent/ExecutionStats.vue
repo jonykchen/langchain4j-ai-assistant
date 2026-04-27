@@ -146,77 +146,83 @@ function formatNumber(n: number | undefined): string {
 <style scoped>
 .execution-stats {
   display: flex;
-  gap: 16px;
-  padding: 12px 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
+  gap: var(--space-2xl);
+  padding: var(--space-xl) var(--space-2xl);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
   flex-wrap: wrap;
+  border: 1px solid var(--border-light);
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-md);
 }
 
 .stat-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #e4e7ed;
-  color: #606266;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .stat-icon.success {
-  background: #e1f3d8;
-  color: #67c23a;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .stat-icon.error {
-  background: #fde2e2;
-  color: #f56c6c;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
 .stat-icon.tool {
-  background: #d9ecff;
-  color: #409eff;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .stat-icon.time {
-  background: #fdf6ec;
-  color: #e6a23c;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .stat-icon.token {
-  background: #f0e6ff;
+  background: rgba(155, 89, 182, 0.12);
   color: #9b59b6;
+}
+
+[data-theme="dark"] .stat-icon.token {
+  background: rgba(155, 89, 182, 0.2);
 }
 
 .stat-content {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .stat-value {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .stat-value.success {
-  color: #67c23a;
+  color: var(--color-success);
 }
 
 .stat-value.error {
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 
 .stat-label {
   font-size: 11px;
-  color: #909399;
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 2px;
@@ -229,5 +235,9 @@ function formatNumber(n: number | undefined): string {
 
 .tokens .stat-value {
   color: #9b59b6;
+}
+
+[data-theme="dark"] .tokens .stat-value {
+  color: #b37feb;
 }
 </style>

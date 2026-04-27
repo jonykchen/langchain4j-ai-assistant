@@ -1,0 +1,252 @@
+/**
+ * 全局 CSS 变量体系
+ *
+ * 涵盖颜色、布局、间距、阴影、Z-Index 层级。
+ * 通过 data-theme="dark" 可切换暗色模式。
+ */
+
+:root {
+  /* ===== Colors ===== */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f7fa;
+  --bg-tertiary: #f0f2f5;
+  --bg-overlay: rgba(0, 0, 0, 0.45);
+
+  --border-color: #e4e7ed;
+  --border-light: #ebeef5;
+
+  --text-primary: #303133;
+  --text-secondary: #606266;
+  --text-tertiary: #909399;
+  --text-inverse: #ffffff;
+
+  --color-primary: #409eff;
+  --color-primary-light: #ecf5ff;
+  --color-success: #67c23a;
+  --color-success-light: #f0f9eb;
+  --color-warning: #e6a23c;
+  --color-warning-light: #fdf6ec;
+  --color-danger: #f56c6c;
+  --color-danger-light: #fef0f0;
+  --color-info: #909399;
+  --color-info-light: #f4f4f5;
+
+  /* ===== Layout ===== */
+  --sidebar-width: 260px;
+  --sidebar-width-sm: 200px;
+  --header-height: 56px;
+  --footer-height: 64px;
+  --max-content-width: 1200px;
+
+  /* ===== Spacing ===== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+
+  /* ===== Radius ===== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* ===== Shadows ===== */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --shadow-sticky: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  /* Modern Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(64, 158, 255, 0.15);
+  --shadow-focus-error: 0 0 0 3px rgba(245, 108, 108, 0.15);
+  --shadow-button: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-button-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.2);
+
+  /* ===== Typography ===== */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+
+  /* ===== Z-Index Scale ===== */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-drawer: 250;
+  --z-modal-backdrop: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  /* ===== Sidebar ===== */
+  --sidebar-width-collapsed: 64px;
+
+  /* ===== Interactive States ===== */
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 0, 0, 0.08);
+
+  /* ===== Gradients ===== */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-danger: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-brand: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+
+  /* Stats Card Gradients */
+  --gradient-stats-users: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-stats-active: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  --gradient-stats-tokens: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);
+  --gradient-stats-cost: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+  --gradient-stats-requests: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-stats-success: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --gradient-stats-errors: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+
+  /* ===== Animation Duration ===== */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --duration-modal: 300ms;
+
+  /* ===== Animation Easing ===== */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* ===== Glass Effect ===== */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+  /* ===== Skeleton Loading ===== */
+  --skeleton-color: #f0f0f0;
+  --skeleton-highlight: #e0e0e0;
+
+  /* ===== Typography Scale ===== */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 19px;
+  --font-size-2xl: 22px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 36px;
+
+  /* ===== Line Height ===== */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  /* ===== Page Layout ===== */
+  --page-padding: 20px;
+  --card-spacing: 16px;
+  --section-spacing: 20px;
+}
+
+/* ===== Dark Theme ===== */
+[data-theme='dark'] {
+  --bg-primary: #141414;
+  --bg-secondary: #1d1d1d;
+  --bg-tertiary: #262626;
+  --bg-overlay: rgba(0, 0, 0, 0.65);
+
+  --border-color: #434343;
+  --border-light: #303030;
+
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #808080;
+  --text-inverse: #141414;
+
+  --color-primary: #5b8ff9;
+  --color-primary-light: #1f2937;
+  --color-success: #73d13d;
+  --color-success-light: #1d2e1d;
+  --color-warning: #ffc53d;
+  --color-warning-light: #2e2716;
+  --color-danger: #ff7875;
+  --color-danger-light: #2e1d1d;
+  --color-info: #a0a0a0;
+  --color-info-light: #2a2a2a;
+
+  /* Dark shadows use lighter overlays for visibility */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-sticky: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  /* Modern Shadows - Dark */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.4);
+  --shadow-focus: 0 0 0 3px rgba(91, 143, 249, 0.25);
+  --shadow-focus-error: 0 0 0 3px rgba(255, 120, 117, 0.25);
+  --shadow-button: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-button-hover: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+  /* Interactive States - Dark */
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-active: rgba(255, 255, 255, 0.12);
+
+  /* Gradients - Dark (more saturated for visibility) */
+  --gradient-primary: linear-gradient(135deg, #7c8ff8 0%, #9b6dd4 100%);
+  --gradient-success: linear-gradient(135deg, #1aab9f 0%, #4ef78d 100%);
+  --gradient-warning: linear-gradient(135deg, #f5a3fc 0%, #f76b7c 100%);
+  --gradient-danger: linear-gradient(135deg, #ef4454 0%, #f56d53 100%);
+  --gradient-info: linear-gradient(135deg, #5fb8fe 0%, #1af5fe 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+
+  /* Glass Effect - Dark */
+  --glass-bg: rgba(30, 30, 30, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Skeleton Loading - Dark */
+  --skeleton-color: #2a2a2a;
+  --skeleton-highlight: #3a3a3a;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 transparent;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+[data-theme='dark'] * {
+  scrollbar-color: #555 transparent;
+}

@@ -36,6 +36,6 @@ public record ExecutionHistoryVO(
                 status,
                 log.getTimestamp(),
                 log.getClientIp(),
-                log.getDetails());
+                log.getEventData());
     }
 }

@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import jakarta.annotation.PreDestroy;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +56,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TestExecutionService {
 
+    // 线程池用于执行测试任务（避免资源泄漏）
+    private final ExecutorService testExecutor = Executors.newCachedThreadPool();
+
     // 进程跟踪（运行时状态，不需要持久化）
     private final Map<String, Process> runningProcesses = new ConcurrentHashMap<>();
     private final Map<String, TestJobStatus> jobStatusCache = new ConcurrentHashMap<>();
@@ -64,6 +72,23 @@ public class TestExecutionService {
     // 业务服务
     private final AiService aiService;
     private final ResponseQualityEvaluator qualityEvaluator;
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("关闭测试执行线程池...");
+        testExecutor.shutdown();
+        try {
+            if (!testExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
+                testExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            testExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        // 终止所有运行中的进程
+        runningProcesses.values().forEach(Process::destroy);
+        runningProcesses.clear();
+    }
 
     // ==================== 测试执行方法 ====================
 
@@ -89,73 +114,68 @@ public class TestExecutionService {
                 new TestJobStatus(
                         jobId, "running", System.currentTimeMillis(), 0, "Starting E2E tests", 0));
 
-        new Thread(
-                        () -> {
-                            try {
-                                // 不传 --reporter 参数，使用 playwright.config.ts 中配置的 reporters
-                                // config 已配置: html, junit, json, list
-                                ProcessBuilder pb =
-                                        new ProcessBuilder(
-                                                System.getProperty("os.name")
-                                                                .toLowerCase()
-                                                                .contains("win")
-                                                        ? new String[] {
-                                                            "cmd", "/c", "npx", "playwright", "test"
-                                                        }
-                                                        : new String[] {
-                                                            "npx", "playwright", "test"
-                                                        });
-                                pb.directory(new File("frontend"));
-                                pb.redirectErrorStream(true);
+        testExecutor.submit(
+                () -> {
+                    try {
+                        // 不传 --reporter 参数，使用 playwright.config.ts 中配置的 reporters
+                        // config 已配置: html, junit, json, list
+                        ProcessBuilder pb =
+                                new ProcessBuilder(
+                                        System.getProperty("os.name").toLowerCase().contains("win")
+                                                ? new String[] {
+                                                    "cmd", "/c", "npx", "playwright", "test"
+                                                }
+                                                : new String[] {"npx", "playwright", "test"});
+                        pb.directory(new File("frontend"));
+                        pb.redirectErrorStream(true);
 
-                                Process process = pb.start();
-                                runningProcesses.put(jobId, process);
+                        Process process = pb.start();
+                        runningProcesses.put(jobId, process);
 
-                                // 读取输出日志（仅记录，不用于解析）
-                                try (BufferedReader reader =
-                                        new BufferedReader(
-                                                new InputStreamReader(process.getInputStream()))) {
-                                    String line;
-                                    while ((line = reader.readLine()) != null) {
-                                        String cleanLine = stripAnsiCodes(line);
-                                        log.info("[E2E] {}", cleanLine);
-                                    }
-                                }
-
-                                int exitCode = process.waitFor();
-
-                                // 从 JSON 报告文件解析结果
-                                Path jsonReportPath =
-                                        new File("frontend/test-results/report.json").toPath();
-                                List<TestResultSummary> results = parseJsonReport(jsonReportPath);
-
-                                // 如果 JSON 报告解析失败，记录警告
-                                if (results.isEmpty()) {
-                                    log.warn(
-                                            "[E2E] JSON report not found or empty, test may have failed to start");
-                                }
-
-                                // 保存结果到数据库
-                                saveE2EResults(jobId, results);
-
-                                // 更新任务状态
-                                updateJobStatus(
-                                        jobId,
-                                        exitCode == 0 ? "COMPLETED" : "FAILED",
-                                        exitCode == 0
-                                                ? "Tests passed: " + results.size() + " tests"
-                                                : "Tests failed with exit code: " + exitCode,
-                                        100);
-
-                                runningProcesses.remove(jobId);
-
-                            } catch (Exception e) {
-                                log.error("E2E test execution failed", e);
-                                updateJobStatus(jobId, "FAILED", e.getMessage(), 0);
+                        // 读取输出日志（仅记录，不用于解析）
+                        try (BufferedReader reader =
+                                new BufferedReader(
+                                        new InputStreamReader(process.getInputStream()))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                String cleanLine = stripAnsiCodes(line);
+                                log.info("[E2E] {}", cleanLine);
                             }
-                        },
-                        "e2e-test-" + jobId)
-                .start();
+                        }
+
+                        int exitCode = process.waitFor();
+
+                        // 从 JSON 报告文件解析结果
+                        Path jsonReportPath =
+                                new File("frontend/test-results/report.json").toPath();
+                        List<TestResultSummary> results = parseJsonReport(jsonReportPath);
+
+                        // 如果 JSON 报告解析失败，记录警告
+                        if (results.isEmpty()) {
+                            log.warn(
+                                    "[E2E] JSON report not found or empty, test may have failed to start");
+                        }
+
+                        // 保存结果到数据库
+                        saveE2EResults(jobId, results);
+
+                        // 更新任务状态
+                        updateJobStatus(
+                                jobId,
+                                exitCode == 0 ? "COMPLETED" : "FAILED",
+                                exitCode == 0
+                                        ? "Tests passed: " + results.size() + " tests"
+                                        : "Tests failed with exit code: " + exitCode,
+                                100);
+
+                        runningProcesses.remove(jobId);
+
+                    } catch (Exception e) {
+                        log.error("E2E test execution failed", e);
+                        updateJobStatus(jobId, "FAILED", e.getMessage(), 0);
+                        runningProcesses.remove(jobId);
+                    }
+                });
 
         return jobId;
     }
@@ -186,68 +206,65 @@ public class TestExecutionService {
                         "Starting performance test: " + simulation,
                         0));
 
-        new Thread(
-                        () -> {
-                            try {
-                                ProcessBuilder pb =
-                                        new ProcessBuilder(
-                                                System.getProperty("os.name")
-                                                                .toLowerCase()
-                                                                .contains("win")
-                                                        ? new String[] {
-                                                            "cmd",
-                                                            "/c",
-                                                            "mvn",
-                                                            "gatling:test",
-                                                            "-Dgatling.simulationClass=gatling.simulations."
-                                                                    + simulation
-                                                        }
-                                                        : new String[] {
-                                                            "mvn",
-                                                            "gatling:test",
-                                                            "-Dgatling.simulationClass=gatling.simulations."
-                                                                    + simulation
-                                                        });
-                                pb.redirectErrorStream(true);
+        testExecutor.submit(
+                () -> {
+                    try {
+                        ProcessBuilder pb =
+                                new ProcessBuilder(
+                                        System.getProperty("os.name").toLowerCase().contains("win")
+                                                ? new String[] {
+                                                    "cmd",
+                                                    "/c",
+                                                    "mvn",
+                                                    "gatling:test",
+                                                    "-Dgatling.simulationClass=gatling.simulations."
+                                                            + simulation
+                                                }
+                                                : new String[] {
+                                                    "mvn",
+                                                    "gatling:test",
+                                                    "-Dgatling.simulationClass=gatling.simulations."
+                                                            + simulation
+                                                });
+                        pb.redirectErrorStream(true);
 
-                                Process process = pb.start();
-                                runningProcesses.put(jobId, process);
+                        Process process = pb.start();
+                        runningProcesses.put(jobId, process);
 
-                                try (BufferedReader reader =
-                                        new BufferedReader(
-                                                new InputStreamReader(process.getInputStream()))) {
-                                    String line;
-                                    while ((line = reader.readLine()) != null) {
-                                        // 剥离 ANSI 转义码
-                                        String cleanLine = stripAnsiCodes(line);
-                                        log.info("[Gatling] {}", cleanLine);
-                                    }
-                                }
-
-                                int exitCode = process.waitFor();
-
-                                // 解析并保存结果
-                                PerformanceResultSummary result =
-                                        parsePerformanceResults(simulation);
-                                savePerformanceResult(jobId, result);
-
-                                updateJobStatus(
-                                        jobId,
-                                        exitCode == 0 ? "COMPLETED" : "FAILED",
-                                        exitCode == 0
-                                                ? "Performance test completed"
-                                                : "Performance test failed",
-                                        100);
-
-                                runningProcesses.remove(jobId);
-
-                            } catch (Exception e) {
-                                log.error("Performance test execution failed", e);
-                                updateJobStatus(jobId, "FAILED", e.getMessage(), 0);
+                        try (BufferedReader reader =
+                                new BufferedReader(
+                                        new InputStreamReader(process.getInputStream()))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                // 剥离 ANSI 转义码
+                                String cleanLine = stripAnsiCodes(line);
+                                log.info("[Gatling] {}", cleanLine);
                             }
-                        },
-                        "perf-test-" + jobId)
-                .start();
+                        }
+
+                        int exitCode = process.waitFor();
+
+                        // 解析并保存结果
+                        PerformanceResultSummary result =
+                                parsePerformanceResults(simulation, jobId);
+                        savePerformanceResult(jobId, result);
+
+                        updateJobStatus(
+                                jobId,
+                                exitCode == 0 ? "COMPLETED" : "FAILED",
+                                exitCode == 0
+                                        ? "Performance test completed"
+                                        : "Performance test failed",
+                                100);
+
+                        runningProcesses.remove(jobId);
+
+                    } catch (Exception e) {
+                        log.error("Performance test execution failed", e);
+                        updateJobStatus(jobId, "FAILED", e.getMessage(), 0);
+                        runningProcesses.remove(jobId);
+                    }
+                });
 
         return jobId;
     }
@@ -278,27 +295,25 @@ public class TestExecutionService {
                         "Starting AI model tests",
                         0));
 
-        new Thread(
-                        () -> {
-                            try {
-                                List<AIModelTestSummary> results = runAITests(category);
+        testExecutor.submit(
+                () -> {
+                    try {
+                        List<AIModelTestSummary> results = runAITests(category);
 
-                                // 保存结果到数据库
-                                saveAIModelResults(jobId, results);
+                        // 保存结果到数据库
+                        saveAIModelResults(jobId, results);
 
-                                updateJobStatus(
-                                        jobId,
-                                        "COMPLETED",
-                                        "AI model tests completed: " + results.size() + " tests",
-                                        100);
+                        updateJobStatus(
+                                jobId,
+                                "COMPLETED",
+                                "AI model tests completed: " + results.size() + " tests",
+                                100);
 
-                            } catch (Exception e) {
-                                log.error("AI model test execution failed", e);
-                                updateJobStatus(jobId, "FAILED", e.getMessage(), 0);
-                            }
-                        },
-                        "ai-test-" + jobId)
-                .start();
+                    } catch (Exception e) {
+                        log.error("AI model test execution failed", e);
+                        updateJobStatus(jobId, "FAILED", e.getMessage(), 0);
+                    }
+                });
 
         return jobId;
     }
@@ -638,15 +653,98 @@ public class TestExecutionService {
     }
 
     /** 解析性能测试结果 */
-    private PerformanceResultSummary parsePerformanceResults(String simulation) {
+    private PerformanceResultSummary parsePerformanceResults(String simulation, String jobId) {
+        try {
+            // Gatling 结果目录: target/gatling/results/{simulation}-{timestamp}/
+            File gatlingResultsDir = new File("target/gatling/results");
+            if (!gatlingResultsDir.exists() || !gatlingResultsDir.isDirectory()) {
+                log.warn("[Gatling] 结果目录不存在: {}", gatlingResultsDir.getAbsolutePath());
+                return createDefaultPerformanceResult(simulation);
+            }
+
+            // 查找最新的结果目录
+            File[] simulationDirs = gatlingResultsDir.listFiles(File::isDirectory);
+            if (simulationDirs == null || simulationDirs.length == 0) {
+                log.warn("[Gatling] 未找到测试结果目录");
+                return createDefaultPerformanceResult(simulation);
+            }
+
+            // 按 modification time 排序，取最新的
+            File latestDir = null;
+            long latestTime = 0;
+            for (File dir : simulationDirs) {
+                if (dir.lastModified() > latestTime) {
+                    latestTime = dir.lastModified();
+                    latestDir = dir;
+                }
+            }
+
+            if (latestDir == null) {
+                return createDefaultPerformanceResult(simulation);
+            }
+
+            // 解析 stats.json 文件
+            File statsFile = new File(latestDir, "js/stats.json");
+            if (!statsFile.exists()) {
+                log.warn("[Gatling] stats.json 不存在: {}", statsFile.getAbsolutePath());
+                return createDefaultPerformanceResult(simulation);
+            }
+
+            String content = Files.readString(statsFile.toPath(), StandardCharsets.UTF_8);
+            return parseGatlingStatsJson(simulation, content);
+
+        } catch (Exception e) {
+            log.error("[Gatling] 解析结果失败", e);
+            return createDefaultPerformanceResult(simulation);
+        }
+    }
+
+    /** 解析 Gatling stats.json */
+    private PerformanceResultSummary parseGatlingStatsJson(String simulation, String json) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
+
+            // Gatling stats.json 结构
+            com.fasterxml.jackson.databind.JsonNode stats = root.path("stats");
+            long totalRequests = stats.path("numberOfRequests").path("total").asLong(0);
+            double successRate = 100.0 - stats.path("ko").path("percentage").asDouble(0);
+
+            // 响应时间统计
+            com.fasterxml.jackson.databind.JsonNode responseTime = stats.path("responseTime");
+            long avgResponseTime = responseTime.path("mean").asLong(0);
+            long maxResponseTime = responseTime.path("max").asLong(0);
+            long p95 = responseTime.path("percentile95").asLong(0);
+            long p99 = responseTime.path("percentile99").asLong(0);
+
+            return new PerformanceResultSummary(
+                    simulation,
+                    totalRequests,
+                    successRate,
+                    avgResponseTime,
+                    maxResponseTime,
+                    p95,
+                    p99,
+                    System.currentTimeMillis() - 60000,
+                    System.currentTimeMillis());
+
+        } catch (Exception e) {
+            log.error("[Gatling] 解析 JSON 失败", e);
+            return createDefaultPerformanceResult(simulation);
+        }
+    }
+
+    /** 创建默认性能测试结果 */
+    private PerformanceResultSummary createDefaultPerformanceResult(String simulation) {
         return new PerformanceResultSummary(
                 simulation,
-                1000,
-                95.0,
-                1500L,
-                5000L,
-                2000L,
-                3000L,
+                0,
+                0.0,
+                0L,
+                0L,
+                0L,
+                0L,
                 System.currentTimeMillis() - 60000,
                 System.currentTimeMillis());
     }

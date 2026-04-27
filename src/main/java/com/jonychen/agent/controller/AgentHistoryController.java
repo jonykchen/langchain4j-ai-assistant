@@ -117,10 +117,10 @@ public class AgentHistoryController {
             } else if (auditLog.getEventType() == AuditEventType.EXECUTION_END) {
                 endTime = auditLog.getTimestamp();
                 status = "SUCCESS";
-                if (auditLog.getDetails() != null) {
-                    Object dur = auditLog.getDetails().get("durationMs");
+                if (auditLog.getEventData() != null) {
+                    Object dur = auditLog.getEventData().get("durationMs");
                     if (dur instanceof Number n) durationMs = n.longValue();
-                    Object steps = auditLog.getDetails().get("totalSteps");
+                    Object steps = auditLog.getEventData().get("totalSteps");
                     if (steps instanceof Number n) totalSteps = n.intValue();
                 }
             } else if (auditLog.getEventType() == AuditEventType.EXECUTION_ERROR) {
@@ -144,7 +144,7 @@ public class AgentHistoryController {
                                                 auditLog.getEventType().name(),
                                                 auditLog.getTimestamp(),
                                                 auditLog.getAgentName(),
-                                                auditLog.getDetails()))
+                                                auditLog.getEventData()))
                         .toList();
 
         Map<String, Object> summary =

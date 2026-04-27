@@ -81,7 +81,7 @@ public class AuthController {
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String redirectUri) {
         try {
-            TokenResponse token = oAuth2UserService.handleGitHubCallback(code, redirectUri);
+            TokenResponse token = oAuth2UserService.handleGitHubCallback(code, state, redirectUri);
             User user =
                     userRepository
                             .findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))
@@ -119,7 +119,7 @@ public class AuthController {
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String redirectUri) {
         try {
-            TokenResponse token = oAuth2UserService.handleGitLabCallback(code, redirectUri);
+            TokenResponse token = oAuth2UserService.handleGitLabCallback(code, state, redirectUri);
             User user =
                     userRepository
                             .findById(jwtTokenProvider.getUserIdFromToken(token.accessToken()))

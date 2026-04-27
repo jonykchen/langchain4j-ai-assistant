@@ -143,7 +143,8 @@ public class AdminStatisticsService {
             long requestCount = ((Number) row[5]).longValue();
 
             double avgTokens = requestCount > 0 ? (double) totalTokens / requestCount : 0;
-            double costPercent = totalCost > 0 ? (modelCost / totalCost) * 100 : 0;
+            // 限制百分比范围为 0-100，防止极端情况
+            double costPercent = totalCost > 0 ? Math.min((modelCost / totalCost) * 100, 100) : 0;
 
             statistics.add(
                     new CostStatistics(

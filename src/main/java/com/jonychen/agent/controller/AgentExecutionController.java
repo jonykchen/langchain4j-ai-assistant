@@ -3,6 +3,8 @@ package com.jonychen.agent.controller;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -14,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +25,6 @@ import com.jonychen.agent.core.AgentRequest;
 import com.jonychen.agent.core.AgentRequestOptions;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Agent 执行控制器
@@ -61,15 +61,15 @@ public class AgentExecutionController {
      */
     @PostMapping(value = "/execute", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> execute(
-            @RequestBody ExecuteRequest request, ServerWebExchange exchange) {
+            @RequestBody ExecuteRequest request, HttpServletRequest httpRequest) {
         log.info(
                 "[AgentExecutionController] 收到执行请求: userId={}, input={}",
                 request.userId(),
                 truncate(request.userInput(), 100));
 
-        // 从 WebExchange 提取客户端信息
-        String clientIp = extractClientIp(exchange);
-        String userAgent = extractUserAgent(exchange);
+        // 从 HttpServletRequest 提取客户端信息
+        String clientIp = extractClientIp(httpRequest);
+        String userAgent = extractUserAgent(httpRequest);
 
         // 构建 AgentRequest
         AgentRequest agentRequest =
@@ -97,7 +97,7 @@ public class AgentExecutionController {
 
     /** 确认敏感操作 */
     @PostMapping("/confirm")
-    public Mono<ResponseEntity<ConfirmResponse>> confirm(@RequestBody ConfirmRequest request) {
+    public ResponseEntity<ConfirmResponse> confirm(@RequestBody ConfirmRequest request) {
         log.info(
                 "[AgentExecutionController] 收到确认请求: traceId={}, confirmationId={}, approved={}",
                 request.traceId(),
@@ -111,43 +111,39 @@ public class AgentExecutionController {
                         request.approved(),
                         request.userId());
 
-        return Mono.just(
-                ResponseEntity.ok(new ConfirmResponse(success, success ? "确认成功" : "确认失败")));
+        return ResponseEntity.ok(new ConfirmResponse(success, success ? "确认成功" : "确认失败"));
     }
 
     /** 获取可用 Agent 列表 */
     @GetMapping("/list")
-    public Mono<ResponseEntity<List<AgentMetadata>>> listAgents() {
-        return Mono.just(ResponseEntity.ok(orchestrator.getAvailableAgents()));
+    public ResponseEntity<List<AgentMetadata>> listAgents() {
+        return ResponseEntity.ok(orchestrator.getAvailableAgents());
     }
 
     /** 取消执行 */
     @PostMapping("/cancel/{traceId}")
-    public Mono<ResponseEntity<CancelResponse>> cancel(@PathVariable String traceId) {
+    public ResponseEntity<CancelResponse> cancel(@PathVariable String traceId) {
         log.info("[AgentExecutionController] 收到取消请求: traceId={}", traceId);
 
         boolean success = orchestrator.cancelExecution(traceId);
-        return Mono.just(ResponseEntity.ok(new CancelResponse(success, success ? "取消成功" : "取消失败")));
+        return ResponseEntity.ok(new CancelResponse(success, success ? "取消成功" : "取消失败"));
     }
 
     // ===== 辅助方法 =====
 
-    private String extractClientIp(ServerWebExchange exchange) {
-        String ip = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+    private String extractClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty()) {
-            ip = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
+            ip = request.getHeader("X-Real-IP");
         }
         if (ip == null || ip.isEmpty()) {
-            ip =
-                    exchange.getRequest().getRemoteAddress() != null
-                            ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                            : "unknown";
+            ip = request.getRemoteAddr();
         }
         return ip;
     }
 
-    private String extractUserAgent(ServerWebExchange exchange) {
-        return exchange.getRequest().getHeaders().getFirst("User-Agent");
+    private String extractUserAgent(HttpServletRequest request) {
+        return request.getHeader("User-Agent");
     }
 
     private String toJson(Object obj) {

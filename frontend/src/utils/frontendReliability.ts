@@ -134,7 +134,6 @@ async function flushMetrics(): Promise<void> {
 export function startMetricsReporting(): void {
   if (flushTimer) return
   flushTimer = setInterval(flushMetrics, 30000)
-  console.info('[FrontendReliability] Metrics reporting started')
 }
 
 /**
@@ -147,7 +146,6 @@ export async function stopMetricsReporting(): Promise<void> {
   clearInterval(flushTimer)
   flushTimer = null
   await flushMetrics()
-  console.info('[FrontendReliability] Metrics reporting stopped')
 }
 
 /**

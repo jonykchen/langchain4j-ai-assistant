@@ -7,8 +7,11 @@ import org.springframework.context.annotation.Configuration;
 import com.jonychen.tool.DefaultToolRegistry;
 import com.jonychen.tool.ToolRegistry;
 import com.jonychen.tool.builtin.CalculatorTools;
+import com.jonychen.tool.builtin.ChartTools;
+import com.jonychen.tool.builtin.DatabaseTools;
 import com.jonychen.tool.builtin.DateTimeTools;
 import com.jonychen.tool.builtin.EvaluationTools;
+import com.jonychen.tool.builtin.ExportTools;
 import com.jonychen.tool.builtin.SourceCodeTools;
 import com.jonychen.tool.builtin.TestRunnerTools;
 
@@ -36,6 +39,9 @@ public class ToolConfig {
             ToolRegistry toolRegistry,
             DateTimeTools dateTimeTools,
             CalculatorTools calculatorTools,
+            DatabaseTools databaseTools,
+            ChartTools chartTools,
+            ExportTools exportTools,
             EvaluationTools evaluationTools,
             SourceCodeTools sourceCodeTools,
             TestRunnerTools testRunnerTools) {
@@ -43,6 +49,9 @@ public class ToolConfig {
                 toolRegistry,
                 dateTimeTools,
                 calculatorTools,
+                databaseTools,
+                chartTools,
+                exportTools,
                 evaluationTools,
                 sourceCodeTools,
                 testRunnerTools);
@@ -55,6 +64,9 @@ public class ToolConfig {
                 ToolRegistry toolRegistry,
                 DateTimeTools dateTimeTools,
                 CalculatorTools calculatorTools,
+                DatabaseTools databaseTools,
+                ChartTools chartTools,
+                ExportTools exportTools,
                 EvaluationTools evaluationTools,
                 SourceCodeTools sourceCodeTools,
                 TestRunnerTools testRunnerTools) {
@@ -65,6 +77,15 @@ public class ToolConfig {
 
             // 注册计算器工具
             toolRegistry.registerAnnotatedTools(calculatorTools);
+
+            // 注册数据库工具（list_tables, describe_table, execute_query）
+            toolRegistry.registerAnnotatedTools(databaseTools);
+
+            // 注册图表工具（generate_chart）
+            toolRegistry.registerAnnotatedTools(chartTools);
+
+            // 注册导出工具（export_data）
+            toolRegistry.registerAnnotatedTools(exportTools);
 
             // 注册 Prompt 评测工具
             toolRegistry.registerAnnotatedTools(evaluationTools);

@@ -124,7 +124,7 @@ function getDepth(obj: unknown, current = 0): number {
         <!-- 复制 -->
         <el-button v-if="showCopy" text size="small" @click="handleCopy">
           <el-icon>
-            <Check v-if="copySuccess" style="color: #67c23a" />
+            <Check v-if="copySuccess" style="color: var(--color-success)" />
             <CopyDocument v-else />
           </el-icon>
           {{ copySuccess ? '已复制' : '复制' }}
@@ -141,39 +141,41 @@ function getDepth(obj: unknown, current = 0): number {
 
 <style scoped>
 .json-viewer {
-  background: #f8f9fa;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
   overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .json-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: #e9ecef;
-  border-bottom: 1px solid #dee2e6;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .json-label {
   font-size: 12px;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .json-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .warning-icon {
-  color: #e6a23c;
+  color: var(--color-warning);
 }
 
 .json-content {
-  padding: 12px;
+  padding: var(--space-md);
   overflow-x: auto;
 }
 

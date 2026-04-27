@@ -1,7 +1,8 @@
 <template>
-  <div class="evaluation-view">
+  <div class="admin-page">
+
     <!-- 评测统计 -->
-    <el-row :gutter="20" class="mb-4">
+    <el-row :gutter="20" class="card-section">
       <el-col :span="8">
         <el-card shadow="hover">
           <el-statistic title="已评测 Trace" :value="evaluationCount" />
@@ -20,7 +21,7 @@
     </el-row>
 
     <!-- 评测操作 -->
-    <el-card class="mb-4">
+    <el-card class="card-section">
       <template #header>
         <span>执行评测</span>
       </template>
@@ -65,9 +66,9 @@
         </div>
       </template>
       <el-table :data="results" stripe>
-        <el-table-column prop="traceId" label="Trace ID" width="180">
+        <el-table-column prop="traceId" label="Trace ID" width="200">
           <template #default="{ row }">
-            {{ row.traceId?.slice(0, 8) }}...
+            <PathBreadcrumb :value="row.traceId" separator="uuid" :max-items="3" />
           </template>
         </el-table-column>
         <el-table-column prop="overallScore" label="综合得分" width="150">
@@ -116,7 +117,9 @@
     >
       <template v-if="selectedResult">
         <el-descriptions :column="2" border class="mb-4">
-          <el-descriptions-item label="Trace ID">{{ selectedResult.traceId }}</el-descriptions-item>
+          <el-descriptions-item label="Trace ID">
+            <PathBreadcrumb :value="selectedResult.traceId" separator="uuid" :max-items="8" />
+          </el-descriptions-item>
           <el-descriptions-item label="综合得分">
             <el-progress
               :percentage="selectedResult.overallScore * 100"
@@ -205,6 +208,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { observabilityApi, type EvaluationResult, type EvaluationReport } from '@/api/observability'
+import PathBreadcrumb from '@/components/PathBreadcrumb.vue'
 
 const evaluators = ref<{ name: string; description: string }[]>([])
 const results = ref<EvaluationResult[]>([])
