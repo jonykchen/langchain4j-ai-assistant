@@ -1,6 +1,6 @@
 package com.jonychen.agent.repository;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.persistence.QueryHint;
@@ -8,6 +8,7 @@ import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
@@ -29,31 +30,37 @@ public interface AgentAuditLogRepository extends JpaRepository<AgentAuditLog, Lo
     Page<AgentAuditLog> findByUserIdOrderByTimestampDesc(String userId, Pageable pageable);
 
     Page<AgentAuditLog> findByEventTypeAndTimestampAfter(
-            AuditEventType eventType, Instant since, Pageable pageable);
+            AuditEventType eventType, LocalDateTime since, Pageable pageable);
 
     @Query(
-            "SELECT a FROM AgentAuditLog a WHERE "
-                    + "(:userId IS NULL OR a.userId = :userId) "
-                    + "AND (:agentName IS NULL OR a.agentName = :agentName) "
-                    + "AND (:eventType IS NULL OR a.eventType = :eventType) "
-                    + "AND (:startTime IS NULL OR a.timestamp >= :startTime) "
-                    + "AND (:endTime IS NULL OR a.timestamp <= :endTime) "
-                    + "ORDER BY a.timestamp DESC")
+            value =
+                    "SELECT * FROM audit.agent_audit_logs a WHERE "
+                            + "(:userId IS NULL OR a.user_id = :userId) "
+                            + "AND (:agentName IS NULL OR a.agent_name = :agentName) "
+                            + "AND (:eventType IS NULL OR a.event_type = :eventType) "
+                            + "AND (:startTime IS NULL OR a.timestamp >= :startTime) "
+                            + "AND (:endTime IS NULL OR a.timestamp <= :endTime) "
+                            + "ORDER BY a.timestamp DESC",
+            nativeQuery = true)
     @QueryHints(@QueryHint(name = org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE, value = "100"))
     Page<AgentAuditLog> findByConditions(
             @Param("userId") String userId,
             @Param("agentName") String agentName,
-            @Param("eventType") AuditEventType eventType,
-            @Param("startTime") Instant startTime,
-            @Param("endTime") Instant endTime,
+            @Param("eventType") String eventType,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
             Pageable pageable);
 
     @Query(
-            "SELECT COUNT(a) FROM AgentAuditLog a WHERE a.eventType = :eventType AND a.timestamp >= :since")
+            value =
+                    "SELECT COUNT(*) FROM audit.agent_audit_logs a WHERE a.event_type = :eventType AND a.timestamp >= :since",
+            nativeQuery = true)
     long countByEventTypeSince(
-            @Param("eventType") AuditEventType eventType, @Param("since") Instant since);
+            @Param("eventType") String eventType, @Param("since") LocalDateTime since);
 
-    @org.springframework.data.jpa.repository.Modifying
-    @Query("DELETE FROM AgentAuditLog a WHERE a.timestamp < :before")
-    int deleteByTimestampBefore(@Param("before") Instant before);
+    @Modifying
+    @Query(
+            value = "DELETE FROM audit.agent_audit_logs a WHERE a.timestamp < :before",
+            nativeQuery = true)
+    int deleteByTimestampBefore(@Param("before") LocalDateTime before);
 }

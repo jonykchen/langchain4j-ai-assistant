@@ -74,10 +74,10 @@ public class AgentHistoryController {
 
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("timestamp").descending());
 
-        AuditEventType type = parseEventType(eventType);
+        String typeStr = eventType != null && !eventType.isBlank() ? eventType : null;
         Page<AgentAuditLog> auditPage =
                 auditLogRepository.findByConditions(
-                        userId, agentName, type, null, null, pageRequest);
+                        userId, agentName, typeStr, null, null, pageRequest);
 
         List<ExecutionHistoryVO> vos =
                 auditPage.getContent().stream().map(ExecutionHistoryVO::from).toList();
