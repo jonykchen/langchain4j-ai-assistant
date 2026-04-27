@@ -55,7 +55,9 @@
       "Bash(jenv versions *)",
       "Bash(find /Users/jonychen/IdeaProjects/langchain4j-demo/src/main/java/com/jonychen/controller -name \"*.java\" -exec head -50 {} \\\\;)",
       "Bash(find src/main/java -name \"*.java\" -exec grep -l \"@Entity\" {} \\\\;)",
-      "Bash(PGPASSWORD=REDACTED_DB_PASSWORD psql *)"
+      "Bash(PGPASSWORD=REDACTED_DB_PASSWORD psql *)",
+      "Bash(pkill -f \"spring-boot:run\")",
+      "Bash(timeout 60 grep -E \"\\(Started|p6spy|P6SpyDriver|SQL\\)\")"
     ]
   }
 }
