@@ -1,6 +1,6 @@
 package com.jonychen.agent.controller;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jonychen.admin.dto.PageResponse;
-import com.jonychen.agent.core.AgentAuditService.AuditEventType;
 import com.jonychen.agent.dto.ExecutionHistoryVO;
 import com.jonychen.agent.entity.AgentAuditLog;
 import com.jonychen.agent.repository.AgentAuditLogRepository;
@@ -75,11 +74,11 @@ public class AgentAuditController {
                 eventType);
 
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("timestamp").descending());
-        AuditEventType type = parseEventType(eventType);
+        String typeStr = eventType != null && !eventType.isBlank() ? eventType : null;
 
         Page<AgentAuditLog> auditPage =
                 auditLogRepository.findByConditions(
-                        userId, agentName, type, null, null, pageRequest);
+                        userId, agentName, typeStr, null, null, pageRequest);
 
         List<ExecutionHistoryVO> vos =
                 auditPage.getContent().stream().map(ExecutionHistoryVO::from).toList();
@@ -96,20 +95,15 @@ public class AgentAuditController {
     @Operation(summary = "审计统计", description = "获取指定时间范围内的审计统计信息")
     public ResponseEntity<AuditStats> getStats(@RequestParam(defaultValue = "24") int hours) {
 
-        Instant since = Instant.now().minusSeconds(hours * 3600L);
+        LocalDateTime since = LocalDateTime.now().minusHours(hours);
 
-        long totalExecutions =
-                auditLogRepository.countByEventTypeSince(AuditEventType.EXECUTION_START, since);
-        long successCount =
-                auditLogRepository.countByEventTypeSince(AuditEventType.EXECUTION_END, since);
-        long errorCount =
-                auditLogRepository.countByEventTypeSince(AuditEventType.EXECUTION_ERROR, since);
-        long cancelCount =
-                auditLogRepository.countByEventTypeSince(AuditEventType.EXECUTION_CANCEL, since);
-        long toolCalls = auditLogRepository.countByEventTypeSince(AuditEventType.TOOL_CALL, since);
+        long totalExecutions = auditLogRepository.countByEventTypeSince("EXECUTION_START", since);
+        long successCount = auditLogRepository.countByEventTypeSince("EXECUTION_END", since);
+        long errorCount = auditLogRepository.countByEventTypeSince("EXECUTION_ERROR", since);
+        long cancelCount = auditLogRepository.countByEventTypeSince("EXECUTION_CANCEL", since);
+        long toolCalls = auditLogRepository.countByEventTypeSince("TOOL_CALL", since);
         long confirmations =
-                auditLogRepository.countByEventTypeSince(
-                        AuditEventType.CONFIRMATION_REQUIRED, since);
+                auditLogRepository.countByEventTypeSince("CONFIRMATION_REQUIRED", since);
 
         return ResponseEntity.ok(
                 new AuditStats(
@@ -132,23 +126,13 @@ public class AgentAuditController {
     public ResponseEntity<CleanupResult> cleanup(
             @RequestParam(defaultValue = "30") int daysBefore) {
 
-        Instant before = Instant.now().minusSeconds(daysBefore * 86400L);
+        LocalDateTime before = LocalDateTime.now().minusDays(daysBefore);
         log.info("[AgentAudit] 开始清理 {} 天前的审计日志", daysBefore);
 
         int deleted = auditLogRepository.deleteByTimestampBefore(before);
 
         log.info("[AgentAudit] 清理完成，删除 {} 条记录", deleted);
         return ResponseEntity.ok(new CleanupResult(deleted, daysBefore));
-    }
-
-    private AuditEventType parseEventType(String eventType) {
-        if (eventType == null || eventType.isBlank()) return null;
-        try {
-            return AuditEventType.valueOf(eventType);
-        } catch (IllegalArgumentException e) {
-            log.warn("[AgentAudit] 未知事件类型: {}", eventType);
-            return null;
-        }
     }
 
     /** 审计统计 */
