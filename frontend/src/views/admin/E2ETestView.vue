@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { testApi, type TestResultSummary } from '@/api/admin'
+import { Document, VideoPlay } from '@element-plus/icons-vue'
+import { testApi, type TestResultSummary, type TestStatsSummary } from '@/api/admin'
 
 const emit = defineEmits<{
-  'stats-update': [stats: any]
+  'stats-update': [stats: Partial<TestStatsSummary>]
 }>()
 
 const loading = ref(false)
 const results = ref<TestResultSummary[]>([])
 const reportUrl = ref<string | null>(null)
 
-const formatDuration = (ms: number) => {
+const formatDuration = (ms: number | undefined | null) => {
+  if (ms === undefined || ms === null) return '-'
   if (ms < 1000) return `${ms}ms`
   return `${(ms / 1000).toFixed(2)}s`
 }
@@ -72,7 +74,7 @@ const calculateStats = () => {
     running: results.value.filter(r => r.status === 'running').length,
     totalTests: results.value.length,
     avgResponseTime: results.value.length > 0
-      ? Math.round(results.value.reduce((sum, r) => sum + r.duration, 0) / results.value.length)
+      ? Math.round(results.value.reduce((sum, r) => sum + (r.duration ?? 0), 0) / results.value.length)
       : 0
   }
 }

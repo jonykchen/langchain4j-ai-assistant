@@ -38,7 +38,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "agent_audit_logs",
-        schema = "app",
+        schema = "audit",
         indexes = {
             @Index(name = "idx_audit_trace", columnList = "traceId"),
             @Index(name = "idx_audit_user", columnList = "userId"),
@@ -77,8 +77,8 @@ public class AgentAuditLog {
     private String userAgent;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "details", columnDefinition = "JSONB")
-    private Map<String, Object> details;
+    @Column(name = "event_data", columnDefinition = "JSONB")
+    private Map<String, Object> eventData;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -111,7 +111,7 @@ public class AgentAuditLog {
                 .eventType(eventType)
                 .clientIp(clientIp)
                 .userAgent(userAgent)
-                .details(details)
+                .eventData(details)
                 .build();
     }
 }

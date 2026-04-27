@@ -181,9 +181,9 @@ const copyOutput = async () => {
   word-break: break-word;
   margin: 4px 0 0 0;
   font-size: 13px;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   max-height: 150px;
   overflow: auto;
   font-family: 'Consolas', 'Monaco', monospace;

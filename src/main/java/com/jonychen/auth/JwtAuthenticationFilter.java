@@ -30,21 +30,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
 
     /** 跳过 JWT 验证的公开路径（与 SecurityConfig permitAll 保持一致） */
-    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
-            "/actuator/**",
-            "/auth/**",
-            "/",
-            "/index.html",
-            "/favicon.ico",
-            "/assets/**",
-            "/*.js",
-            "/*.css",
-            "/*.png",
-            "/*.svg",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/v3/api-docs/**",
-            "/openapi.yml");
+    private static final List<String> EXCLUDED_PATHS =
+            Arrays.asList(
+                    "/actuator/**",
+                    "/auth/**",
+                    "/",
+                    "/index.html",
+                    "/favicon.ico",
+                    "/assets/**",
+                    "/*.js",
+                    "/*.css",
+                    "/*.png",
+                    "/*.svg",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                    "/openapi.yml");
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -60,8 +61,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String uri = request.getRequestURI();
-        log.info("[JwtAuthenticationFilter] 处理请求: {}, Authorization: {}",
-            uri, request.getHeader("Authorization") != null ? "存在" : "不存在");
+        log.info(
+                "[JwtAuthenticationFilter] 处理请求: {}, Authorization: {}",
+                uri,
+                request.getHeader("Authorization") != null ? "存在" : "不存在");
 
         // 1. 从请求头中提取 Token
         String token = resolveToken(request);

@@ -14,6 +14,7 @@ import {
   type ExecutionDetailVO,
   type AuditStats
 } from '@/api/agent'
+import PathBreadcrumb from '@/components/PathBreadcrumb.vue'
 
 // 搜索条件
 const searchQuery = ref('')
@@ -59,20 +60,26 @@ const agentNameOptions = [
   { label: 'ChatAgent', value: 'chat' }
 ]
 
-// 状态颜色映射
-const statusColors: Record<string, string> = {
-  RUNNING: 'warning',
-  SUCCESS: 'success',
-  FAILED: 'danger',
-  CANCELLED: 'info'
+// 状态颜色映射（添加默认值处理）
+const getStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    RUNNING: 'warning',
+    SUCCESS: 'success',
+    FAILED: 'danger',
+    CANCELLED: 'info'
+  }
+  return colors[status] || 'info'
 }
 
-// 状态图标映射
-const statusIcons: Record<string, any> = {
-  RUNNING: Loading,
-  SUCCESS: Check,
-  FAILED: Close,
-  CANCELLED: Warning
+// 状态图标映射（添加默认值处理）
+const getStatusIcon = (status: string): any => {
+  const icons: Record<string, any> = {
+    RUNNING: Loading,
+    SUCCESS: Check,
+    FAILED: Close,
+    CANCELLED: Warning
+  }
+  return icons[status] || Warning // 默认使用 Warning 图标
 }
 
 // 加载审计日志
@@ -88,8 +95,9 @@ const loadLogs = async () => {
     })
     logs.value = result.data
     total.value = result.total
-  } catch (e: any) {
-    ElMessage.error('加载审计日志失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : '未知错误'
+    ElMessage.error('加载审计日志失败: ' + errorMsg)
   } finally {
     loading.value = false
   }
@@ -116,8 +124,9 @@ const handleViewDetail = async (traceId: string) => {
   detailLoading.value = true
   try {
     detailData.value = await getExecutionDetail(traceId)
-  } catch (e: any) {
-    ElMessage.error('加载详情失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : '未知错误'
+    ElMessage.error('加载详情失败: ' + errorMsg)
     detailVisible.value = false
   } finally {
     detailLoading.value = false
@@ -212,93 +221,90 @@ onUnmounted(() => {
 
 <template>
   <div class="audit-view">
-    <!-- 统计卡片 -->
-    <div class="stats-cards" v-if="stats">
-      <div class="stat-card">
-        <div class="stat-icon total"><el-icon><Timer /></el-icon></div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.totalExecutions }}</div>
-          <div class="stat-label">总执行次数</div>
+    <!-- 顶部：统计 + 筛选 -->
+    <div class="top-bar">
+      <!-- 统计卡片 -->
+      <div class="stats-row" v-if="stats">
+        <div class="stat-item">
+          <el-icon class="stat-icon total"><Timer /></el-icon>
+          <span class="stat-value">{{ stats.totalExecutions }}</span>
+          <span class="stat-label">总执行</span>
         </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon success"><el-icon><Check /></el-icon></div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.successCount }}</div>
-          <div class="stat-label">成功</div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <el-icon class="stat-icon success"><Check /></el-icon>
+          <span class="stat-value">{{ stats.successCount }}</span>
+          <span class="stat-label">成功</span>
         </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon error"><el-icon><Close /></el-icon></div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.errorCount }}</div>
-          <div class="stat-label">失败</div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <el-icon class="stat-icon error"><Close /></el-icon>
+          <span class="stat-value">{{ stats.errorCount }}</span>
+          <span class="stat-label">失败</span>
         </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon rate">
+        <div class="stat-divider"></div>
+        <div class="stat-item">
           <el-progress
             type="circle"
             :percentage="successRate"
-            :width="40"
-            :stroke-width="4"
+            :width="32"
+            :stroke-width="3"
             :color="successRate >= 90 ? '#67c23a' : successRate >= 70 ? '#e6a23c' : '#f56c6c'"
           />
+          <span class="stat-value">{{ successRate }}%</span>
+          <span class="stat-label">成功率</span>
         </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ successRate }}%</div>
-          <div class="stat-label">成功率</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon tool"><el-icon><Monitor /></el-icon></div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.toolCalls }}</div>
-          <div class="stat-label">工具调用</div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <el-icon class="stat-icon tool"><Monitor /></el-icon>
+          <span class="stat-value">{{ stats.toolCalls }}</span>
+          <span class="stat-label">工具调用</span>
         </div>
       </div>
-    </div>
 
-    <!-- 搜索和筛选 -->
-    <div class="filter-bar">
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索用户 ID..."
-        :prefix-icon="Search"
-        clearable
-        style="width: 200px"
-        @input="handleSearchChange"
-      />
-      <el-select
-        v-model="agentNameFilter"
-        placeholder="Agent 名称"
-        clearable
-        style="width: 140px"
-        @change="handleFilterChange"
-      >
-        <el-option
-          v-for="item in agentNameOptions"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
+      <!-- 筛选和操作 -->
+      <div class="filter-actions">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索用户 ID..."
+          :prefix-icon="Search"
+          clearable
+          style="width: 160px"
+          @input="handleSearchChange"
         />
-      </el-select>
-      <el-select
-        v-model="eventTypeFilter"
-        placeholder="事件类型"
-        clearable
-        style="width: 140px"
-        @change="handleFilterChange"
-      >
-        <el-option
-          v-for="item in eventTypeOptions"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
-        />
-      </el-select>
-      <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
-      <el-button :icon="Delete" type="danger" plain @click="handleCleanup">清理</el-button>
+        <el-select
+          v-model="agentNameFilter"
+          placeholder="Agent"
+          clearable
+          style="width: 100px"
+          @change="handleFilterChange"
+        >
+          <el-option
+            v-for="item in agentNameOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-select
+          v-model="eventTypeFilter"
+          placeholder="事件类型"
+          clearable
+          style="width: 120px"
+          @change="handleFilterChange"
+        >
+          <el-option
+            v-for="item in eventTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-button-group>
+          <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
+          <el-button :icon="Delete" type="danger" @click="handleCleanup">清理</el-button>
+        </el-button-group>
+      </div>
     </div>
 
     <!-- 日志表格 -->
@@ -315,9 +321,12 @@ onUnmounted(() => {
       </el-table-column>
       <el-table-column prop="traceId" label="Trace ID" width="280">
         <template #default="{ row }">
-          <el-text type="primary" class="trace-id" @click="handleViewDetail(row.traceId)">
-            {{ row.traceId }}
-          </el-text>
+          <PathBreadcrumb
+            :value="row.traceId"
+            separator="uuid"
+            :max-items="4"
+            :expandable="false"
+          />
         </template>
       </el-table-column>
       <el-table-column prop="userId" label="用户" width="120">
@@ -340,8 +349,8 @@ onUnmounted(() => {
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusColors[row.status]" size="small">
-            <el-icon class="status-icon"><component :is="statusIcons[row.status]" /></el-icon>
+          <el-tag :type="getStatusColor(row.status)" size="small">
+            <el-icon class="status-icon"><component :is="getStatusIcon(row.status)" /></el-icon>
             {{ row.status }}
           </el-tag>
         </template>
@@ -383,11 +392,13 @@ onUnmounted(() => {
         <template v-if="detailData">
           <!-- 基本信息 -->
           <el-descriptions :column="4" border class="detail-info">
-            <el-descriptions-item label="Trace ID">{{ detailData.traceId }}</el-descriptions-item>
+            <el-descriptions-item label="Trace ID">
+              <PathBreadcrumb :value="detailData.traceId" separator="uuid" :max-items="8" />
+            </el-descriptions-item>
             <el-descriptions-item label="用户">{{ detailData.userId }}</el-descriptions-item>
             <el-descriptions-item label="Agent">{{ detailData.agentName }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <el-tag :type="statusColors[detailData.status]">
+              <el-tag :type="getStatusColor(detailData.status)">
                 {{ detailData.status }}
               </el-tag>
             </el-descriptions-item>
@@ -427,82 +438,72 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.audit-view {
-  padding: 20px;
-}
-
-.stats-cards {
+.top-bar {
   display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.stat-card {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
+.stats-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .stat-icon.total {
-  background: #e6f4ff;
-  color: #1677ff;
+  color: var(--color-primary);
 }
 
 .stat-icon.success {
-  background: #f6ffed;
-  color: #52c41a;
+  color: var(--color-success);
 }
 
 .stat-icon.error {
-  background: #fff2f0;
-  color: #ff4d4f;
-}
-
-.stat-icon.rate {
-  background: #f5f5f5;
+  color: var(--color-danger);
 }
 
 .stat-icon.tool {
-  background: #fff7e6;
-  color: #fa8c16;
+  color: var(--color-warning);
 }
 
-.stat-content {
-  flex: 1;
+.stat-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .stat-label {
   font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
+  color: var(--text-tertiary);
 }
 
-.filter-bar {
+.filter-actions {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .trace-id {
@@ -537,7 +538,7 @@ onUnmounted(() => {
 .steps-title {
   margin: 16px 0;
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .step-header {
@@ -548,7 +549,7 @@ onUnmounted(() => {
 
 .step-agent {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-tertiary);
 }
 
 .step-details {
@@ -564,7 +565,20 @@ onUnmounted(() => {
 }
 
 .step-empty {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .stats-row {
+    justify-content: center;
+  }
+  .filter-actions {
+    justify-content: flex-end;
+  }
 }
 </style>

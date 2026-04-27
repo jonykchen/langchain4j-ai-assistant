@@ -31,6 +31,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "ai_model_test_results",
+        schema = "app",
         indexes = {
             @Index(name = "idx_ai_results_job", columnList = "jobId"),
             @Index(name = "idx_ai_results_category", columnList = "category"),

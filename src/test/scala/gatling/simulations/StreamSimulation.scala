@@ -17,13 +17,7 @@ class StreamSimulation extends Simulation {
     .userAgentHeader("Gatling-Performance-Test/1.0")
 
   // 测试用户
-  val testUsers = List(
-    Map("token" -> "test-jwt-token-1"),
-    Map("token" -> "test-jwt-token-2"),
-    Map("token" -> "test-jwt-token-3")
-  )
-
-  val userFeeder = testUsers.circular
+  val userFeeder = csv("test-users.csv").circular
 
   // 长消息（触发更多 Token）
   val longMessages = List(
@@ -81,10 +75,9 @@ class StreamSimulation extends Simulation {
   setUp(
     streamScenario.inject(streamLoad)
       .protocols(httpProtocol)
-      .assertions(
-        global.responseTime.max.lt(120000),        // 最大响应时间 < 2 分钟
-        global.responseTime.mean.lt(30000),         // 平均响应时间 < 30s
-        global.successfulRequests.percent.gt(90)   // 成功率 > 90%
-      )
+  ).assertions(
+    global.responseTime.max.lt(120000),        // 最大响应时间 < 2 分钟
+    global.responseTime.mean.lt(30000),         // 平均响应时间 < 30s
+    global.successfulRequests.percent.gt(90)   // 成功率 > 90%
   ).maxDuration(10.minutes)
 }

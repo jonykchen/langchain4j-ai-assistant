@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { VideoPlay, TrendCharts, MagicStick, Finished, CircleCheck, CircleClose, Loading, Timer } from '@element-plus/icons-vue'
 import { testApi, type TestStatsSummary, type TestJobStatus } from '@/api/admin'
 import E2ETestView from './E2ETestView.vue'
 import PerformanceTestView from './PerformanceTestView.vue'
@@ -36,28 +37,28 @@ const statsCards = computed(() => [
   {
     label: '通过测试',
     value: stats.value.passed,
-    icon: 'CircleCheck',
+    icon: CircleCheck,
     color: 'text-green-500',
     bgColor: 'bg-green-50'
   },
   {
     label: '失败测试',
     value: stats.value.failed,
-    icon: 'CircleClose',
+    icon: CircleClose,
     color: 'text-red-500',
     bgColor: 'bg-red-50'
   },
   {
     label: '运行中',
     value: stats.value.running,
-    icon: 'Loading',
+    icon: Loading,
     color: 'text-blue-500',
     bgColor: 'bg-blue-50'
   },
   {
     label: '平均耗时',
     value: `${stats.value.avgResponseTime}ms`,
-    icon: 'Timer',
+    icon: Timer,
     color: 'text-yellow-500',
     bgColor: 'bg-yellow-50'
   }
@@ -69,9 +70,9 @@ const loadStats = async () => {
   loadError.value = null
   try {
     stats.value = await testApi.getStatsSummary()
-  } catch (error: any) {
-    console.error('加载统计数据失败', error)
-    loadError.value = error.message || '加载失败，请检查网络连接或登录状态'
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : '加载失败，请检查网络连接或登录状态'
+    loadError.value = errorMsg
     ElMessage.warning('加载统计数据失败，可能需要重新登录')
   } finally {
     statsLoading.value = false
@@ -86,8 +87,9 @@ const runE2ETests = async () => {
     currentJobId.value = result.jobId
     ElMessage.success('E2E 测试已启动')
     pollJobStatus(result.jobId)
-  } catch (error: any) {
-    ElMessage.error('启动 E2E 测试失败: ' + (error.message || '请检查登录状态'))
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : '请检查登录状态'
+    ElMessage.error('启动 E2E 测试失败: ' + errorMsg)
   } finally {
     e2eLoading.value = false
   }
@@ -101,8 +103,9 @@ const runPerformanceTest = async () => {
     currentJobId.value = result.jobId
     ElMessage.success('性能测试已启动')
     pollJobStatus(result.jobId)
-  } catch (error: any) {
-    ElMessage.error('启动性能测试失败: ' + (error.message || '请检查登录状态'))
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : '请检查登录状态'
+    ElMessage.error('启动性能测试失败: ' + errorMsg)
   } finally {
     perfLoading.value = false
   }
@@ -116,8 +119,9 @@ const runAIModelTests = async () => {
     currentJobId.value = result.jobId
     ElMessage.success('AI 模型测试已启动')
     pollJobStatus(result.jobId)
-  } catch (error: any) {
-    ElMessage.error('启动 AI 模型测试失败: ' + (error.message || '请检查登录状态'))
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : '请检查登录状态'
+    ElMessage.error('启动 AI 模型测试失败: ' + errorMsg)
   } finally {
     aiLoading.value = false
   }
@@ -133,8 +137,9 @@ const runAllTests = async () => {
       testApi.runAIModelTests()
     ])
     ElMessage.success('全部测试已启动')
-  } catch (error: any) {
-    ElMessage.error('启动测试失败: ' + (error.message || '请检查登录状态'))
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : '请检查登录状态'
+    ElMessage.error('启动测试失败: ' + errorMsg)
   } finally {
     allLoading.value = false
   }
@@ -206,9 +211,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="test-dashboard p-6">
+  <div class="admin-page">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="mb-6" v-loading="statsLoading">
+    <el-row :gutter="20" class="card-section" v-loading="statsLoading">
       <el-col :span="6" v-for="card in statsCards" :key="card.label">
         <el-card shadow="hover" :body-style="{ padding: '20px' }">
           <div class="stat-card">
@@ -232,7 +237,7 @@ onUnmounted(() => {
       :title="loadError"
       type="warning"
       show-icon
-      class="mb-6"
+      class="card-section"
       :closable="false"
     >
       <template #default>
@@ -244,7 +249,7 @@ onUnmounted(() => {
     </el-alert>
 
     <!-- 任务状态 -->
-    <el-card v-if="jobStatus" class="mb-6">
+    <el-card v-if="jobStatus" class="card-section">
       <template #header>
         <div class="flex justify-between items-center">
           <span>当前任务</span>
@@ -266,7 +271,7 @@ onUnmounted(() => {
     </el-card>
 
     <!-- 快速操作 -->
-    <el-card class="mb-6">
+    <el-card class="card-section">
       <template #header>快速测试</template>
       <el-row :gutter="20">
         <el-col :span="6">
@@ -315,23 +320,23 @@ onUnmounted(() => {
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .stat-icon {
-  padding: 12px;
-  border-radius: 12px;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: var(--font-size-3xl);
   font-weight: bold;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #909399;
+  font-size: var(--font-size-base);
+  color: var(--text-tertiary);
 }
 
 .job-info {

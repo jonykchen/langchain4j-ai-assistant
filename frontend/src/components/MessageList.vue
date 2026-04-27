@@ -37,7 +37,7 @@ watch(
       />
     </TransitionGroup>
     <div v-if="messages.length === 0" class="empty-state">
-      <div class="empty-icon">💬</div>
+      <el-icon class="empty-icon" :size="48" color="var(--text-tertiary)"><ChatDotRound /></el-icon>
       <div class="empty-text">开始新对话</div>
     </div>
   </div>
@@ -47,7 +47,7 @@ watch(
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: var(--space-xl);
 }
 
 .empty-state {
@@ -56,12 +56,11 @@ watch(
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+  color: var(--text-tertiary);
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-md);
 }
 
 .empty-text {

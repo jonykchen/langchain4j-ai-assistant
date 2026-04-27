@@ -98,7 +98,7 @@ function handleChange(value: string | undefined) {
       >
         <div class="agent-option">
           <div class="option-left">
-            <el-icon :style="{ color: agentTypeColors[agent.agentType] || '#909399' }">
+            <el-icon :style="{ color: agentTypeColors[agent.agentType] || 'var(--text-tertiary)' }">
               <component :is="agentTypeIcons[agent.agentType] || 'User'" />
             </el-icon>
             <span class="agent-name">{{ agent.displayName }}</span>
@@ -153,16 +153,16 @@ function handleChange(value: string | undefined) {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #f5f7fa;
-  border-radius: 6px;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  color: #606266;
+  color: var(--text-secondary);
 }
 
 .agent-description .el-icon {
-  color: #909399;
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 </style>

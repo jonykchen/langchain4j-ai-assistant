@@ -28,6 +28,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "e2e_test_results",
+        schema = "app",
         indexes = {
             @Index(name = "idx_e2e_results_job", columnList = "jobId"),
             @Index(name = "idx_e2e_results_status", columnList = "status"),

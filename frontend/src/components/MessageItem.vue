@@ -21,10 +21,13 @@ import { ElMessage } from 'element-plus'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 // 导入 highlight.js 的主题样式
-// 可选主题：github-dark, atom-one-dark, monokai, nord 等
+// 可选主题：github, atom-one-light,stackoverflow-light 等
 // 查看: https://highlightjs.org/static/demo/
-import 'highlight.js/styles/github-dark.css'
+import 'highlight.js/styles/github.css'
 import type { Message } from '@/types'
+import MessageAvatar from '@/components/MessageAvatar.vue'
+import ThinkingBlock from '@/components/ThinkingBlock.vue'
+import MessageToolbar from '@/components/MessageToolbar.vue'
 
 // ==================== Props & Emits ====================
 
@@ -334,14 +337,6 @@ function handleCopyMessage() {
 /** 用户反馈状态：点赞/点踩/无 */
 const feedback = ref<'like' | 'dislike' | null>(null)
 
-/**
- * 处理反馈点击
- * 再次点击同一按钮会取消反馈
- */
-function handleFeedback(type: 'like' | 'dislike') {
-  feedback.value = feedback.value === type ? null : type
-}
-
 // ==================== 思考过程解析 ====================
 
 /**
@@ -477,43 +472,16 @@ const isUser = computed(() => props.message.role === 'user')
 
 <template>
   <div class="message-item" :class="{ 'message-user': isUser, 'message-assistant': !isUser }">
-    <!-- 头像区域 -->
-    <div class="message-avatar">
-      <div v-if="isUser" class="avatar-user">U</div>
-      <div v-else class="avatar-ai">AI</div>
-    </div>
+    <MessageAvatar :is-user="isUser" />
 
     <!-- 消息内容区域 -->
     <div class="message-content">
-      <!-- 思考过程区域（仅 AI 消息显示） -->
-      <div v-if="!isUser && parsedContent.hasThinking" class="thinking-section" data-testid="thinking-section">
-        <!-- 可点击的头部，展开/折叠思考过程 -->
-        <div class="thinking-header" data-testid="thinking-toggle" @click="thinkingExpanded = !thinkingExpanded">
-          <span class="thinking-icon">
-            <!-- 展开状态图标 -->
-            <svg v-if="thinkingExpanded" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-            <!-- 折叠状态图标 -->
-            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </span>
-          <span class="thinking-label">
-            {{ parsedContent.thinkingComplete ? '思考过程' : '思考中...' }}
-          </span>
-          <!-- 流式响应时的加载动画 -->
-          <span v-if="!parsedContent.thinkingComplete" class="thinking-loading">
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-          </span>
-        </div>
-        <!-- 思考内容（可折叠） -->
-        <div v-show="thinkingExpanded" class="thinking-body">
-          <div class="markdown-body thinking-content" v-html="thinkingRendered"></div>
-        </div>
-      </div>
+      <ThinkingBlock
+        v-if="!isUser && parsedContent.hasThinking"
+        v-model="thinkingExpanded"
+        :content="thinkingRendered"
+        :complete="parsedContent.thinkingComplete"
+      />
 
       <!-- 回答内容 -->
       <div v-if="!isUser" class="answer-wrapper" @click="handleCodeAction">
@@ -522,35 +490,12 @@ const isUser = computed(() => props.message.role === 'user')
         <!-- 流式响应时的光标 -->
         <span v-if="message.isStreaming && !parsedContent.hasThinking" class="typing-cursor"></span>
 
-        <!-- 消息底部工具栏（仅非流式时显示） -->
-        <div v-if="!message.isStreaming && answerRendered" class="message-actions" @click.stop>
-          <!-- 点赞按钮 -->
-          <button
-            class="action-btn"
-            :class="{ active: feedback === 'like' }"
-            title="有帮助"
-            @click="handleFeedback('like')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
-          </button>
-          <!-- 点踩按钮 -->
-          <button
-            class="action-btn"
-            :class="{ active: feedback === 'dislike' }"
-            title="没帮助"
-            @click="handleFeedback('dislike')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>
-          </button>
-          <!-- 复制按钮 -->
-          <button class="action-btn" title="复制" @click="handleCopyMessage">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-          </button>
-          <!-- 重新生成按钮 -->
-          <button class="action-btn" title="重新生成" @click="emit('regenerate')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-          </button>
-        </div>
+        <MessageToolbar
+          v-if="!message.isStreaming && answerRendered"
+          v-model="feedback"
+          @copy="handleCopyMessage"
+          @regenerate="emit('regenerate')"
+        />
       </div>
 
       <!-- 用户消息 -->
@@ -594,8 +539,8 @@ const isUser = computed(() => props.message.role === 'user')
 
 .message-item {
   display: flex;
-  gap: 12px;
-  padding: 16px 0;
+  gap: 16px;
+  padding: 24px 0;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -603,34 +548,6 @@ const isUser = computed(() => props.message.role === 'user')
 /* 用户消息：头像在右侧 */
 .message-user {
   flex-direction: row-reverse;
-}
-
-/* ==================== 头像样式 ==================== */
-
-.message-avatar {
-  flex-shrink: 0; /* 防止被压缩 */
-}
-
-.avatar-user,
-.avatar-ai {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.avatar-user {
-  background: #409eff;
-  color: white;
-}
-
-.avatar-ai {
-  background: #67c23a;
-  color: white;
 }
 
 /* ==================== 消息内容区域 ==================== */
@@ -648,13 +565,13 @@ const isUser = computed(() => props.message.role === 'user')
 
 /* 用户消息气泡 */
 .user-text {
-  background: #409eff;
-  color: white;
-  padding: 10px 14px;
+  background: var(--color-primary);
+  color: #fff;
+  padding: 12px 18px;
   border-radius: 12px 12px 4px 12px; /* 右下角尖角 */
   max-width: 70%;
   word-break: break-word;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* AI 消息容器 */
@@ -665,122 +582,16 @@ const isUser = computed(() => props.message.role === 'user')
 .message-assistant .answer-wrapper,
 .message-assistant .message-content {
   background: transparent;
-  padding: 8px 16px;
+  padding: 12px 20px;
   border-radius: 12px;
   margin-right: 48px;
-}
-
-/* ==================== 消息操作工具栏 ==================== */
-
-.message-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 12px;
-  padding-top: 8px;
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  color: #909399;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 0;
-}
-
-.action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #333;
-}
-
-.action-btn.active {
-  color: #409eff;
-  background: rgba(64, 158, 255, 0.08);
-}
-
-/* ==================== 思考过程样式 ==================== */
-
-.thinking-section {
-  margin-bottom: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.thinking-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  cursor: pointer;
-  user-select: none;
-  border-bottom: 1px solid #e5e7eb;
-  transition: background 0.2s;
-}
-
-.thinking-header:hover {
-  background: #f5f5f5;
-}
-
-.thinking-header:last-child {
-  border-bottom: none;
-}
-
-.thinking-icon {
-  color: #909399;
-}
-
-.thinking-label {
-  font-size: 14px;
-  color: #606266;
-  font-weight: 500;
-}
-
-/* 加载动画：三个点依次闪烁 */
-.thinking-loading {
-  display: flex;
-  gap: 4px;
-}
-
-.thinking-loading .dot {
-  width: 6px;
-  height: 6px;
-  background: #909399;
-  border-radius: 50%;
-  animation: dotPulse 1.4s infinite ease-in-out both;
-}
-
-.thinking-loading .dot:nth-child(1) { animation-delay: -0.32s; }
-.thinking-loading .dot:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes dotPulse {
-  0%, 80%, 100% { opacity: 0.3; }
-  40% { opacity: 1; }
-}
-
-.thinking-body {
-  padding: 12px;
-  background: #fafafa;
-}
-
-.thinking-content {
-  font-size: 13px;
-  color: #606266;
-  opacity: 0.9;
 }
 
 /* ==================== 代码编辑弹窗 ==================== */
 
 .code-edit-wrapper {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -788,17 +599,17 @@ const isUser = computed(() => props.message.role === 'user')
   display: flex;
   align-items: center;
   padding: 8px 14px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .lang-badge {
   font-size: 12px;
   font-family: 'Fira Code', Consolas, monospace;
-  color: #666;
-  background: #e8e8e8;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-transform: lowercase;
 }
 
@@ -826,297 +637,4 @@ const isUser = computed(() => props.message.role === 'user')
 }
 </style>
 
-<!-- ==================== Markdown 渲染样式（非 scoped） ==================== -->
-<!--
-  为什么需要非 scoped 样式？
-  - scoped 样式会添加 data-v-xxx 属性选择器
-  - v-html 渲染的内容不会有这个属性
-  - 所以 scoped 样式无法作用于 v-html 内容
 
-  解决方案：
-  - 添加一个不带 scoped 的 <style> 块
-  - 使用更具体的选择器避免样式污染
--->
-<style>
-/* === Markdown 基础样式 === */
-.message-assistant .message-content .markdown-body {
-  line-height: 1.7 !important;
-  color: #333 !important;
-  word-wrap: break-word;
-}
-
-/* 首尾元素无多余间距 */
-.message-assistant .message-content .markdown-body > *:first-child {
-  margin-top: 0 !important;
-}
-.message-assistant .message-content .markdown-body > *:last-child {
-  margin-bottom: 0 !important;
-}
-
-/* === 标题样式 === */
-.message-assistant .message-content .markdown-body h1,
-.message-assistant .message-content .markdown-body h2,
-.message-assistant .message-content .markdown-body h3,
-.message-assistant .message-content .markdown-body h4,
-.message-assistant .message-content .markdown-body h5,
-.message-assistant .message-content .markdown-body h6 {
-  margin-top: 16px !important;
-  margin-bottom: 10px !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-  clear: both;
-}
-
-.message-assistant .message-content .markdown-body h1 {
-  font-size: 1.4em !important;
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 6px;
-}
-.message-assistant .message-content .markdown-body h2 {
-  font-size: 1.25em !important;
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 4px;
-}
-.message-assistant .message-content .markdown-body h3 { font-size: 1.1em !important; }
-.message-assistant .message-content .markdown-body h4 { font-size: 1em !important; }
-
-/* === 段落 === */
-.message-assistant .message-content .markdown-body p {
-  margin: 8px 0 !important;
-}
-
-/* === 列表样式 === */
-/*
-  关键：强制显示列表样式
-  Tailwind CSS 的 preflight 会移除默认列表样式
-  需要用 !important 强制覆盖
-*/
-.message-assistant .message-content .markdown-body ul,
-.message-assistant .message-content .markdown-body ol {
-  padding-left: 2em !important;
-  margin: 8px 0 !important;
-  display: block !important;
-}
-
-.message-assistant .message-content .markdown-body li {
-  margin: 4px 0 !important;
-  line-height: 1.6 !important;
-  display: list-item !important; /* 强制显示为列表项 */
-}
-
-/* 无序列表：一级 disc，二级 circle，三级 square */
-.message-assistant .message-content .markdown-body ul {
-  list-style-type: disc !important;
-  list-style-position: outside !important;
-}
-.message-assistant .message-content .markdown-body ul ul {
-  list-style-type: circle !important;
-  margin: 4px 0 !important;
-}
-.message-assistant .message-content .markdown-body ul ul ul {
-  list-style-type: square !important;
-}
-
-/* 有序列表 */
-.message-assistant .message-content .markdown-body ol {
-  list-style-type: decimal !important;
-  list-style-position: outside !important;
-}
-
-/* === 代码块样式 === */
-
-/* 代码块容器 */
-.message-assistant .message-content .markdown-body pre.code-block-wrapper {
-  position: relative !important;
-  background: #1e1e1e !important;
-  border-radius: 8px !important;
-  margin: 12px 0 !important;
-  overflow: hidden !important;
-  border: 1px solid #333 !important;
-}
-
-/* 代码块头部：语言标签 + 操作按钮 */
-.message-assistant .message-content .markdown-body .code-block-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 8px 14px !important;
-  background: #2d2d2d !important;
-  border-bottom: 1px solid #3a3a3a !important;
-  user-select: none !important;
-}
-
-/* 语言标签 */
-.message-assistant .message-content .markdown-body .code-lang {
-  font-size: 12px !important;
-  font-family: 'SF Mono', 'Fira Code', Consolas, monospace !important;
-  color: #999 !important;
-  text-transform: lowercase !important;
-}
-
-/* 操作按钮容器 */
-.message-assistant .message-content .markdown-body .code-actions {
-  display: flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-}
-
-/* 操作按钮 */
-.message-assistant .message-content .markdown-body .code-action-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 3px !important;
-  padding: 3px 8px !important;
-  border: none !important;
-  border-radius: 4px !important;
-  background: transparent !important;
-  color: #aaa !important;
-  font-size: 12px !important;
-  cursor: pointer !important;
-  transition: all 0.15s ease !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-  white-space: nowrap !important;
-}
-
-.message-assistant .message-content .markdown-body .code-action-btn:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #fff !important;
-}
-
-.message-assistant .message-content .markdown-body .code-action-btn.copied {
-  color: #67c23a !important;
-}
-
-/* 代码内容区域 */
-.message-assistant .message-content .markdown-body pre.code-content {
-  margin: 0 !important;
-  padding: 14px 16px !important;
-  border-radius: 0 !important;
-  overflow-x: auto !important;
-  white-space: pre !important;
-  background: transparent !important;
-  max-height: 600px !important;
-  transition: max-height 0.3s ease !important;
-}
-
-.message-assistant .message-content .markdown-body pre.code-content code {
-  background: transparent !important;
-  padding: 0 !important;
-  color: #e6e6e6 !important;
-  font-size: 13px !important;
-  white-space: pre !important;
-  line-height: 1.6 !important;
-}
-
-/* === 浅色主题 === */
-.message-assistant .message-content .markdown-body pre.code-block-wrapper.light-theme {
-  background: #fafafa !important;
-  border-color: #e0e0e0 !important;
-}
-
-.message-assistant .message-content .markdown-body pre.code-block-wrapper.light-theme .code-block-header {
-  background: #f0f0f0 !important;
-  border-bottom-color: #e0e0e0 !important;
-}
-
-.message-assistant .message-content .markdown-body pre.code-block-wrapper.light-theme .code-lang {
-  color: #666 !important;
-}
-
-.message-assistant .message-content .markdown-body pre.code-block-wrapper.light-theme .code-action-btn {
-  color: #666 !important;
-}
-
-.message-assistant .message-content .markdown-body pre.code-block-wrapper.light-theme .code-action-btn:hover {
-  background: rgba(0, 0, 0, 0.05) !important;
-  color: #333 !important;
-}
-
-.message-assistant .message-content .markdown-body pre.code-block-wrapper.light-theme .code-content code {
-  color: #333 !important;
-}
-
-/* === 折叠状态 === */
-.message-assistant .message-content .markdown-body pre.code-block-wrapper.folded .code-content {
-  max-height: 0 !important;
-  padding: 0 16px !important;
-  overflow: hidden !important;
-}
-
-/* === 行内代码 === */
-.message-assistant .message-content .markdown-body code:not(.hljs) {
-  font-family: 'Fira Code', Consolas, Monaco, 'Courier New', monospace !important;
-  font-size: 13px !important;
-}
-
-.message-assistant .message-content .markdown-body p code,
-.message-assistant .message-content .markdown-body li code,
-.message-assistant .message-content .markdown-body td code {
-  background: rgba(64, 158, 255, 0.12) !important;
-  color: #409eff !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-  font-size: 0.9em !important;
-  word-break: break-word !important;
-}
-
-/* === 引用块 === */
-.message-assistant .message-content .markdown-body blockquote {
-  border-left: 4px solid #409eff !important;
-  padding: 6px 14px !important;
-  color: #666 !important;
-  margin: 10px 0 !important;
-  background: #f5f7fa !important;
-  border-radius: 0 4px 4px 0 !important;
-}
-
-.message-assistant .message-content .markdown-body blockquote p {
-  margin: 4px 0 !important;
-}
-
-/* === 表格 === */
-.message-assistant .message-content .markdown-body table {
-  border-collapse: collapse !important;
-  width: 100% !important;
-  margin: 10px 0 !important;
-}
-
-.message-assistant .message-content .markdown-body th,
-.message-assistant .message-content .markdown-body td {
-  border: 1px solid #dfe2e5 !important;
-  padding: 6px 10px !important;
-  text-align: left !important;
-}
-
-.message-assistant .message-content .markdown-body th {
-  background: #f6f8fa !important;
-  font-weight: 600 !important;
-}
-
-/* === 链接 === */
-.message-assistant .message-content .markdown-body a {
-  color: #409eff !important;
-  text-decoration: none !important;
-}
-
-.message-assistant .message-content .markdown-body a:hover {
-  text-decoration: underline !important;
-}
-
-/* === 强调 === */
-.message-assistant .message-content .markdown-body strong {
-  font-weight: 600 !important;
-}
-
-.message-assistant .message-content .markdown-body em {
-  font-style: italic !important;
-}
-
-/* === 分隔线 === */
-.message-assistant .message-content .markdown-body hr {
-  border: none !important;
-  border-top: 1px solid #eaecef !important;
-  margin: 14px 0 !important;
-  height: 0 !important;
-}
-</style>

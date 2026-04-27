@@ -99,7 +99,6 @@ export async function* executeAgent(
         const refreshed = await authStore.refreshAccessToken()
         if (refreshed) {
           const newToken = localStorage.getItem('access_token')
-          console.info('[AgentAPI] Token 刷新成功，重新建立 SSE 连接')
           const retryResponse = await fetch(`${API_BASE}/execute`, {
             method: 'POST',
             headers: {
@@ -180,7 +179,6 @@ export async function* executeAgent(
         // 记录重连指标
         recordReconnect(reconnectCount, request.sessionId)
         const delay = Math.min(1000 * Math.pow(2, reconnectCount - 1), 30000)
-        console.info(`[AgentAPI] 第 ${reconnectCount}/${MAX_RECONNECT} 次重连，${delay}ms 后重试`)
         await new Promise(r => setTimeout(r, delay))
         continue
       }
@@ -232,7 +230,6 @@ export async function* executeAgent(
                 if (event.sequenceNumber !== undefined && event.sequenceNumber !== null) {
                   if (processedSequences.has(event.sequenceNumber)) {
                     // 重复事件，跳过
-                    console.debug(`[AgentAPI] 跳过重复事件: seq=${event.sequenceNumber}, type=${event.eventType}`)
                     currentEvent = ''
                     currentData = ''
                     continue

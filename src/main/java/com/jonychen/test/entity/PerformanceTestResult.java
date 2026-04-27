@@ -29,6 +29,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "performance_test_results",
+        schema = "app",
         indexes = {
             @Index(name = "idx_perf_results_job", columnList = "jobId"),
             @Index(name = "idx_perf_results_simulation", columnList = "simulation"),

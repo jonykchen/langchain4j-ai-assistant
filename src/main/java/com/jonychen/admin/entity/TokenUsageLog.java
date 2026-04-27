@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "token_usage_logs")
+@Table(name = "token_usage_logs", schema = "audit")
 public class TokenUsageLog {
 
     @Id
@@ -37,25 +37,37 @@ public class TokenUsageLog {
     @Column(name = "session_id")
     private String sessionId;
 
+    /** 会话ID（对话） */
+    @Column(name = "conversation_id")
+    private String conversationId;
+
+    /** 消息ID */
+    @Column(name = "message_id")
+    private Long messageId;
+
     /** 模型名称 */
     @Column(name = "model_name", nullable = false)
     private String modelName;
 
+    /** 模型提供者 */
+    @Column(name = "model_provider")
+    private String modelProvider;
+
     /** 提示 Token 数 */
-    @Column(name = "prompt_tokens", nullable = false)
-    private Integer promptTokens;
+    @Column(name = "prompt_tokens")
+    private Integer promptTokens = 0;
 
     /** 完成 Token 数 */
-    @Column(name = "completion_tokens", nullable = false)
-    private Integer completionTokens;
+    @Column(name = "completion_tokens")
+    private Integer completionTokens = 0;
 
     /** 总 Token 数 */
-    @Column(name = "total_tokens", nullable = false)
-    private Integer totalTokens;
+    @Column(name = "total_tokens")
+    private Integer totalTokens = 0;
 
     /** 费用 */
-    @Column(name = "cost", nullable = false, precision = 10, scale = 6)
-    private BigDecimal cost;
+    @Column(name = "cost", precision = 10, scale = 6)
+    private BigDecimal cost = BigDecimal.ZERO;
 
     /** 货币 */
     @Column(name = "currency", length = 10)
@@ -65,18 +77,44 @@ public class TokenUsageLog {
     @Column(name = "request_type", length = 20)
     private String requestType;
 
-    /** 创建时间 */
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    /** 延迟（毫秒） */
+    @Column(name = "latency_ms")
+    private Long latencyMs;
+
+    /** 状态 */
+    @Column(name = "status", length = 20)
+    private String status = "success";
+
+    /** 错误消息 */
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
 
     /** 关联的 Trace ID */
     @Column(name = "trace_id", length = 36)
     private String traceId;
 
+    /** 客户端IP */
+    @Column(name = "client_ip", length = 50)
+    private String clientIp;
+
+    /** 请求时间 */
+    @Column(name = "request_time")
+    private LocalDateTime requestTime;
+
+    /** 创建时间 */
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @PrePersist
     void prePersist() {
+        if (requestTime == null) {
+            requestTime = LocalDateTime.now();
+        }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        if (totalTokens == null && promptTokens != null && completionTokens != null) {
+            totalTokens = promptTokens + completionTokens;
         }
     }
 

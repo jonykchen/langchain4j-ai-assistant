@@ -145,7 +145,7 @@ const handleClear = async () => {
 
 .history-item {
   padding: 10px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   transition: background 0.2s;
   border-radius: 6px;
@@ -153,12 +153,12 @@ const handleClear = async () => {
 }
 
 .history-item:hover {
-  background: #f5f7fa;
+  background: var(--bg-hover);
 }
 
 .history-item.active {
-  background: #ecf5ff;
-  border-color: #409eff;
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
 }
 
 .history-header {
@@ -170,7 +170,7 @@ const handleClear = async () => {
 
 .history-goal {
   font-size: 13px;
-  color: #303133;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -181,10 +181,10 @@ const handleClear = async () => {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #909399;
+  color: var(--text-tertiary);
 }
 
 .history-duration {
-  color: #67C23A;
+  color: var(--color-success);
 }
 </style>

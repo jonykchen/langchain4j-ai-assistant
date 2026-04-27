@@ -3,8 +3,6 @@ package com.jonychen.agent.core;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,18 +11,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.jonychen.agent.quota.QuotaProvider;
+import com.jonychen.admin.service.TokenUsageService;
+
+import dev.langchain4j.model.chat.response.ChatResponse;
 
 @ExtendWith(MockitoExtension.class)
 class TokenUsageTrackerTest {
 
-    @Mock private QuotaProvider quotaProvider;
+    @Mock private TokenUsageService tokenUsageService;
+
+    @Mock private AgentMetricsService metricsService;
 
     private TokenUsageTracker tracker;
 
     @BeforeEach
     void setUp() {
-        tracker = new TokenUsageTracker(quotaProvider);
+        tracker = new TokenUsageTracker(tokenUsageService, metricsService);
     }
 
     @Nested
@@ -32,91 +34,60 @@ class TokenUsageTrackerTest {
     class RecordUsage {
 
         @Test
-        @DisplayName("应正确记录单次 Token 使用")
-        void shouldRecordSingleUsage() {
-            tracker.recordUsage("trace-1", "user-1", "model-1", 100, 200);
+        @DisplayName("应从 ChatResponse 提取并记录 Token 使用")
+        void shouldExtractAndRecordTokenUsage() {
+            dev.langchain4j.model.output.TokenUsage langchainUsage =
+                    new dev.langchain4j.model.output.TokenUsage(100, 200);
+            ChatResponse response = mock(ChatResponse.class);
+            when(response.tokenUsage()).thenReturn(langchainUsage);
 
-            TokenUsageTracker.UsageSummary summary = tracker.getSummary("trace-1");
-            assertNotNull(summary);
-            assertEquals(100, summary.promptTokens());
-            assertEquals(200, summary.completionTokens());
-            assertEquals(300, summary.totalTokens());
+            TokenUsage result =
+                    tracker.extractAndRecord(response, "trace-1", "user-1", "sess-1", "gpt-4");
+
+            assertNotNull(result);
+            assertEquals(100, result.promptTokens());
+            assertEquals(200, result.completionTokens());
+            verify(tokenUsageService).recordUsage("user-1", "sess-1", "trace-1", "gpt-4", response);
+            verify(metricsService).recordTokenUsage("gpt-4", 100, 200);
         }
 
         @Test
-        @DisplayName("应正确累加多次 Token 使用")
-        void shouldAccumulateMultipleUsages() {
-            tracker.recordUsage("trace-1", "user-1", "model-1", 100, 200);
-            tracker.recordUsage("trace-1", "user-1", "model-1", 50, 100);
+        @DisplayName("响应为空时应返回 empty")
+        void shouldReturnEmptyForNullResponse() {
+            TokenUsage result =
+                    tracker.extractAndRecord(null, "trace-1", "user-1", "sess-1", "gpt-4");
 
-            TokenUsageTracker.UsageSummary summary = tracker.getSummary("trace-1");
-            assertNotNull(summary);
-            assertEquals(150, summary.promptTokens());
-            assertEquals(300, summary.completionTokens());
-            assertEquals(450, summary.totalTokens());
+            assertNotNull(result);
+            assertEquals(0, result.promptTokens());
+            assertEquals(0, result.completionTokens());
         }
 
         @Test
-        @DisplayName("不同 traceId 应分开记录")
-        void shouldSeparateDifferentTraces() {
-            tracker.recordUsage("trace-1", "user-1", "model-1", 100, 200);
-            tracker.recordUsage("trace-2", "user-1", "model-1", 50, 100);
+        @DisplayName("响应无 Token 使用信息时应返回 empty")
+        void shouldReturnEmptyWhenNoTokenUsage() {
+            ChatResponse response = mock(ChatResponse.class);
+            when(response.tokenUsage()).thenReturn(null);
 
-            TokenUsageTracker.UsageSummary summary1 = tracker.getSummary("trace-1");
-            TokenUsageTracker.UsageSummary summary2 = tracker.getSummary("trace-2");
+            TokenUsage result =
+                    tracker.extractAndRecord(response, "trace-1", "user-1", "sess-1", "gpt-4");
 
-            assertEquals(300, summary1.totalTokens());
-            assertEquals(150, summary2.totalTokens());
-        }
-    }
-
-    @Nested
-    @DisplayName("配额检查")
-    class CheckQuota {
-
-        @Test
-        @DisplayName("配额充足时返回 true")
-        void shouldReturnTrueWhenQuotaAvailable() {
-            when(quotaProvider.getUserDailyQuota("user-1")).thenReturn(Optional.of(10000L));
-            when(quotaProvider.getUserDailyUsed("user-1")).thenReturn(Optional.of(1000L));
-
-            boolean result = tracker.checkQuota("user-1", 1000);
-            assertTrue(result);
-        }
-
-        @Test
-        @DisplayName("配额不足时返回 false")
-        void shouldReturnFalseWhenQuotaExceeded() {
-            when(quotaProvider.getUserDailyQuota("user-1")).thenReturn(Optional.of(1000L));
-            when(quotaProvider.getUserDailyUsed("user-1")).thenReturn(Optional.of(900L));
-
-            boolean result = tracker.checkQuota("user-1", 200);
-            assertFalse(result);
-        }
-
-        @Test
-        @DisplayName("无配额限制时默认允许")
-        void shouldAllowWhenNoQuotaConfigured() {
-            when(quotaProvider.getUserDailyQuota("user-1")).thenReturn(Optional.empty());
-
-            boolean result = tracker.checkQuota("user-1", 10000);
-            assertTrue(result);
+            assertNotNull(result);
+            assertEquals(0, result.promptTokens());
+            assertEquals(0, result.completionTokens());
         }
     }
 
     @Nested
-    @DisplayName("清理")
-    class Cleanup {
+    @DisplayName("手动记录 Token")
+    class RecordManual {
 
         @Test
-        @DisplayName("应正确清理已完成的 trace")
-        void shouldCleanupCompletedTrace() {
-            tracker.recordUsage("trace-1", "user-1", "model-1", 100, 200);
+        @DisplayName("应正确手动记录流式 Token 使用")
+        void shouldRecordManualTokenUsage() {
+            tracker.recordManual("trace-1", "user-1", "sess-1", "gpt-4", 100, 200);
 
-            tracker.cleanup("trace-1");
-
-            TokenUsageTracker.UsageSummary summary = tracker.getSummary("trace-1");
-            assertNotNull(summary);
+            verify(tokenUsageService).recordStreamingUsage("user-1", "sess-1", "gpt-4", 100, 200);
+            verify(metricsService).recordTokenUsage("gpt-4", 100, 200);
         }
     }
 }

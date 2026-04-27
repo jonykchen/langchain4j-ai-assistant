@@ -1,7 +1,8 @@
 <template>
-  <div class="planning-view p-6">
+  <div class="admin-page">
+
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="mb-6">
+    <el-row :gutter="20" class="card-section">
       <el-col :span="6">
         <el-card shadow="hover">
           <el-statistic title="总执行次数" :value="executionCount" />
@@ -209,9 +210,9 @@ const execute = async () => {
     currentResult.value = result
     addToHistory(result)
     ElMessage.success('执行完成')
-  } catch (error: any) {
-    ElMessage.error('执行失败: ' + (error.message || '未知错误'))
-    console.error('Planning execution failed:', error)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : '未知错误'
+    ElMessage.error('执行失败: ' + errorMsg)
   } finally {
     loading.value = false
   }
@@ -338,7 +339,7 @@ onMounted(() => {
 <style scoped>
 .planning-view {
   min-height: 100%;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
 }
 
 .mb-4 {
@@ -370,11 +371,11 @@ onMounted(() => {
 }
 
 .text-green-500 {
-  color: #67C23A;
+  color: var(--color-success);
 }
 
 .text-red-500 {
-  color: #F56C6C;
+  color: var(--color-danger);
 }
 
 .text-sm {

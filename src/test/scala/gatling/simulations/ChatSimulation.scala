@@ -18,15 +18,7 @@ class ChatSimulation extends Simulation {
     .userAgentHeader("Gatling-Performance-Test/1.0")
 
   // 测试用户 Feeder（轮询）
-  val testUsers = List(
-    Map("username" -> "user1", "token" -> "test-jwt-token-1"),
-    Map("username" -> "user2", "token" -> "test-jwt-token-2"),
-    Map("username" -> "user3", "token" -> "test-jwt-token-3"),
-    Map("username" -> "user4", "token" -> "test-jwt-token-4"),
-    Map("username" -> "user5", "token" -> "test-jwt-token-5")
-  )
-
-  val userFeeder = testUsers.circular
+  val userFeeder = csv("test-users.csv").circular
 
   // 测试消息 Feeder
   val messages = List(
@@ -103,16 +95,15 @@ class ChatSimulation extends Simulation {
   setUp(
     // 聊天场景
     chatScenario.inject(standardLoad)
-      .protocols(httpProtocol)
-      .assertions(
-        global.responseTime.max.lt(30000),        // 最大响应时间 < 30s
-        global.responseTime.mean.lt(5000),         // 平均响应时间 < 5s
-        global.successfulRequests.percent.gt(95), // 成功率 > 95%
-        global.responseTime.percentile3.lt(10000)  // P95 < 10s
-      ),
+      .protocols(httpProtocol),
 
     // 流式场景（较少并发）
     streamScenario.inject(rampUsers(5).during(30.seconds))
       .protocols(httpProtocol)
+  ).assertions(
+    global.responseTime.max.lt(30000),        // 最大响应时间 < 30s
+    global.responseTime.mean.lt(5000),         // 平均响应时间 < 5s
+    global.successfulRequests.percent.gt(95), // 成功率 > 95%
+    global.responseTime.percentile3.lt(10000)  // P95 < 10s
   ).maxDuration(10.minutes)
 }

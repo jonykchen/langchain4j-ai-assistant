@@ -21,6 +21,31 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <repositories>
+        <!-- 覆盖 Spring Boot Parent 中定义的 spring-releases 仓库（已要求认证，返回 401） -->
+        <!-- 优先使用 Maven Central，Spring 发布版本已在 Maven Central 同步 -->
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo1.maven.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <!-- 禁用 spring-releases 仓库（需要认证，返回 401） -->
+        <repository>
+            <id>spring-releases</id>
+            <name>Spring Releases</name>
+            <url>https://repo.spring.io/release</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -600,6 +625,27 @@
                     <baseClassForTests>com.jonychen.contract.ContractTestBase</baseClassForTests>
                     <testMode>MOCKMVC</testMode>
                 </configuration>
+            </plugin>
+
+            <!-- Build Helper Maven Plugin：将契约测试生成的源码目录添加为测试源码根，解决 IDE 无法识别的问题 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-contract-test-sources</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-test-sources/contracts</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Scala Maven 插件：编译 Gatling Scala 测试 -->
