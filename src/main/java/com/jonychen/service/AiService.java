@@ -2,7 +2,9 @@ package com.jonychen.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +46,11 @@ public class AiService {
     private final TokenUsageService tokenUsageService;
     private final BusinessMetricsService businessMetricsService;
 
-    /** 会话记忆存储（生产环境应使用 Redis） */
-    private final ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(20);
+    /** 会话记忆存储（按用户隔离，避免线程安全问题） */
+    private final Map<String, ChatMemory> userChatMemories = new ConcurrentHashMap<>();
+
+    /** 每个用户的最大消息数 */
+    private static final int MAX_MESSAGES_PER_USER = 20;
 
     /** 系统提示词 */
     private static final String SYSTEM_PROMPT =
@@ -90,8 +95,11 @@ public class AiService {
             // 记录用户消息
             businessMetricsService.recordUserMessage(userId);
 
+            // 获取用户专属的对话记忆
+            ChatMemory chatMemory = getOrCreateChatMemory(userId);
+
             // 构建消息列表
-            List<ChatMessage> messages = buildMessages(message);
+            List<ChatMessage> messages = buildMessages(message, chatMemory);
 
             // 调用模型
             ChatRequest request = ChatRequest.builder().messages(messages).build();
@@ -129,14 +137,17 @@ public class AiService {
     public Flux<String> chatFlux(String message) {
         LOG.trace("收到流式聊天请求: {}", truncateForLog(message));
 
+        // 获取用户 ID
+        String userId = getCurrentUserId();
+
+        // 获取用户专属的对话记忆
+        ChatMemory chatMemory = getOrCreateChatMemory(userId);
+
         // 构建消息列表
-        List<ChatMessage> messages = buildMessages(message);
+        List<ChatMessage> messages = buildMessages(message, chatMemory);
 
         // 生成会话 ID
         String sessionId = UUID.randomUUID().toString();
-
-        // 获取用户 ID
-        String userId = getCurrentUserId();
 
         // 记录用户消息和流式请求开始
         businessMetricsService.recordUserMessage(userId);
@@ -224,7 +235,7 @@ public class AiService {
     }
 
     /** 构建消息列表（包含系统提示词和对话历史） */
-    private List<ChatMessage> buildMessages(String userMessage) {
+    private List<ChatMessage> buildMessages(String userMessage, ChatMemory chatMemory) {
         List<ChatMessage> messages = new ArrayList<>();
 
         // 添加系统提示词
@@ -237,6 +248,18 @@ public class AiService {
         messages.add(UserMessage.from(userMessage));
 
         return messages;
+    }
+
+    /** 获取或创建用户的对话记忆 */
+    private ChatMemory getOrCreateChatMemory(String userId) {
+        return userChatMemories.computeIfAbsent(
+                userId, k -> MessageWindowChatMemory.withMaxMessages(MAX_MESSAGES_PER_USER));
+    }
+
+    /** 清除指定用户的对话记忆 */
+    public void clearChatMemory(String userId) {
+        userChatMemories.remove(userId);
+        LOG.debug("已清除用户 {} 的对话记忆", userId);
     }
 
     /** 记录 Token 使用 */

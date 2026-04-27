@@ -18,7 +18,9 @@ import com.jonychen.admin.dto.PageResponse;
 import com.jonychen.admin.dto.UserAdminVO;
 import com.jonychen.admin.service.AdminStatisticsService;
 import com.jonychen.admin.service.UserAdminService;
+import com.jonychen.auth.UserRole;
 import com.jonychen.model.ApiResponse;
+import com.jonychen.model.ErrorCode;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -105,7 +107,16 @@ public class AdminController {
     @PutMapping("/users/{userId}/role")
     public ApiResponse<Void> updateUserRole(
             @PathVariable String userId, @RequestBody Map<String, String> request) {
-        userAdminService.updateUserRole(userId, request.get("role"));
+        String role = request.get("role");
+        if (role == null || role.isBlank()) {
+            return ApiResponse.error(ErrorCode.PARAM_MISSING, "角色不能为空");
+        }
+        try {
+            UserRole.valueOf(role);
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error(ErrorCode.PARAM_INVALID, "无效的角色值，可选值: USER, ADMIN");
+        }
+        userAdminService.updateUserRole(userId, role);
         return ApiResponse.success(null);
     }
 

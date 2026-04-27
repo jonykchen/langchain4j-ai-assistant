@@ -29,6 +29,9 @@ public interface UserRepository extends JpaRepository<User, String> {
     /** 按角色查询用户 */
     Page<User> findByRole(UserRole role, Pageable pageable);
 
+    /** 统计指定角色的用户数量 */
+    long countByRole(UserRole role);
+
     /** 按提供商查询用户 */
     Page<User> findByProvider(AuthProvider provider, Pageable pageable);
 

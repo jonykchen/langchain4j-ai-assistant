@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessageBox } from 'element-plus'
-import { User, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { User, Setting, SwitchButton, ArrowDown } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -17,8 +17,7 @@ const handleCommand = async (command: string) => {
       router.push('/admin')
       break
     case 'profile':
-      // TODO: 跳转到个人中心
-      console.log('个人中心')
+      router.push('/profile')
       break
     case 'logout':
       await ElMessageBox.confirm('确定要退出登录吗？', '提示', {

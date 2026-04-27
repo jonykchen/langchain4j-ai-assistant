@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Map;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,38 +16,47 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.jonychen.agent.impl.DataAgent;
-import com.jonychen.agent.impl.OpsAgent;
+import com.jonychen.observability.trace.AgentTraceService;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import reactor.core.publisher.FluxSink;
 
 @ExtendWith(MockitoExtension.class)
 class AgentDelegationServiceTest {
 
-    @Mock private DataAgent dataAgent;
+    @Mock private Agent dataAgent;
 
-    @Mock private OpsAgent opsAgent;
-
-    @Mock private AgentAuditService auditService;
+    @Mock private Agent opsAgent;
 
     @Mock private AgentMetricsService metricsService;
 
+    @Mock private AgentRegistry agentRegistry;
+
     @Mock private AgentTraceService traceService;
+
+    @Mock private FluxSink<AgentEvent> sink;
 
     private AgentDelegationService delegationService;
 
+    private AtomicInteger sequenceCounter;
+
     @BeforeEach
     void setUp() {
-        // 配置 Agent 元信息
-        when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
-        when(opsAgent.getMetadata()).thenReturn(AgentMetadata.ops());
+        delegationService = new AgentDelegationService(metricsService);
+        delegationService.setAgentRegistry(agentRegistry);
+        sequenceCounter = new AtomicInteger(0);
+    }
 
-        delegationService =
-                new AgentDelegationService(
-                        Map.of("data", dataAgent, "ops", opsAgent),
-                        auditService,
-                        metricsService,
-                        traceService);
+    private AgentContext createContext() {
+        return new AgentContext(
+                "trace-1",
+                "sess-1",
+                "user-1",
+                AgentType.DATA,
+                null,
+                MessageWindowChatMemory.withMaxMessages(10),
+                traceService,
+                AgentRequestOptions.defaults());
     }
 
     @Nested
@@ -55,85 +66,89 @@ class AgentDelegationServiceTest {
         @Test
         @DisplayName("应正确委托到目标 Agent")
         void shouldDelegateToTargetAgent() {
-            // 配置 dataAgent 执行结果
-            AgentResult mockResult = AgentResult.success("data-agent-trace", "查询结果", 50, 100);
+            when(agentRegistry.getAgent("data")).thenReturn(java.util.Optional.of(dataAgent));
+            when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
+
+            AgentResult mockResult =
+                    AgentResult.success("data-agent-trace", "查询结果", Collections.emptyList());
             when(dataAgent.execute(any(AgentRequest.class), any(AgentContext.class)))
                     .thenReturn(mockResult);
 
-            AgentContext context =
-                    new AgentContext(
-                            "trace-1",
-                            "sess-1",
-                            "user-1",
-                            AgentType.DATA,
-                            null,
-                            MessageWindowChatMemory.withMaxMessages(10),
-                            traceService,
-                            AgentRequestOptions.defaults());
+            AgentContext context = createContext();
+            context.setVariable("sourceAgentName", "source-agent");
 
-            AgentResult result =
-                    delegationService.delegate("source-agent", "data", "查询用户数据", context);
+            AgentDelegationService.DelegationResult result =
+                    delegationService.delegate("data", "查询用户数据", context, sink, sequenceCounter, 0);
 
-            assertTrue(result.isSuccess());
-            verify(metricsService)
-                    .recordDelegation(eq("source-agent"), eq("data"), eq(true), anyInt());
+            assertTrue(result.success());
+            assertEquals("查询结果", result.output());
+            verify(metricsService).recordDelegation("source-agent", "data", true, 0);
         }
 
         @Test
         @DisplayName("不存在的目标 Agent 应返回失败")
         void shouldReturnFailureForNonExistentTarget() {
-            AgentContext context =
-                    new AgentContext(
-                            "trace-1",
-                            "sess-1",
-                            "user-1",
-                            AgentType.DATA,
-                            null,
-                            MessageWindowChatMemory.withMaxMessages(10),
-                            traceService,
-                            AgentRequestOptions.defaults());
+            when(agentRegistry.getAgent("nonexistent")).thenReturn(java.util.Optional.empty());
 
-            AgentResult result =
-                    delegationService.delegate("source-agent", "nonexistent", "测试", context);
+            AgentContext context = createContext();
+            context.setVariable("sourceAgentName", "source-agent");
 
-            assertFalse(result.isSuccess());
-            verify(metricsService)
-                    .recordDelegation(eq("source-agent"), eq("nonexistent"), eq(false), anyInt());
+            AgentDelegationService.DelegationResult result =
+                    delegationService.delegate(
+                            "nonexistent", "测试", context, sink, sequenceCounter, 0);
+
+            assertFalse(result.success());
+            assertNotNull(result.error());
         }
 
         @Test
-        @DisplayName("委托深度限制应正确检查")
-        void shouldCheckDelegationDepthLimit() {
-            // 深度超过限制时应拒绝
-            assertDoesNotThrow(
-                    () -> {
-                        delegationService.checkDelegationDepth(1);
-                    });
+        @DisplayName("不能委托给自己")
+        void shouldNotDelegateToSelf() {
+            when(agentRegistry.getAgent("data")).thenReturn(java.util.Optional.of(dataAgent));
+            when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
 
-            assertDoesNotThrow(
-                    () -> {
-                        delegationService.checkDelegationDepth(2);
-                    });
+            AgentContext context = createContext();
+            context.setVariable("sourceAgentName", "data");
 
-            assertThrows(
-                    AgentException.class,
-                    () -> {
-                        delegationService.checkDelegationDepth(5);
-                    });
+            AgentDelegationService.DelegationResult result =
+                    delegationService.delegate("data", "测试", context, sink, sequenceCounter, 0);
+
+            assertFalse(result.success());
+            assertNotNull(result.error());
+        }
+
+        @Test
+        @DisplayName("委托深度超限应返回失败")
+        void shouldReturnFailureWhenDepthExceeded() {
+            AgentContext context = createContext();
+            context.setVariable("delegationDepth", 3);
+            context.setVariable("sourceAgentName", "source-agent");
+
+            AgentDelegationService.DelegationResult result =
+                    delegationService.delegate("data", "测试", context, sink, sequenceCounter, 0);
+
+            assertFalse(result.success());
+            assertNotNull(result.error());
         }
     }
 
     @Nested
-    @DisplayName("获取委托链")
-    class GetDelegationChain {
+    @DisplayName("获取可委托 Agent")
+    class GetDelegatableAgents {
 
         @Test
-        @DisplayName("应返回可用的委托目标")
-        void shouldReturnAvailableDelegationTargets() {
-            var targets = delegationService.getDelegationTargets();
+        @DisplayName("应排除 ROUTER 类型和指定 Agent")
+        void shouldExcludeRouterAndSelf() {
+            AgentMetadata routerMeta = AgentMetadata.router();
+            AgentMetadata dataMeta = AgentMetadata.data();
+            AgentMetadata opsMeta = AgentMetadata.ops();
 
-            assertTrue(targets.contains("data"));
-            assertTrue(targets.contains("ops"));
+            when(agentRegistry.getAllMetadata()).thenReturn(List.of(routerMeta, dataMeta, opsMeta));
+
+            List<AgentMetadata> result = delegationService.getDelegatableAgents("data");
+
+            assertEquals(1, result.size());
+            assertEquals("ops", result.get(0).name());
         }
     }
 }

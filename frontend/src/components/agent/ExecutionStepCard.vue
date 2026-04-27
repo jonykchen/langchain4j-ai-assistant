@@ -166,19 +166,25 @@ function toggle() {
 
 <style scoped>
 .step-card {
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
   overflow: hidden;
   position: relative;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+.step-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .step-card.step-running {
-  border-color: #409eff;
+  border-color: var(--color-primary);
 }
 
 .step-card.step-error {
-  border-color: #f56c6c;
+  border-color: var(--color-danger);
 }
 
 /* 步骤头部 */
@@ -186,46 +192,46 @@ function toggle() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 16px 24px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .step-header:hover {
-  background: #f5f7fa;
+  background: var(--bg-secondary);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .step-icon {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e4e7ed;
-  color: #606266;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .step-icon.running {
-  background: #409eff;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--text-inverse);
   animation: pulse 1.5s infinite;
 }
 
 .step-icon.success {
-  background: #67c23a;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--text-inverse);
 }
 
 .step-icon.error {
-  background: #f56c6c;
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--text-inverse);
 }
 
 @keyframes pulse {
@@ -236,33 +242,34 @@ function toggle() {
 .step-info {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .step-type {
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .step-tool {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-tertiary);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .step-duration {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-tertiary);
 }
 
 .toggle-icon {
   transition: transform 0.3s;
-  color: #909399;
+  color: var(--text-tertiary);
 }
 
 .toggle-icon.expanded {
@@ -271,60 +278,71 @@ function toggle() {
 
 /* 步骤详情 */
 .step-body {
-  padding: 0 16px 16px;
-  border-top: 1px solid #e4e7ed;
+  padding: var(--space-xl) var(--space-2xl);
+  border-top: 1px solid var(--border-color);
 }
 
 .section-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #909399;
-  margin-bottom: 8px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-sm);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .thought-section,
 .tool-section,
 .content-section,
 .error-section {
-  margin-top: 12px;
+  margin-top: var(--space-lg);
+}
+
+.thought-section:first-child,
+.tool-section:first-child,
+.content-section:first-child,
+.error-section:first-child {
+  margin-top: 0;
 }
 
 .thought-content {
-  background: #f5f7fa;
-  padding: 12px;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .tool-params,
 .tool-result {
-  margin-top: 8px;
+  margin-top: var(--space-md);
 }
 
 .content-text {
-  padding: 12px;
-  background: #f5f7fa;
-  border-radius: 6px;
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
   font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.6;
 }
 
 .error-section {
-  margin-top: 12px;
+  margin-top: var(--space-lg);
 }
 
 /* 连接线 */
 .step-connector {
   position: absolute;
-  left: 27px;
+  left: 29px;
   bottom: -1px;
   width: 2px;
-  height: 12px;
-  background: #e4e7ed;
+  height: 14px;
+  background: var(--border-color);
   z-index: 1;
 }
 </style>

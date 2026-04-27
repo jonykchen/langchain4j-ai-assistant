@@ -4,7 +4,9 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.annotation.PostConstruct;
 
@@ -36,6 +38,10 @@ public class OAuth2UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // State 参数缓存（用于 CSRF 防护）
+    private final Map<String, Long> stateCache = new ConcurrentHashMap<>();
+    private static final long STATE_EXPIRY_MS = 10 * 60 * 1000; // 10 分钟过期
 
     // GitHub OAuth 配置
     @Value("${oauth.github.client-id:}")
@@ -104,6 +110,8 @@ public class OAuth2UserService {
 
     /** 获取 GitHub 授权 URL */
     public String getGitHubAuthorizationUrl(String redirectUri, String state) {
+        // 保存 state 用于后续验证
+        saveState(state);
         return String.format(
                 "https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=read:user%%20user:email&state=%s",
                 githubClientId, redirectUri, state);
@@ -111,14 +119,51 @@ public class OAuth2UserService {
 
     /** 获取 GitLab 授权 URL */
     public String getGitLabAuthorizationUrl(String redirectUri, String state) {
+        // 保存 state 用于后续验证
+        saveState(state);
         return String.format(
                 "%s/oauth/authorize?client_id=%s&redirect_uri=%s&scope=read_user&response_type=code&state=%s",
                 gitlabUrl, gitlabClientId, redirectUri, state);
     }
 
+    /** 保存 state */
+    private void saveState(String state) {
+        stateCache.put(state, System.currentTimeMillis());
+        // 清理过期的 state
+        cleanupExpiredStates();
+    }
+
+    /** 验证 state */
+    private boolean validateState(String state) {
+        if (state == null || state.isBlank()) {
+            return false;
+        }
+        Long timestamp = stateCache.remove(state);
+        if (timestamp == null) {
+            log.warn("OAuth state 不存在或已被使用: {}", state);
+            return false;
+        }
+        if (System.currentTimeMillis() - timestamp > STATE_EXPIRY_MS) {
+            log.warn("OAuth state 已过期: {}", state);
+            return false;
+        }
+        return true;
+    }
+
+    /** 清理过期的 state */
+    private void cleanupExpiredStates() {
+        long now = System.currentTimeMillis();
+        stateCache.entrySet().removeIf(e -> now - e.getValue() > STATE_EXPIRY_MS);
+    }
+
     /** 处理 GitHub OAuth 回调 */
     @Transactional
-    public TokenResponse handleGitHubCallback(String code, String redirectUri) {
+    public TokenResponse handleGitHubCallback(String code, String state, String redirectUri) {
+        // 验证 state（防止 CSRF 攻击）
+        if (!validateState(state)) {
+            throw new RuntimeException("GitHub OAuth 认证失败：state 验证失败");
+        }
+
         // 1. 用 code 换取 access token
         GitHubTokenResponse tokenResp = exchangeGitHubToken(code, redirectUri);
         if (tokenResp == null || tokenResp.getAccessToken() == null) {
@@ -150,7 +195,12 @@ public class OAuth2UserService {
 
     /** 处理 GitLab OAuth 回调 */
     @Transactional
-    public TokenResponse handleGitLabCallback(String code, String redirectUri) {
+    public TokenResponse handleGitLabCallback(String code, String state, String redirectUri) {
+        // 验证 state（防止 CSRF 攻击）
+        if (!validateState(state)) {
+            throw new RuntimeException("GitLab OAuth 认证失败：state 验证失败");
+        }
+
         // 1. 用 code 换取 access token
         GitLabTokenResponse tokenResp = exchangeGitLabToken(code, redirectUri);
         if (tokenResp == null || tokenResp.getAccessToken() == null) {

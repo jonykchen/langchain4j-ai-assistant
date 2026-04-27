@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { testApi, type AIModelTestSummary } from '@/api/admin'
+import { CircleCheck, CircleClose, QuestionFilled } from '@element-plus/icons-vue'
+import { testApi, type AIModelTestSummary, type TestStatsSummary } from '@/api/admin'
 
 const emit = defineEmits<{
-  'stats-update': [stats: any]
+  'stats-update': [stats: Partial<TestStatsSummary>]
 }>()
 
 const loading = ref(false)
@@ -146,15 +147,15 @@ onMounted(() => {
       <el-table-column prop="score" label="得分" width="180">
         <template #default="{ row }">
           <el-progress
-            :percentage="Math.round(row.score * 100)"
-            :status="row.score >= 0.8 ? 'success' : row.score >= 0.5 ? 'warning' : 'exception'"
+            :percentage="Math.round((row.score ?? 0) * 100)"
+            :status="(row.score ?? 0) >= 0.8 ? 'success' : (row.score ?? 0) >= 0.5 ? 'warning' : 'exception'"
             :format="(val: number) => val + '%'"
           />
         </template>
       </el-table-column>
       <el-table-column prop="responseTime" label="耗时" width="100">
         <template #default="{ row }">
-          {{ row.responseTime }}ms
+          {{ row.responseTime ?? 0 }}ms
         </template>
       </el-table-column>
       <el-table-column prop="passed" label="状态" width="100">

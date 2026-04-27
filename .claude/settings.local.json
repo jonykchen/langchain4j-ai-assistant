@@ -47,7 +47,15 @@
       "Bash(unzip -p ~/.m2/repository/dev/langchain4j/langchain4j-core/1.13.0/langchain4j-core-1.13.0-sources.jar dev/langchain4j/service/tool/ToolExecutor.java)",
       "Bash(unzip *)",
       "Bash(grep -v '\\\\$')",
-      "Bash(javac *)"
+      "Bash(javac *)",
+      "Bash(/usr/libexec/java_home *)",
+      "Bash(brew install *)",
+      "Bash(jenv add *)",
+      "Bash(jenv version *)",
+      "Bash(jenv versions *)",
+      "Bash(find /Users/jonychen/IdeaProjects/langchain4j-demo/src/main/java/com/jonychen/controller -name \"*.java\" -exec head -50 {} \\\\;)",
+      "Bash(find src/main/java -name \"*.java\" -exec grep -l \"@Entity\" {} \\\\;)",
+      "Bash(PGPASSWORD=REDACTED_DB_PASSWORD psql *)"
     ]
   }
 }

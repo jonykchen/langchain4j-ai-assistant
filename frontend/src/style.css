@@ -1,3 +1,7 @@
+@import url('./styles/variables.css');
+@import url('./styles/modern.css');
+@import url('./styles/markdown.css');
+
 @tailwind components;
 @tailwind utilities;
 
@@ -11,183 +15,34 @@ html, body, #app {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Markdown styles - 使用 !important 确保覆盖所有重置样式 */
-.markdown-body {
-  line-height: 1.7 !important;
-  color: #333 !important;
-  word-wrap: break-word;
+/* ===== Generic Pre (non-code-block) ===== */
+.markdown-body pre:not(.code-block-wrapper) {
+  background: #1e1e1e;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 12px 0;
 }
 
-.markdown-body > *:first-child {
-  margin-top: 0 !important;
+.markdown-body pre:not(.code-block-wrapper) code {
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  color: #e6e6e6;
 }
 
-.markdown-body > *:last-child {
-  margin-bottom: 0 !important;
+[data-theme="dark"] .markdown-body pre:not(.code-block-wrapper) {
+  background: #141414;
 }
 
-/* 标题样式 */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3,
-.markdown-body h4,
-.markdown-body h5,
-.markdown-body h6 {
-  margin-top: 20px !important;
-  margin-bottom: 12px !important;
-  font-weight: 600 !important;
-  line-height: 1.3 !important;
-}
-
-.markdown-body h1 { font-size: 1.6em !important; border-bottom: 1px solid #eaecef; padding-bottom: 8px; }
-.markdown-body h2 { font-size: 1.4em !important; border-bottom: 1px solid #eaecef; padding-bottom: 6px; }
-.markdown-body h3 { font-size: 1.2em !important; }
-.markdown-body h4 { font-size: 1.1em !important; }
-.markdown-body h5 { font-size: 1em !important; }
-.markdown-body h6 { font-size: 0.95em !important; color: #6a737d !important; }
-
-/* 段落 */
-.markdown-body p {
-  margin: 12px 0 !important;
-}
-
-/* 列表样式 */
-.markdown-body ul,
-.markdown-body ol {
-  padding-left: 24px !important;
-  margin: 12px 0 !important;
-  display: block !important;
-}
-
-.markdown-body li {
-  margin: 6px 0 !important;
-  line-height: 1.6 !important;
-  display: list-item !important;
-}
-
-.markdown-body ul li {
-  list-style-type: disc !important;
-  list-style-position: outside !important;
-}
-
-.markdown-body ol li {
-  list-style-type: decimal !important;
-  list-style-position: outside !important;
-}
-
-.markdown-body ul ul,
-.markdown-body ol ol,
-.markdown-body ul ol,
-.markdown-body ol ul {
-  margin: 6px 0 !important;
-}
-
-.markdown-body ul ul li {
-  list-style-type: circle !important;
-}
-
-.markdown-body ul ul ul li {
-  list-style-type: square !important;
-}
-
-/* 代码块 */
-.markdown-body pre {
-  background: #1e1e1e !important;
-  padding: 16px !important;
-  border-radius: 8px !important;
-  overflow-x: auto !important;
-  margin: 12px 0 !important;
-}
-
-.markdown-body pre code {
-  background: transparent !important;
-  padding: 0 !important;
-  font-size: 14px !important;
-  color: #e6e6e6 !important;
-}
-
-.markdown-body code {
-  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace !important;
-  font-size: 14px !important;
-}
-
-.markdown-body p code,
-.markdown-body li code {
-  background: rgba(65, 105, 225, 0.1) !important;
-  color: #4169e1 !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-  font-size: 13px !important;
-}
-
-/* 引用 */
-.markdown-body blockquote {
-  border-left: 4px solid #409eff !important;
-  padding: 8px 16px !important;
-  color: #666 !important;
-  margin: 12px 0 !important;
-  background: #f8fafc !important;
-  border-radius: 0 4px 4px 0 !important;
-}
-
-.markdown-body blockquote p {
-  margin: 4px 0 !important;
-}
-
-/* 表格 */
-.markdown-body table {
-  border-collapse: collapse !important;
-  width: 100% !important;
-  margin: 12px 0 !important;
-}
-
-.markdown-body th,
-.markdown-body td {
-  border: 1px solid #dfe2e5 !important;
-  padding: 8px 12px !important;
-  text-align: left !important;
-}
-
-.markdown-body th {
-  background: #f6f8fa !important;
-  font-weight: 600 !important;
-}
-
-.markdown-body tr:nth-child(even) {
-  background: #f6f8fa !important;
-}
-
-/* 分隔线 */
-.markdown-body hr {
-  border: none !important;
-  border-top: 1px solid #eaecef !important;
-  margin: 16px 0 !important;
-  height: 0 !important;
-}
-
-/* 链接 */
-.markdown-body a {
-  color: #409eff !important;
-  text-decoration: none !important;
-}
-
-.markdown-body a:hover {
-  text-decoration: underline !important;
-}
-
-/* 强调 */
-.markdown-body strong {
-  font-weight: 600 !important;
-}
-
-.markdown-body em {
-  font-style: italic !important;
-}
-
-/* Message animation */
+/* ===== Message Animation ===== */
 .message-enter-active,
 .message-leave-active {
   transition: all 0.3s ease;
@@ -198,7 +53,7 @@ html, body, #app {
   transform: translateY(10px);
 }
 
-/* Typing cursor */
+/* ===== Typing Cursor ===== */
 .typing-cursor::after {
   content: '|';
   animation: blink 1s infinite;
@@ -209,22 +64,93 @@ html, body, #app {
   51%, 100% { opacity: 0; }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+/* ===== Admin Page Container ===== */
+.admin-page {
+  padding: var(--page-padding);
+  max-width: var(--max-content-width);
+  margin: 0 auto;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+.admin-page h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--section-spacing) 0;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+.admin-page h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: var(--section-spacing) 0 var(--card-spacing) 0;
+}
+
+.admin-page h3:first-child {
+  margin-top: 0;
+}
+
+/* ===== Card Spacing ===== */
+.card-section {
+  margin-bottom: var(--card-spacing);
+}
+
+.card-section:last-child {
+  margin-bottom: 0;
+}
+
+/* ===== Filter Bar ===== */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--card-spacing);
+}
+
+/* ===== Page Header ===== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--section-spacing);
+}
+
+.page-header h2 {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .admin-page {
+    padding: var(--space-lg);
+  }
+}
+
+/* ===== Card Column (for grid layout) ===== */
+.card-col {
+  margin-bottom: var(--card-spacing);
+}
+
+/* ===== Description List ===== */
+.el-descriptions {
+  margin-bottom: var(--space-lg);
+}
+
+.el-descriptions:last-child {
+  margin-bottom: 0;
+}
+
+/* ===== Table Pagination ===== */
+.el-pagination {
+  margin-top: var(--card-spacing);
 }

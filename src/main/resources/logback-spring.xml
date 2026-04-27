@@ -125,7 +125,7 @@
 
         <!-- Spring 框架日志 -->
         <logger name="org.springframework" level="INFO"/>
-        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.springframework.web" level="INFO"/>
 
         <!-- SQL 日志（如有数据库） -->
         <logger name="org.hibernate.SQL" level="DEBUG"/>

@@ -7,7 +7,7 @@
  * @author jonychen
  */
 import { computed } from 'vue'
-import { DangerFilled } from '@element-plus/icons-vue'
+import { WarningFilled } from '@element-plus/icons-vue'
 import type { RiskLevel } from '@/types/agent'
 
 const props = defineProps<{
@@ -52,8 +52,8 @@ function handleReject() {
 <template>
   <div class="confirmation-dialog" :class="{ 'is-critical': isCritical }">
     <div class="confirmation-header">
-      <el-icon :size="24" :color="isCritical ? '#f56c6c' : '#e6a23c'">
-        <DangerFilled />
+      <el-icon :size="24" :color="isCritical ? 'var(--color-danger)' : 'var(--color-warning)'">
+        <WarningFilled />
       </el-icon>
       <div class="header-text">
         <h3>需要确认操作</h3>
@@ -90,17 +90,17 @@ function handleReject() {
 
 <style scoped>
 .confirmation-dialog {
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  margin: 16px 0;
-  border: 1px solid #e4e7ed;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin: var(--space-md) 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
 }
 
 .confirmation-dialog.is-critical {
-  border-color: #f56c6c;
-  background: #fef0f0;
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
 }
 
 .confirmation-header {
@@ -132,12 +132,12 @@ function handleReject() {
 }
 
 .label {
-  color: #909399;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
 .value {
-  color: #303133;
+  color: var(--text-primary);
   font-size: 14px;
 }
 

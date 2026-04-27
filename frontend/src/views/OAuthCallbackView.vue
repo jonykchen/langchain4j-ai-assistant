@@ -73,8 +73,8 @@ onMounted(async () => {
       window.location.href = '/'
     }, 500)
 
-  } catch (err: any) {
-    error.value = err.message || '登录失败，请重试'
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '登录失败，请重试'
     statusText.value = '登录失败'
   }
 })
@@ -95,19 +95,19 @@ const goToLogin = () => {
 
 .callback-content {
   text-align: center;
-  background: white;
+  background: var(--bg-primary);
   padding: 48px;
   border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
 }
 
 .loading-icon {
   animation: spin 1s linear infinite;
-  color: #409eff;
+  color: var(--color-primary);
 }
 
 .error-icon {
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 
 @keyframes spin {
@@ -117,11 +117,11 @@ const goToLogin = () => {
 
 .callback-content h2 {
   margin: 16px 0 8px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .error-message {
-  color: #f56c6c;
+  color: var(--color-danger);
   margin: 0;
 }
 </style>

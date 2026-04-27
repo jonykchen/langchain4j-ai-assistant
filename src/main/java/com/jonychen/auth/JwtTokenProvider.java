@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret:REDACTED_JWT_SECRET}")
+    @Value("${jwt.secret:}")
     private String secret;
 
     @Value("${jwt.access-token-expiration:3600}")
@@ -32,15 +32,27 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init() {
-        // 确保密钥长度足够
+        // 校验密钥配置
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT 密钥未配置，请设置环境变量 JWT_SECRET 或配置 jwt.secret");
+        }
+
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
-            // 如果密钥长度不足，进行填充
+            log.warn("JWT 密钥长度不足 32 字节（当前 {} 字节），建议使用更强的密钥", keyBytes.length);
+            // 如果密钥长度不足，进行填充（不推荐生产环境使用）
             byte[] paddedKey = new byte[32];
             System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 32));
             keyBytes = paddedKey;
         }
+
+        // 检查是否使用了明显的弱密钥
+        if (secret.length() < 16 || secret.matches("^[a-zA-Z0-9]{16}$")) {
+            log.error("JWT 密钥强度不足，请使用至少 32 字节的随机密钥");
+        }
+
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+        log.info("JWT 密钥初始化完成，长度: {} 字节", keyBytes.length);
     }
 
     /** 生成访问令牌和刷新令牌 */

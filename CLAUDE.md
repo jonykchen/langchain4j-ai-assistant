@@ -140,30 +140,56 @@ frontend/src/
 ├── api/
 │   ├── chat.ts                  # API 调用：sendMessage(), streamMessage()
 │   └── admin.ts                 # 管理员 API + 测试管理 API
-├── stores/chat.ts               # Pinia 状态管理，支持 localStorage 持久化
+├── stores/
+│   ├── chat.ts                  # Pinia 状态管理，支持 localStorage 持久化
+│   ├── auth.ts                  # 认证状态管理
+│   ├── agent.ts                 # Agent 执行状态管理
+│   └── theme.ts                 # 主题状态管理（亮色/暗色/自动）
+├── styles/
+│   ├── variables.css            # CSS 变量体系（颜色、间距、阴影、z-index）
+│   ├── modern.css               # 现代化样式（卡片、按钮、骨架屏）
+│   └── markdown.css             # Markdown 全局渲染样式
 ├── types/index.ts               # TypeScript 类型定义
 ├── main.ts                      # 入口文件，注册 Element Plus 和图标
-├── style.css                    # 全局样式，Markdown 渲染样式
+├── style.css                    # 全局样式入口
 ├── components/
 │   ├── ChatInput.vue            # 消息输入组件，处理中文输入法组合事件
 │   ├── MessageItem.vue          # 消息渲染组件（核心组件）
 │   ├── MessageList.vue          # 消息列表容器，自动滚动到底部
-│   └── Sidebar.vue              # 侧边栏，显示对话历史列表
+│   ├── MessageAvatar.vue        # 消息头像组件（用户/AI）
+│   ├── MessageToolbar.vue       # 消息操作工具栏（点赞/点踩/复制/重新生成）
+│   ├── ThinkingBlock.vue        # 思考过程折叠展示组件
+│   ├── Sidebar.vue              # 侧边栏，显示对话历史列表
+│   ├── charts/                  # ECharts 图表组件
+│   │   ├── BarChart.vue         # 柱状图
+│   │   ├── LineChart.vue        # 折线图
+│   │   ├── PieChart.vue         # 饼图
+│   │   └── index.ts             # 组件导出
+│   └── layout/                  # 布局组件
+│       ├── StatsCard.vue        # 统计卡片（渐变图标、趋势标签）
+│       ├── PageContainer.vue    # 页面容器
+│       ├── EmptyState.vue       # 空状态展示
+│       └── index.ts             # 组件导出
 ├── views/
 │   ├── ChatView.vue             # 主页面布局
 │   ├── LoginView.vue            # 登录页面
+│   ├── ProfileView.vue          # 个人中心页面
+│   ├── AgentExecutionView.vue   # Agent 执行页面
 │   └── admin/
 │       ├── AdminLayout.vue      # 管理后台布局（含测试管理菜单）
 │       ├── DashboardView.vue    # 仪表盘
 │       ├── UsersView.vue        # 用户管理
 │       ├── CostView.vue         # 成本监控
+│       ├── PlanningView.vue      # 任务规划
 │       ├── TestDashboardView.vue  # 测试管理仪表盘
+│       ├── TestHistoryView.vue    # 测试历史
 │       ├── E2ETestView.vue        # E2E 测试管理
 │       ├── PerformanceTestView.vue # 性能测试管理
 │       ├── AIModelTestView.vue    # AI 模型测试管理
 │       ├── AgentTraceView.vue     # Agent 追踪管理
 │       ├── PromptManagementView.vue # Prompt 版本管理
-│       └── EvaluationView.vue     # Agent 评测管理
+│       ├── EvaluationView.vue     # Agent 评测管理
+│       └── AgentAuditView.vue     # Agent 审计
 └── tests/e2e/                   # Playwright E2E 测试
     ├── playwright.config.ts     # Playwright 配置
     ├── auth.setup.ts            # 认证设置
@@ -176,8 +202,22 @@ frontend/src/
 **MessageItem.vue 核心功能：**
 - Markdown 渲染（markdown-it）
 - 代码块增强：语法高亮（highlight.js）、复制、编辑、主题切换、折叠
-- 思考过程解析与折叠展示
-- 消息操作：点赞/点踩、复制、重新生成
+- 思考过程解析与折叠展示（ThinkingBlock 子组件）
+- 消息操作：点赞/点踩、复制、重新生成（MessageToolbar 子组件）
+
+**主题系统（theme.ts）：**
+- 支持三种模式：light（亮色）、dark（暗色）、auto（跟随系统）
+- 使用 CSS 变量体系（variables.css）实现主题切换
+- 通过 `data-theme="dark"` 属性切换暗色模式
+- 持久化到 localStorage
+
+**CSS 变量体系（variables.css）：**
+- 颜色：背景、文本、状态色（primary/success/warning/danger/info）
+- 布局：侧边栏宽度、头部高度、最大内容宽度
+- 间距：xs 到 3xl 的标准化间距
+- 圆角、阴影、z-index 层级
+- 动画时长和缓动函数
+- 暗色模式完整覆盖
 
 ## API 接口
 
@@ -190,6 +230,13 @@ frontend/src/
 | GET | /api/health/models | 获取所有模型健康状态 |
 | GET | /api/health/circuit-breakers | 获取所有模型熔断器状态 |
 | GET | /api/health/summary | 获取综合健康状态 |
+
+### 用户管理接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/users/me | 获取当前用户信息 |
+| PUT | /api/users/me | 更新用户信息（昵称、头像） |
 
 ### 测试管理接口（需 ADMIN 角色）
 
@@ -363,9 +410,9 @@ model.providers.dashscope.enabled=true    # 是否启用
 | 层级 | 技术 |
 |------|------|
 | 后端 | Java 17, Spring Boot 3.4.1, LangChain4j 1.13.0, WebFlux |
-| 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript |
+| 前端 | Vue 3, Vite, Pinia, Element Plus, TypeScript, ECharts |
 | Markdown | markdown-it, highlight.js |
-| 样式 | Tailwind CSS, Scoped CSS |
+| 样式 | Tailwind CSS, CSS 变量体系（亮色/暗色主题） |
 | AI 模型 | 多模型：DashScope、智谱、DeepSeek、硅基流动、Ollama |
 | 业务数据库 | PostgreSQL 16 + pgvector（向量检索、Row Level Security） |
 | 配置数据库 | MySQL 8.0（仅 Nacos 元数据） |
@@ -671,6 +718,84 @@ const avgResponseTime = count > 0
   : 0
 ```
 
+#### 13. 主题切换系统
+使用 Pinia Store + CSS 变量实现亮色/暗色模式切换：
+```ts
+// stores/theme.ts
+export const useThemeStore = defineStore('theme', () => {
+  const theme = ref<ThemeMode>('auto') // 'light' | 'dark' | 'auto'
+  
+  function apply() {
+    const root = document.documentElement
+    if (effectiveTheme.value === 'dark') {
+      root.setAttribute('data-theme', 'dark')
+    } else {
+      root.removeAttribute('data-theme')
+    }
+  }
+  
+  // 监听系统主题变化
+  mediaQuery.addEventListener('change', () => {
+    if (theme.value === 'auto') apply()
+  })
+})
+```
+
+CSS 变量定义：
+```css
+/* variables.css */
+:root {
+  --bg-primary: #ffffff;
+  --text-primary: #303133;
+  --color-primary: #409eff;
+}
+
+[data-theme='dark'] {
+  --bg-primary: #141414;
+  --text-primary: #e0e0e0;
+  --color-primary: #5b8ff9;
+}
+```
+
+#### 14. 组件拆分与复用
+将复杂组件拆分为子组件，提高可维护性：
+```vue
+<!-- MessageItem.vue 使用子组件 -->
+<MessageAvatar :is-user="isUser" />
+<ThinkingBlock v-model="thinkingExpanded" :content="thinkingRendered" />
+<MessageToolbar v-model="feedback" @copy="handleCopyMessage" @regenerate="emit('regenerate')" />
+```
+
+子组件使用 `v-model` 实现双向绑定：
+```vue
+<!-- ThinkingBlock.vue -->
+<script setup lang="ts">
+const props = defineProps<{ modelValue: boolean }>()
+const emit = defineEmits<{ 'update:modelValue': [val: boolean] }>()
+</script>
+```
+
+#### 15. ECharts 图表集成
+使用 ECharts 创建响应式图表，支持暗色模式：
+```vue
+<script setup lang="ts">
+import * as echarts from 'echarts'
+import { useThemeStore } from '@/stores/theme'
+
+const themeStore = useThemeStore()
+const isDark = computed(() => themeStore.isDark)
+
+const getOption = (): echarts.EChartsOption => ({
+  tooltip: {
+    backgroundColor: isDark.value ? 'rgba(30, 30, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)'
+  }
+})
+
+// 监听主题变化更新图表
+watch(isDark, updateChart)
+</script>
+```
+
 ## 模型配置参数
 
 | 参数 | 说明 | 示例 |
@@ -740,6 +865,18 @@ A: 模板中使用空值合并 `?? 0` 处理可能为 null 的数值，计算属
 
 ### Q: 流式模型健康状态不准确？
 A: 确保 `FaultTolerantHandler` 正确调用 `circuitBreaker.onSuccess/onError`，启动失败时也需调用 `markFailure`。
+
+### Q: 暗色模式不生效？
+A: 检查 `theme.ts` Store 是否正确初始化，确认 `variables.css` 已导入。使用 `data-theme="dark"` 属性切换，CSS 变量会自动覆盖。
+
+### Q: 图表在暗色模式下显示异常？
+A: 确保 ECharts 图表组件监听了 `themeStore.isDark` 变化，并在主题切换时调用 `updateChart()` 更新配置。
+
+### Q: 个人中心页面无法加载用户信息？
+A: 检查 `/api/users/me` 接口是否返回正确数据，确认 authStore.user 已正确初始化。
+
+### Q: 思考过程组件不显示？
+A: 确认 AI 返回内容包含完整的 `<thinking></thinking>` 标签，检查 ThinkingBlock 组件的 `complete` 和 `content` props。
 
 ## 扩展指南
 

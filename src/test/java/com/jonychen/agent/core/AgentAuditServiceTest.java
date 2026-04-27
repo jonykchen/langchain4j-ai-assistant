@@ -89,7 +89,7 @@ class AgentAuditServiceTest {
                             argThat(
                                     log ->
                                             log.getEventType() == AuditEventType.TOOL_CALL
-                                                    && log.getDetails().containsKey("toolName")));
+                                                    && log.getEventData().containsKey("toolName")));
         }
     }
 
@@ -163,7 +163,7 @@ class AgentAuditServiceTest {
                     .save(
                             argThat(
                                     log -> {
-                                        Object params = log.getDetails().get("params");
+                                        Object params = log.getEventData().get("params");
                                         return params instanceof Map
                                                 && ((Map<?, ?>) params).containsKey("password")
                                                 && "***"
@@ -189,7 +189,7 @@ class AgentAuditServiceTest {
                     .save(
                             argThat(
                                     log -> {
-                                        Object params = log.getDetails().get("params");
+                                        Object params = log.getEventData().get("params");
                                         return params instanceof Map
                                                 && ((Map<?, ?>) params).containsKey("apiToken")
                                                 && "***"
