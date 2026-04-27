@@ -127,8 +127,11 @@
         <logger name="org.springframework" level="INFO"/>
         <logger name="org.springframework.web" level="INFO"/>
 
-        <!-- SQL 日志（如有数据库） -->
+        <!-- SQL 日志 -->
         <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+        <!-- P6Spy：输出完整可执行 SQL -->
+        <logger name="p6spy" level="INFO"/>
 
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
