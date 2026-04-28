@@ -44,10 +44,11 @@ services:
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       # API Key
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY is required}
+      # JWT 配置（必须）
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       # OAuth 配置
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
       # Redis 配置
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -61,8 +62,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      nacos:
-        condition: service_healthy
+      nacos-config-init:
+        condition: service_completed_successfully
       zipkin:
         condition: service_started
     networks:
@@ -73,6 +74,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     restart: unless-stopped
 
   # 前端服务 - Vue 应用
@@ -168,10 +175,31 @@ services:
       - langchain4j-network
     restart: unless-stopped
 
+  # Nacos 配置初始化容器
+  nacos-config-init:
+    image: docker.1ms.run/curlimages/curl:8.5.0
+    container_name: langchain4j-nacos-config-init
+    volumes:
+      - ./infra/nacos/init/init-nacos-config.sh:/init.sh:ro
+      - ./infra/nacos/config:/config:ro
+    environment:
+      - NACOS_HOST=nacos
+      - NACOS_PORT=8848
+      - CONFIG_DIR=/config
+    command: ["sh", "/init.sh"]
+    depends_on:
+      nacos:
+        condition: service_healthy
+    networks:
+      - langchain4j-network
+    restart: "no"
+
   # Zipkin 链路追踪
   zipkin:
     image: docker.1ms.run/openzipkin/zipkin:latest
     container_name: langchain4j-zipkin
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx256m
     ports:
       - "9411:9411"
     networks:
@@ -184,6 +212,12 @@ services:
   prometheus:
     image: docker.1ms.run/prom/prometheus:v2.48.0
     container_name: langchain4j-prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     ports:
       - "9090:9090"
     volumes:
@@ -204,6 +238,12 @@ services:
   grafana:
     image: docker.1ms.run/grafana/grafana:10.2.0
     container_name: langchain4j-grafana
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
     ports:
       - "3000:3000"
     environment:

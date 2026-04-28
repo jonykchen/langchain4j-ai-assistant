@@ -1,0 +1,33 @@
+# ==================== Nacos 配置中心启动配置 ====================
+#
+# bootstrap.yml 在 application.properties 之前加载
+# 仅配置 Nacos 连接信息，其他配置统一由 Nacos 管理
+#
+
+spring:
+  application:
+    name: langchain4j-chat
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  cloud:
+    nacos:
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        # 注意：当前配置在 public 命名空间（空字符串）
+        # 如需使用其他命名空间，需要在 Nacos 中创建并迁移配置
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        refresh-enabled: true
+        # 共享配置（所有应用通用）
+        shared-configs:
+          - data-id: common.properties
+            group: DEFAULT_GROUP
+            refresh: true
+        # 应用配置（按环境加载）
+        extension-configs:
+          - data-id: langchain4j-chat.properties
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: langchain4j-chat-${spring.profiles.active}.properties
+            group: DEFAULT_GROUP
+            refresh: true

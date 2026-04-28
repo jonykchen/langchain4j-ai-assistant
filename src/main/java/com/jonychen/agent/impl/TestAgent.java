@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jonychen.agent.core.*;
 import com.jonychen.observability.trace.AgentTraceService;
+import com.jonychen.observability.trace.TraceContext;
 import com.jonychen.tool.ToolCategory;
 import com.jonychen.tool.ToolDefinition;
 import com.jonychen.tool.ToolRegistry;
@@ -53,14 +54,16 @@ public class TestAgent extends AbstractAgent {
      * @param chatModel 聊天模型
      * @param toolRegistry 工具注册中心
      * @param traceService 追踪服务
+     * @param traceContext 追踪上下文
      * @param testGeneratorTools 测试生成工具
      */
     public TestAgent(
             ChatModel chatModel,
             ToolRegistry toolRegistry,
             AgentTraceService traceService,
+            TraceContext traceContext,
             TestGeneratorTools testGeneratorTools) {
-        super(chatModel, toolRegistry, traceService);
+        super(chatModel, toolRegistry, traceService, traceContext);
         this.testGeneratorTools = testGeneratorTools;
 
         log.info(

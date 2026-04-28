@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jonychen.observability.trace.AgentTraceService;
+import com.jonychen.observability.trace.TraceContext;
 import com.jonychen.tool.ToolDefinition;
 import com.jonychen.tool.ToolRegistry;
 import com.jonychen.tool.ToolResult;
@@ -50,6 +51,7 @@ public abstract class AbstractAgent implements Agent {
     protected final ChatModel chatModel;
     protected final ToolRegistry toolRegistry;
     protected final AgentTraceService traceService;
+    protected final TraceContext traceContext;
 
     /** 委托服务（可选，用于 Agent 间协作） */
     protected AgentDelegationService delegationService;
@@ -64,10 +66,14 @@ public abstract class AbstractAgent implements Agent {
     protected TokenUsageTracker tokenUsageTracker;
 
     protected AbstractAgent(
-            ChatModel chatModel, ToolRegistry toolRegistry, AgentTraceService traceService) {
+            ChatModel chatModel,
+            ToolRegistry toolRegistry,
+            AgentTraceService traceService,
+            TraceContext traceContext) {
         this.chatModel = chatModel;
         this.toolRegistry = toolRegistry;
         this.traceService = traceService;
+        this.traceContext = traceContext;
     }
 
     /**
@@ -244,6 +250,9 @@ public abstract class AbstractAgent implements Agent {
         traceService.startTrace(
                 context.getSessionId(), context.getUserId(), agentName, request.userInput());
 
+        // 设置追踪上下文，以便工具执行切面能够获取 Trace ID
+        traceContext.setCurrentTraceId(traceId);
+
         try {
             AgentExecutor executor = buildExecutor(context);
             String currentInput = request.userInput();
@@ -400,6 +409,8 @@ public abstract class AbstractAgent implements Agent {
                             e.getMessage(),
                             null,
                             true));
+        } finally {
+            traceContext.clear();
         }
     }
 

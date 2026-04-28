@@ -1,5 +1,6 @@
 package com.jonychen.tool.controller;
 
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,9 +51,10 @@ public class ToolConfirmationController {
     @PostMapping("/{confirmationId}/confirm")
     public ApiResponse<ToolResult> confirmExecution(
             @PathVariable String confirmationId, @RequestBody ConfirmationRequest request) {
+        String userId = getCurrentUserId();
         ToolResult result =
                 confirmedToolExecutor.executeAfterConfirmation(
-                        confirmationId, request.approved(), request.userId());
+                        confirmationId, request.approved(), userId);
 
         return ApiResponse.success(result);
     }
@@ -77,7 +79,16 @@ public class ToolConfirmationController {
     }
 
     /** 确认请求 */
-    public record ConfirmationRequest(boolean approved, String userId) {}
+    public record ConfirmationRequest(boolean approved) {}
+
+    /** 从 SecurityContext 获取当前认证用户的 ID */
+    private String getCurrentUserId() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof String userId) {
+            return userId;
+        }
+        return null;
+    }
 
     /** 确认信息 VO */
     public record ConfirmationInfo(

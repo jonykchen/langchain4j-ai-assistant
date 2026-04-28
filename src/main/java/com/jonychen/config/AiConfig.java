@@ -2,8 +2,10 @@ package com.jonychen.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cloud.context.environment.EnvironmentChangeEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 
 import com.jonychen.assistant.ChatAssistant;
 import com.jonychen.model.LoadBalancedChatModel;
@@ -29,80 +31,66 @@ public class AiConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(AiConfig.class);
 
-    /**
-     * 构建负载均衡聊天模型
-     *
-     * @param modelProperties 模型配置属性
-     * @param circuitBreakerRegistry 熔断器注册表
-     * @param meterRegistry 指标注册表
-     * @return LoadBalancedChatModel 实例
-     */
-    @Bean
-    public LoadBalancedChatModel loadBalancedChatModel(
+    private final ModelProperties modelProperties;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final MeterRegistry meterRegistry;
+
+    private volatile LoadBalancedChatModel loadBalancedChatModel;
+    private volatile LoadBalancedStreamingChatModel loadBalancedStreamingChatModel;
+    private volatile ChatAssistant chatAssistant;
+
+    public AiConfig(
             ModelProperties modelProperties,
             CircuitBreakerRegistry circuitBreakerRegistry,
             MeterRegistry meterRegistry) {
+        this.modelProperties = modelProperties;
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.meterRegistry = meterRegistry;
+        initModels();
+    }
 
+    private void initModels() {
         var providers = modelProperties.getEnabledProviders();
-
         if (providers.isEmpty()) {
             LOG.error("没有可用的模型提供者配置");
             throw new IllegalStateException("没有配置任何可用的 AI 模型");
         }
-
         LOG.info("初始化负载均衡模型，共 {} 个提供者", providers.size());
-
-        return new LoadBalancedChatModel(providers, circuitBreakerRegistry, meterRegistry);
-    }
-
-    /**
-     * 构建负载均衡流式聊天模型
-     *
-     * @param modelProperties 模型配置属性
-     * @param circuitBreakerRegistry 熔断器注册表
-     * @param meterRegistry 指标注册表
-     * @return LoadBalancedStreamingChatModel 实例
-     */
-    @Bean
-    public LoadBalancedStreamingChatModel loadBalancedStreamingChatModel(
-            ModelProperties modelProperties,
-            CircuitBreakerRegistry circuitBreakerRegistry,
-            MeterRegistry meterRegistry) {
-
-        var providers = modelProperties.getEnabledProviders();
-
-        if (providers.isEmpty()) {
-            LOG.error("没有可用的模型提供者配置");
-            throw new IllegalStateException("没有配置任何可用的 AI 模型");
+        for (var p : providers) {
+            LOG.info("  - {} (优先级={}, 权重={})", p.name(), p.priority(), p.weight());
         }
-
-        LOG.info("初始化负载均衡流式模型，共 {} 个提供者", providers.size());
-
-        return new LoadBalancedStreamingChatModel(providers, circuitBreakerRegistry, meterRegistry);
+        this.loadBalancedChatModel =
+                new LoadBalancedChatModel(providers, circuitBreakerRegistry, meterRegistry);
+        this.loadBalancedStreamingChatModel =
+                new LoadBalancedStreamingChatModel(
+                        providers, circuitBreakerRegistry, meterRegistry);
+        this.chatAssistant =
+                AiServices.builder(ChatAssistant.class)
+                        .chatModel(loadBalancedChatModel)
+                        .streamingChatModel(loadBalancedStreamingChatModel)
+                        .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                        .build();
+        LOG.info("ChatAssistant 构建完成");
     }
 
-    /**
-     * 构建 ChatAssistant Bean
-     *
-     * <p>使用负载均衡模型替代单一模型，实现高可用。
-     *
-     * @param loadBalancedChatModel 负载均衡同步模型
-     * @param loadBalancedStreamingChatModel 负载均衡流式模型
-     * @return ChatAssistant 实例
-     */
+    @EventListener(EnvironmentChangeEvent.class)
+    public void onRefresh(EnvironmentChangeEvent event) {
+        LOG.info("检测到配置变更，重新加载模型配置");
+        initModels();
+    }
+
     @Bean
-    public ChatAssistant chatAssistant(
-            LoadBalancedChatModel loadBalancedChatModel,
-            LoadBalancedStreamingChatModel loadBalancedStreamingChatModel) {
+    public LoadBalancedChatModel loadBalancedChatModel() {
+        return loadBalancedChatModel;
+    }
 
-        LOG.info("构建 ChatAssistant，使用负载均衡模型");
+    @Bean
+    public LoadBalancedStreamingChatModel loadBalancedStreamingChatModel() {
+        return loadBalancedStreamingChatModel;
+    }
 
-        return AiServices.builder(ChatAssistant.class)
-                // 使用负载均衡模型
-                .chatModel(loadBalancedChatModel)
-                .streamingChatModel(loadBalancedStreamingChatModel)
-                // 对话记忆配置
-                .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
-                .build();
+    @Bean
+    public ChatAssistant chatAssistant() {
+        return chatAssistant;
     }
 }
