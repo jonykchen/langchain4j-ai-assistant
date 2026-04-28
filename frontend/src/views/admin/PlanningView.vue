@@ -236,7 +236,7 @@ const validateForm = () => {
         ElMessage.warning(`步骤 ${i + 1} 缺少描述`)
         return false
       }
-      if (step.tool && !step.action && !step.tool) {
+      if (!step.action && !step.tool) {
         ElMessage.warning(`步骤 ${i + 1} 缺少动作或工具`)
         return false
       }
@@ -337,7 +337,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.planning-view {
+.planning-view,
+.admin-page {
   min-height: 100%;
   background: var(--bg-secondary);
 }

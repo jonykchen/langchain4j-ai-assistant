@@ -2,8 +2,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { adminApi, type UserAdminVO } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
-import { PageContainer } from '@/components/layout'
+import { Refresh, Download, Plus } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -140,33 +139,40 @@ onMounted(loadUsers)
 </script>
 
 <template>
-  <PageContainer :loading="loading">
-    <template #actions>
-      <el-button type="primary" @click="loadUsers">
-        <el-icon><Refresh /></el-icon>
-        刷新
-      </el-button>
-    </template>
-
-    <!-- 搜索和筛选 -->
+  <div class="user-management" v-loading="loading">
+    <!-- 搜索和筛选工具栏 -->
     <el-card class="modern-card filter-card">
-      <div class="filter-bar">
-        <el-input
-          v-model="searchQuery"
-          placeholder="搜索用户名或邮箱"
-          prefix-icon="Search"
-          clearable
-          class="search-input"
-        />
-        <el-select v-model="roleFilter" placeholder="角色" clearable class="filter-select">
-          <el-option label="普通用户" value="USER" />
-          <el-option label="管理员" value="ADMIN" />
-        </el-select>
-        <el-select v-model="providerFilter" placeholder="登录方式" clearable class="filter-select">
-          <el-option label="GitHub" value="GITHUB" />
-          <el-option label="GitLab" value="GITLAB" />
-          <el-option label="密码" value="CUSTOM" />
-        </el-select>
+      <div class="toolbar">
+        <div class="filter-bar">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索用户名或邮箱"
+            prefix-icon="Search"
+            clearable
+            class="search-input"
+          />
+          <el-select v-model="roleFilter" placeholder="角色" clearable class="filter-select">
+            <el-option label="普通用户" value="USER" />
+            <el-option label="管理员" value="ADMIN" />
+          </el-select>
+          <el-select v-model="providerFilter" placeholder="登录方式" clearable class="filter-select">
+            <el-option label="GitHub" value="GITHUB" />
+            <el-option label="GitLab" value="GITLAB" />
+            <el-option label="密码" value="CUSTOM" />
+          </el-select>
+        </div>
+        <div class="toolbar-actions">
+          <el-tooltip content="刷新" placement="top">
+            <el-button @click="loadUsers">
+              <el-icon><Refresh /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="导出" placement="top">
+            <el-button>
+              <el-icon><Download /></el-icon>
+            </el-button>
+          </el-tooltip>
+        </div>
       </div>
     </el-card>
 
@@ -296,12 +302,26 @@ onMounted(loadUsers)
         </el-form>
       </template>
     </el-drawer>
-  </PageContainer>
+  </div>
 </template>
 
 <style scoped>
+.user-management {
+  padding: var(--page-padding);
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+}
+
 .filter-card {
   margin-bottom: var(--card-spacing);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
 }
 
 .filter-bar {
@@ -309,6 +329,11 @@ onMounted(loadUsers)
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-md);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: var(--space-sm);
 }
 
 .search-input {
@@ -397,9 +422,22 @@ onMounted(loadUsers)
 }
 
 @media (max-width: 768px) {
+  .user-management {
+    padding: var(--space-lg);
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .filter-bar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-end;
   }
 
   .search-input,

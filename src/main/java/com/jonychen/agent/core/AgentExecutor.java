@@ -88,6 +88,9 @@ public class AgentExecutor {
         messages.addAll(chatHistory);
         messages.add(new UserMessage(userMessage));
 
+        // 记录原始 Prompt（用于追踪）
+        String rawPrompt = buildPromptForTracing(messages);
+
         log.debug(
                 "[AgentExecutor] 调用 LLM: 消息数={}, 历史消息数={}, 工具数={}",
                 messages.size(),
@@ -108,11 +111,25 @@ public class AgentExecutor {
         AiMessage aiMessage = response.aiMessage();
 
         long durationMs = System.currentTimeMillis() - startTime;
+
+        // 获取 Token 使用量
+        Long promptTokens = null;
+        Long completionTokens = null;
+        if (response.tokenUsage() != null) {
+            promptTokens = (long) response.tokenUsage().inputTokenCount();
+            completionTokens = (long) response.tokenUsage().outputTokenCount();
+        }
+
+        // 记录原始响应（用于追踪）
+        String rawResponse = aiMessage.text();
+
         log.info(
-                "[AgentExecutor] LLM 响应: 耗时={}ms, hasToolCall={}, text长度={}",
+                "[AgentExecutor] LLM 响应: 耗时={}ms, hasToolCall={}, text长度={}, tokens={}/{}",
                 durationMs,
                 aiMessage.hasToolExecutionRequests(),
-                aiMessage.text() != null ? aiMessage.text().length() : 0);
+                rawResponse != null ? rawResponse.length() : 0,
+                promptTokens,
+                completionTokens);
 
         // 记录到历史（滑动窗口：超过上限时移除最老的消息）
         chatHistory.add(new UserMessage(userMessage));
@@ -123,8 +140,31 @@ public class AgentExecutor {
             log.debug("[AgentExecutor] 滑动窗口裁剪: 移除 {} 条旧消息", removeCount);
         }
 
-        // 解析响应
-        return parseResponse(aiMessage);
+        // 解析响应（包含 Token 和计时信息）
+        return parseResponse(
+                aiMessage, promptTokens, completionTokens, durationMs, rawPrompt, rawResponse);
+    }
+
+    /**
+     * 构建 Prompt 文本用于追踪
+     *
+     * @param messages 消息列表
+     * @return Prompt 文本
+     */
+    private String buildPromptForTracing(List<ChatMessage> messages) {
+        StringBuilder sb = new StringBuilder();
+        for (ChatMessage msg : messages) {
+            sb.append(msg.type()).append(": ");
+            if (msg instanceof SystemMessage sys) {
+                sb.append(sys.text());
+            } else if (msg instanceof UserMessage user) {
+                sb.append(user.singleText());
+            } else if (msg instanceof AiMessage ai) {
+                sb.append(ai.text());
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 
     /**
@@ -134,9 +174,20 @@ public class AgentExecutor {
      * tool calling 时通常已包含 reasoning）。
      *
      * @param message LLM 返回的 AiMessage
+     * @param promptTokens Prompt Token 数
+     * @param completionTokens Completion Token 数
+     * @param durationMs 执行时间
+     * @param rawPrompt 原始 Prompt
+     * @param rawResponse 原始响应
      * @return 解析后的 LLM 响应
      */
-    private LLMResponse parseResponse(AiMessage message) {
+    private LLMResponse parseResponse(
+            AiMessage message,
+            Long promptTokens,
+            Long completionTokens,
+            Long durationMs,
+            String rawPrompt,
+            String rawResponse) {
         String text = message.text();
 
         // 检查是否有工具调用请求
@@ -147,13 +198,21 @@ public class AgentExecutor {
             log.info("[AgentExecutor] 工具调用请求: tool={}, params={}", toolRequest.name(), params);
 
             // text() 即为模型的思考过程，无需正则提取
-            return new LLMResponse(text, new ToolCallRequest(toolRequest.name(), params), null);
+            return LLMResponse.toolCall(
+                    text,
+                    new ToolCallRequest(toolRequest.name(), params),
+                    promptTokens,
+                    completionTokens,
+                    durationMs,
+                    rawPrompt,
+                    rawResponse);
         }
 
         // 无工具调用，text() 即为最终答案
         String output = text != null ? text.trim() : "";
         log.debug("[AgentExecutor] 最终输出: 长度={}", output.length());
-        return new LLMResponse(null, null, output);
+        return LLMResponse.output(
+                text, output, promptTokens, completionTokens, durationMs, rawPrompt, rawResponse);
     }
 
     /**

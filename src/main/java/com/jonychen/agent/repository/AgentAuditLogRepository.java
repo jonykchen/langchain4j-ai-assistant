@@ -35,11 +35,11 @@ public interface AgentAuditLogRepository extends JpaRepository<AgentAuditLog, Lo
     @Query(
             value =
                     "SELECT * FROM audit.agent_audit_logs a WHERE "
-                            + "(:userId IS NULL OR a.user_id = :userId) "
-                            + "AND (:agentName IS NULL OR a.agent_name = :agentName) "
-                            + "AND (:eventType IS NULL OR a.event_type = :eventType) "
-                            + "AND (:startTime IS NULL OR a.timestamp >= :startTime) "
-                            + "AND (:endTime IS NULL OR a.timestamp <= :endTime) "
+                            + "(CAST(:userId AS VARCHAR) IS NULL OR a.user_id = :userId) "
+                            + "AND (CAST(:agentName AS VARCHAR) IS NULL OR a.agent_name = :agentName) "
+                            + "AND (CAST(:eventType AS VARCHAR) IS NULL OR a.event_type = :eventType) "
+                            + "AND (CAST(:startTime AS TIMESTAMPTZ) IS NULL OR a.timestamp >= :startTime) "
+                            + "AND (CAST(:endTime AS TIMESTAMPTZ) IS NULL OR a.timestamp <= :endTime) "
                             + "ORDER BY a.timestamp DESC",
             nativeQuery = true)
     @QueryHints(@QueryHint(name = org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE, value = "100"))

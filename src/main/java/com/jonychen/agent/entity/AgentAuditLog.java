@@ -68,7 +68,7 @@ public class AgentAuditLog {
     private String userAgent;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "event_data", columnDefinition = "JSONB")
+    @Column(name = "event_data", columnDefinition = "jsonb")
     private Map<String, Object> eventData;
 
     @Column(name = "created_at")
