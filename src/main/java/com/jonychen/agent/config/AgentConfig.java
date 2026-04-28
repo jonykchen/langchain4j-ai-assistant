@@ -17,6 +17,7 @@ import com.jonychen.agent.impl.PromptAgent;
 import com.jonychen.agent.impl.RouterAgent;
 import com.jonychen.agent.impl.TestAgent;
 import com.jonychen.observability.trace.AgentTraceService;
+import com.jonychen.observability.trace.TraceContext;
 import com.jonychen.tool.ToolRegistry;
 import com.jonychen.tool.builtin.ChartTools;
 import com.jonychen.tool.builtin.DatabaseTools;
@@ -87,6 +88,7 @@ public class AgentConfig {
             dev.langchain4j.model.chat.ChatModel chatModel,
             ToolRegistry toolRegistry,
             AgentTraceService traceService,
+            TraceContext traceContext,
             DatabaseTools databaseTools,
             ChartTools chartTools,
             ExportTools exportTools,
@@ -102,6 +104,7 @@ public class AgentConfig {
                         chatModel,
                         toolRegistry,
                         traceService,
+                        traceContext,
                         databaseTools,
                         chartTools,
                         exportTools);
@@ -166,6 +169,7 @@ public class AgentConfig {
             dev.langchain4j.model.chat.ChatModel chatModel,
             ToolRegistry toolRegistry,
             AgentTraceService traceService,
+            TraceContext traceContext,
             PromptTools promptTools,
             AgentDelegationService delegationService,
             AgentAuditService auditService,
@@ -173,7 +177,8 @@ public class AgentConfig {
 
         log.info("[AgentConfig] 创建 PromptAgent Bean");
 
-        PromptAgent agent = new PromptAgent(chatModel, toolRegistry, traceService, promptTools);
+        PromptAgent agent =
+                new PromptAgent(chatModel, toolRegistry, traceService, traceContext, promptTools);
         agent.setDelegationService(delegationService);
         agent.setAuditService(auditService);
         agent.setMetricsService(metricsService);
@@ -204,6 +209,7 @@ public class AgentConfig {
             dev.langchain4j.model.chat.ChatModel chatModel,
             ToolRegistry toolRegistry,
             AgentTraceService traceService,
+            TraceContext traceContext,
             TestGeneratorTools testGeneratorTools,
             AgentDelegationService delegationService,
             AgentAuditService auditService,
@@ -212,7 +218,9 @@ public class AgentConfig {
 
         log.info("[AgentConfig] 创建 TestAgent Bean");
 
-        TestAgent agent = new TestAgent(chatModel, toolRegistry, traceService, testGeneratorTools);
+        TestAgent agent =
+                new TestAgent(
+                        chatModel, toolRegistry, traceService, traceContext, testGeneratorTools);
         agent.setDelegationService(delegationService);
         agent.setAuditService(auditService);
         agent.setMetricsService(metricsService);
@@ -244,6 +252,7 @@ public class AgentConfig {
             dev.langchain4j.model.chat.ChatModel chatModel,
             ToolRegistry toolRegistry,
             AgentTraceService traceService,
+            TraceContext traceContext,
             AgentDelegationService delegationService,
             AgentAuditService auditService,
             AgentMetricsService metricsService,
@@ -251,7 +260,7 @@ public class AgentConfig {
 
         log.info("[AgentConfig] 创建 ChatAgent Bean");
 
-        ChatAgent agent = new ChatAgent(chatModel, toolRegistry, traceService);
+        ChatAgent agent = new ChatAgent(chatModel, toolRegistry, traceService, traceContext);
         agent.setDelegationService(delegationService);
         agent.setAuditService(auditService);
         agent.setMetricsService(metricsService);

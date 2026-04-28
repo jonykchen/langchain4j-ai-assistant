@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.jonychen.agent.impl.ChatAgent;
 import com.jonychen.observability.trace.AgentTraceService;
+import com.jonychen.observability.trace.TraceContext;
 import com.jonychen.tool.ToolRegistry;
 
 import dev.langchain4j.data.message.AiMessage;
@@ -33,11 +34,13 @@ class ChatAgentTest {
 
     @Mock private AgentTraceService traceService;
 
+    @Mock private TraceContext traceContext;
+
     private ChatAgent chatAgent;
 
     @BeforeEach
     void setUp() {
-        chatAgent = new ChatAgent(chatModel, toolRegistry, traceService);
+        chatAgent = new ChatAgent(chatModel, toolRegistry, traceService, traceContext);
     }
 
     @Nested

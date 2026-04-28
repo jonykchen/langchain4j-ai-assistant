@@ -524,8 +524,7 @@ export const useAgentStore = defineStore('agent', () => {
       const result = await confirmOperation({
         traceId,
         confirmationId: record.pendingConfirmation.confirmationId,
-        approved,
-        userId: '' // 后端会校验，这里暂传空
+        approved
       })
 
       if (result.success) {

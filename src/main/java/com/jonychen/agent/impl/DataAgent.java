@@ -17,6 +17,7 @@ import com.jonychen.agent.core.AgentMetadata;
 import com.jonychen.agent.core.AgentRequest;
 import com.jonychen.agent.core.ToolCallRequest;
 import com.jonychen.observability.trace.AgentTraceService;
+import com.jonychen.observability.trace.TraceContext;
 import com.jonychen.tool.ToolCategory;
 import com.jonychen.tool.ToolRegistry;
 import com.jonychen.tool.ToolResult;
@@ -71,6 +72,7 @@ public class DataAgent extends AbstractAgent {
      * @param chatModel 聊天模型
      * @param toolRegistry 工具注册中心
      * @param traceService 追踪服务
+     * @param traceContext 追踪上下文
      * @param databaseTools 数据库工具
      * @param chartTools 图表工具
      * @param exportTools 导出工具
@@ -79,10 +81,11 @@ public class DataAgent extends AbstractAgent {
             ChatModel chatModel,
             ToolRegistry toolRegistry,
             AgentTraceService traceService,
+            TraceContext traceContext,
             DatabaseTools databaseTools,
             ChartTools chartTools,
             ExportTools exportTools) {
-        super(chatModel, toolRegistry, traceService);
+        super(chatModel, toolRegistry, traceService, traceContext);
         this.databaseTools = databaseTools;
         this.chartTools = chartTools;
         this.exportTools = exportTools;

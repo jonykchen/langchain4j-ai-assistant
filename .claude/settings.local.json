@@ -57,7 +57,20 @@
       "Bash(find src/main/java -name \"*.java\" -exec grep -l \"@Entity\" {} \\\\;)",
       "Bash(PGPASSWORD=REDACTED_DB_PASSWORD psql *)",
       "Bash(pkill -f \"spring-boot:run\")",
-      "Bash(timeout 60 grep -E \"\\(Started|p6spy|P6SpyDriver|SQL\\)\")"
+      "Bash(timeout 60 grep -E \"\\(Started|p6spy|P6SpyDriver|SQL\\)\")",
+      "Bash(curl -s \"http://localhost:8848/nacos/v1/cs/configs?dataId=langchain4j-chat.properties&group=DEFAULT_GROUP\")",
+      "Bash(sed -i 's/model.providers.ollama.weight=5/model.providers.ollama.weight=60/' /tmp/nacos-config.txt)",
+      "Bash(sed -i 's/model.providers.ollama.priority=5/model.providers.ollama.priority=1/' /tmp/nacos-config.txt)",
+      "Bash(sed -i 's/model.providers.ollama.enabled=false/model.providers.ollama.enabled=true/' /tmp/nacos-config.txt)",
+      "Bash(sed -i 's/# 备用模型 4：本地 Ollama（离线兜底）/# 主模型：本地 Ollama（最高优先级）/' /tmp/nacos-config.txt)",
+      "Bash(tail -100 logs/app.log)",
+      "Bash(tail -100 target/spring-boot.log)",
+      "Bash(dir logs *)",
+      "Bash(export DASHSCOPE_API_KEY=\"sk-7a5a4473f7794045ab763962402e608e\")",
+      "Bash(export ZHIPU_API_KEY=\"REDACTED_ZHIPU_API_KEY\")",
+      "Bash(export DEEPSEEK_API_KEY=\"REDACTED_DEEPSEEK_API_KEY\")",
+      "Bash(export SILICONFLOW_API_KEY=\"REDACTED_DEEPSEEK_API_KEY\")",
+      "Skill(commit)"
     ]
   }
 }
