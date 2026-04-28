@@ -150,7 +150,6 @@ export interface AgentMetadata {
 /** 执行请求 */
 export interface ExecuteRequest {
   sessionId?: string
-  userId?: string
   userInput: string
   params?: Record<string, unknown>
   options?: AgentRequestOptions
@@ -169,7 +168,6 @@ export interface ConfirmRequest {
   traceId: string
   confirmationId: string
   approved: boolean
-  userId: string
 }
 
 /** 执行步骤（用于展示） */

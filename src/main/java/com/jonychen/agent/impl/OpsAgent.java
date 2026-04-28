@@ -21,6 +21,7 @@ import com.jonychen.agent.core.AgentMetricsService;
 import com.jonychen.agent.core.AgentRequest;
 import com.jonychen.agent.core.ToolCallRequest;
 import com.jonychen.observability.trace.AgentTraceService;
+import com.jonychen.observability.trace.TraceContext;
 import com.jonychen.tool.RiskLevel;
 import com.jonychen.tool.ToolDefinition;
 import com.jonychen.tool.ToolRegistry;
@@ -63,10 +64,11 @@ public class OpsAgent extends AbstractAgent {
             ChatModel chatModel,
             ToolRegistry toolRegistry,
             AgentTraceService traceService,
+            TraceContext traceContext,
             ModelStateTools modelStateTools,
             CircuitBreakerTools circuitBreakerTools,
             TokenUsageTools tokenUsageTools) {
-        super(chatModel, toolRegistry, traceService);
+        super(chatModel, toolRegistry, traceService, traceContext);
         this.modelStateTools = modelStateTools;
         this.circuitBreakerTools = circuitBreakerTools;
         this.tokenUsageTools = tokenUsageTools;

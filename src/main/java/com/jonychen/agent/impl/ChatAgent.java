@@ -16,6 +16,7 @@ import com.jonychen.agent.core.AgentResult;
 import com.jonychen.agent.core.StepType;
 import com.jonychen.agent.core.TokenUsage;
 import com.jonychen.observability.trace.AgentTraceService;
+import com.jonychen.observability.trace.TraceContext;
 import com.jonychen.tool.ToolRegistry;
 
 import dev.langchain4j.data.message.SystemMessage;
@@ -63,8 +64,11 @@ public class ChatAgent extends AbstractAgent {
             """;
 
     public ChatAgent(
-            ChatModel chatModel, ToolRegistry toolRegistry, AgentTraceService traceService) {
-        super(chatModel, toolRegistry, traceService);
+            ChatModel chatModel,
+            ToolRegistry toolRegistry,
+            AgentTraceService traceService,
+            TraceContext traceContext) {
+        super(chatModel, toolRegistry, traceService, traceContext);
         log.info("[ChatAgent] 初始化完成，作为通用对话 Agent");
     }
 

@@ -399,6 +399,7 @@ onUnmounted(() => {
                     v-for="(step, index) in activeExecution.steps"
                     :key="step.id"
                     :step="step"
+                    :step-index="index + 1"
                     :is-last-step="index === activeExecution.steps.length - 1"
                     @confirm="handleConfirm"
                   />

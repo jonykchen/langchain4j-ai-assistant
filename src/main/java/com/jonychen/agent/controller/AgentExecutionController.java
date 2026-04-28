@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -62,9 +63,13 @@ public class AgentExecutionController {
     @PostMapping(value = "/execute", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> execute(
             @RequestBody ExecuteRequest request, HttpServletRequest httpRequest) {
+
+        // 从认证上下文获取当前用户 ID
+        String userId = getCurrentUserId();
+
         log.info(
                 "[AgentExecutionController] 收到执行请求: userId={}, input={}",
-                request.userId(),
+                userId,
                 truncate(request.userInput(), 100));
 
         // 从 HttpServletRequest 提取客户端信息
@@ -75,7 +80,7 @@ public class AgentExecutionController {
         AgentRequest agentRequest =
                 AgentRequest.of(
                         request.sessionId(),
-                        request.userId(),
+                        userId,
                         request.userInput(),
                         request.params() != null ? request.params() : Map.of(),
                         request.options() != null
@@ -98,18 +103,17 @@ public class AgentExecutionController {
     /** 确认敏感操作 */
     @PostMapping("/confirm")
     public ResponseEntity<ConfirmResponse> confirm(@RequestBody ConfirmRequest request) {
+        String userId = getCurrentUserId();
         log.info(
-                "[AgentExecutionController] 收到确认请求: traceId={}, confirmationId={}, approved={}",
+                "[AgentExecutionController] 收到确认请求: traceId={}, confirmationId={}, approved={}, userId={}",
                 request.traceId(),
                 request.confirmationId(),
-                request.approved());
+                request.approved(),
+                userId);
 
         boolean success =
                 orchestrator.confirmOperation(
-                        request.traceId(),
-                        request.confirmationId(),
-                        request.approved(),
-                        request.userId());
+                        request.traceId(), request.confirmationId(), request.approved(), userId);
 
         return ResponseEntity.ok(new ConfirmResponse(success, success ? "确认成功" : "确认失败"));
     }
@@ -146,6 +150,15 @@ public class AgentExecutionController {
         return request.getHeader("User-Agent");
     }
 
+    /** 从 SecurityContext 获取当前认证用户的 ID */
+    private String getCurrentUserId() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof String userId) {
+            return userId;
+        }
+        return null;
+    }
+
     private String toJson(Object obj) {
         try {
             return objectMapper.writeValueAsString(obj);
@@ -165,14 +178,12 @@ public class AgentExecutionController {
     /** 执行请求 */
     public record ExecuteRequest(
             String sessionId,
-            String userId,
             String userInput,
             Map<String, Object> params,
             AgentRequestOptions options) {}
 
     /** 确认请求 */
-    public record ConfirmRequest(
-            String traceId, String confirmationId, boolean approved, String userId) {}
+    public record ConfirmRequest(String traceId, String confirmationId, boolean approved) {}
 
     /** 确认响应 */
     public record ConfirmResponse(boolean success, String message) {}

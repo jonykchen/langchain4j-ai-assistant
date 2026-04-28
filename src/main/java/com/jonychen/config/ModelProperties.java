@@ -8,6 +8,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Configuration;
 
 import com.jonychen.model.ModelProvider;
@@ -23,6 +24,7 @@ import com.jonychen.model.ModelProvider;
  */
 @Configuration
 @ConfigurationProperties(prefix = "model")
+@RefreshScope
 public class ModelProperties {
 
     private static final Logger LOG = LoggerFactory.getLogger(ModelProperties.class);
@@ -40,11 +42,12 @@ public class ModelProperties {
         providers.forEach(
                 (name, config) -> {
                     LOG.info(
-                            "  - {}: enabled={}, hasApiKey={}, baseUrl={}",
+                            "  - {}: enabled={}, hasApiKey={}, baseUrl={}, apiKeyLength={}",
                             name,
                             config.enabled,
                             config.apiKey != null && !config.apiKey.isBlank(),
-                            config.baseUrl);
+                            config.baseUrl,
+                            config.apiKey != null ? config.apiKey.length() : 0);
                 });
     }
 

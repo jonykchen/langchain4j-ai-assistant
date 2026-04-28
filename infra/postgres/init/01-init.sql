@@ -563,10 +563,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA archive GRANT USAGE, SELECT ON SEQUENCES TO l
 
 -- ==================== 初始数据 ====================
 
--- 插入默认管理员用户（密码：REDACTED_ADMIN_PASSWORD，BCrypt加密）
-INSERT INTO app.users (id, username, email, password, nickname, role, status, provider)
-VALUES ('admin-001', 'admin', 'admin@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 'Administrator', 'ADMIN', 'ACTIVE', 'CUSTOM')
-ON CONFLICT (id) DO NOTHING;
+-- 默认管理员用户由 AdminInitializer 在应用启动时自动创建
+-- 用户名：admin，密码：123456
+-- 如需手动创建，请重启应用让 AdminInitializer 执行
 
 -- ==================== 数据归档函数 ====================
 
