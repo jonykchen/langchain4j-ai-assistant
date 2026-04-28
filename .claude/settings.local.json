@@ -70,7 +70,8 @@
       "Bash(export ZHIPU_API_KEY=\"REDACTED_ZHIPU_API_KEY\")",
       "Bash(export DEEPSEEK_API_KEY=\"REDACTED_DEEPSEEK_API_KEY\")",
       "Bash(export SILICONFLOW_API_KEY=\"REDACTED_DEEPSEEK_API_KEY\")",
-      "Skill(commit)"
+      "Skill(commit)",
+      "Bash(pkill -f \"vite\")"
     ]
   }
 }
