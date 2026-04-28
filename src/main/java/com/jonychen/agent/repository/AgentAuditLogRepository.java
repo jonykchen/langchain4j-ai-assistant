@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jonychen.agent.core.AgentAuditService.AuditEventType;
 import com.jonychen.agent.entity.AgentAuditLog;
@@ -59,6 +60,7 @@ public interface AgentAuditLogRepository extends JpaRepository<AgentAuditLog, Lo
             @Param("eventType") String eventType, @Param("since") LocalDateTime since);
 
     @Modifying
+    @Transactional
     @Query(
             value = "DELETE FROM audit.agent_audit_logs a WHERE a.timestamp < :before",
             nativeQuery = true)
