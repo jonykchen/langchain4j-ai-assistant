@@ -14,9 +14,9 @@
  *
  * @author jonychen
  */
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Document, Menu, ChatDotRound, Cpu, Promotion, Timer, Warning, Loading } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, Document, Menu, ChatDotRound, Cpu, Promotion, Timer, Warning, Loading } from '@element-plus/icons-vue'
 import { useAgentStore } from '@/stores/agent'
 import { storeToRefs } from 'pinia'
 import type { RiskLevel } from '@/types/agent'
@@ -56,6 +56,16 @@ const activeTab = ref<'steps' | 'output' | 'logs'>('steps')
 
 // 移动端侧边栏可见性
 const sidebarVisible = ref(true)
+
+// 高级选项展开状态
+const showAdvancedOptions = ref(false)
+
+// 选中 Agent 的显示名称
+const selectedAgentName = computed(() => {
+  if (!selectedAgent.value) return ''
+  const agent = availableAgents.value.find(a => a.name === selectedAgent.value)
+  return agent?.displayName || selectedAgent.value
+})
 
 // 风险等级颜色映射
 const riskLevelColors: Record<RiskLevel, string> = {
@@ -292,54 +302,91 @@ onUnmounted(() => {
 
         <!-- 无执行时显示空状态 -->
         <div v-if="!activeExecution" class="empty-state">
-          <div class="empty-welcome">
-            <div class="empty-icon">
-              <el-icon :size="48" color="var(--color-primary)"><Cpu /></el-icon>
+          <div class="empty-content">
+            <!-- 头部介绍 -->
+            <div class="welcome-header">
+              <div class="welcome-icon">
+                <el-icon :size="40"><Cpu /></el-icon>
+              </div>
+              <h2>Agent 执行面板</h2>
+              <p class="description">选择 Agent 并输入任务指令，系统将自动执行并返回结果</p>
             </div>
-            <h2>Agent 执行面板</h2>
-            <p class="description">选择一个 Agent 执行任务，或输入您的指令</p>
 
-            <div class="agent-selector-area">
-              <AgentSelector
-                v-model="selectedAgent"
-                :agents="availableAgents"
-                :loading="isLoadingAgents"
-                @select="handleAgentSelect"
+            <!-- Agent 选择（高级选项） -->
+            <div class="agent-section">
+              <div class="agent-header" @click="showAdvancedOptions = !showAdvancedOptions">
+                <div class="agent-status">
+                  <el-icon class="status-icon" :class="{ active: !selectedAgent }"><Cpu /></el-icon>
+                  <span class="status-text">{{ selectedAgent ? selectedAgentName : '智能路由' }}</span>
+                  <el-tag size="small" type="info" v-if="!selectedAgent">自动匹配</el-tag>
+                  <el-tag size="small" type="success" v-else>已指定</el-tag>
+                </div>
+                <el-icon class="expand-icon" :class="{ expanded: showAdvancedOptions }"><ArrowDown /></el-icon>
+              </div>
+              <el-collapse-transition>
+                <div v-show="showAdvancedOptions" class="agent-options">
+                  <div class="option-tip">选择指定 Agent，或留空由系统智能路由</div>
+                  <AgentSelector
+                    v-model="selectedAgent"
+                    :agents="availableAgents"
+                    :loading="isLoadingAgents"
+                    @select="handleAgentSelect"
+                  />
+                </div>
+              </el-collapse-transition>
+            </div>
+
+            <!-- 任务输入 -->
+            <div class="form-section">
+              <div class="section-header">
+                <label class="section-label">任务指令</label>
+                <span class="section-hint">Ctrl+Enter 快速执行</span>
+              </div>
+              <el-input
+                v-model="userInput"
+                type="textarea"
+                :autosize="{ minRows: 4, maxRows: 10 }"
+                placeholder="描述您需要 Agent 执行的任务，例如：分析上周的用户活跃数据并生成报告..."
+                resize="none"
+                class="task-input"
+                @keydown.ctrl.enter="handleExecute"
               />
+              <div class="input-actions">
+                <span class="char-count">{{ userInput.length }} / 4000</span>
+                <div class="action-buttons">
+                  <el-button
+                    :disabled="!userInput.trim()"
+                    @click="userInput = ''"
+                  >
+                    清空
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    :disabled="!userInput.trim()"
+                    :loading="isExecuting"
+                    @click="handleExecute"
+                  >
+                    <el-icon class="btn-icon"><Promotion /></el-icon>
+                    开始执行
+                  </el-button>
+                </div>
+              </div>
             </div>
 
-            <div class="quick-actions">
-              <span class="quick-label">快速开始：</span>
+            <!-- 快速开始 -->
+            <div class="quick-start-section">
+              <span class="quick-label">试试这些：</span>
               <div class="quick-chips">
                 <el-button
                   v-for="action in quickActions"
                   :key="action"
-                  size="small"
+                  size="default"
+                  round
                   @click="handleQuickAction(action)"
                 >
                   {{ action }}
                 </el-button>
               </div>
-            </div>
-          </div>
-
-          <div class="empty-input-bar">
-            <div class="input-wrapper">
-              <el-input
-                v-model="userInput"
-                type="textarea"
-                :rows="2"
-                placeholder="输入您的指令，按 Ctrl+Enter 执行..."
-                @keydown.ctrl.enter="handleExecute"
-              />
-              <el-button
-                type="primary"
-                :disabled="!userInput.trim()"
-                :loading="isExecuting"
-                @click="handleExecute"
-              >
-                <el-icon><Promotion /></el-icon>
-              </el-button>
             </div>
           </div>
         </div>
@@ -625,46 +672,159 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  background: var(--bg-secondary);
 }
 
-.empty-welcome {
+.empty-content {
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: var(--space-3xl);
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 头部欢迎 */
+.welcome-header {
+  text-align: center;
+  padding: var(--space-2xl) 0 var(--space-3xl);
+}
+
+.welcome-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--space-lg);
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-2xl);
-  overflow-y: auto;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
 }
 
-.empty-welcome h2 {
-  margin: var(--space-lg) 0 var(--space-sm) 0;
+.welcome-header h2 {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: 22px;
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 20px;
 }
 
-.description {
+.welcome-header .description {
+  margin: 0;
+  font-size: 14px;
   color: var(--text-tertiary);
-  margin: 0 0 var(--space-xl) 0;
+  line-height: 1.6;
 }
 
-.agent-selector-area {
-  width: 100%;
-  max-width: 480px;
+/* 表单区块 */
+.form-section {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
   margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-.quick-actions {
-  width: 100%;
-  max-width: 480px;
+/* Agent 选择区块 */
+.agent-section {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) var(--space-xl);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.agent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: var(--space-sm) 0;
+}
+
+.agent-header:hover {
+  opacity: 0.9;
+}
+
+.agent-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.status-icon {
+  color: var(--text-tertiary);
+  transition: color 0.2s;
+}
+
+.status-icon.active {
+  color: var(--color-primary);
+}
+
+.status-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.expand-icon {
+  color: var(--text-tertiary);
+  transition: transform 0.2s;
+}
+
+.expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.agent-options {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.option-tip {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-md);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.section-label {
+  display: block;
+  margin-bottom: var(--space-md);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.section-header .section-label {
+  margin-bottom: 0;
+}
+
+.section-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* 快速开始 */
+.quick-start-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .quick-label {
   font-size: 13px;
   color: var(--text-tertiary);
-  margin-bottom: var(--space-sm);
-  display: block;
 }
 
 .quick-chips {
@@ -675,26 +835,46 @@ onUnmounted(() => {
 
 .quick-chips .el-button {
   border-radius: var(--radius-full);
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-.empty-input-bar {
-  flex-shrink: 0;
-  padding: var(--space-lg) var(--space-xl);
+/* 任务输入 */
+.task-input :deep(.el-textarea__inner) {
+  font-size: 15px;
+  line-height: 1.7;
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.task-input :deep(.el-textarea__inner:focus) {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
   background: var(--bg-primary);
-  border-top: 1px solid var(--border-color);
 }
 
-.input-wrapper {
+.input-actions {
   display: flex;
-  gap: var(--space-md);
-  max-width: 800px;
-  margin: 0 auto;
-  width: 100%;
-  align-items: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-md);
 }
 
-.input-wrapper .el-textarea {
-  flex: 1;
+.char-count {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-icon {
+  margin-right: 6px;
 }
 
 /* ===== 执行详情工作区 ===== */
@@ -926,16 +1106,34 @@ onUnmounted(() => {
     justify-content: flex-end;
   }
 
-  .input-wrapper {
-    padding: 0 var(--space-md);
+  .empty-content {
+    padding: var(--space-lg);
+  }
+
+  .welcome-header {
+    padding: var(--space-xl) 0;
+  }
+
+  .form-section {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+  }
+
+  .input-actions {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .action-buttons {
+    width: 100%;
+  }
+
+  .action-buttons .el-button {
+    flex: 1;
   }
 
   .tab-scroll-content {
     padding: var(--space-xl);
-  }
-
-  .detail-header {
-    padding: var(--space-lg);
   }
 
   .stats-area {
