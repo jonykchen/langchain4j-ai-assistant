@@ -17,16 +17,19 @@ const user = computed(() => authStore.user)
 const sidebarCollapsed = ref(false)
 
 const menuItems = [
+  // 概览与基础管理
   { path: '/admin', icon: DataBoard, title: '仪表盘' },
   { path: '/admin/users', icon: User, title: '用户管理' },
   { path: '/admin/cost', icon: Money, title: '成本监控' },
+  // Agent 功能链（规划 → 追踪 → 评测 → 审计 → Prompt）
   { path: '/admin/planning', icon: Aim, title: '任务规划' },
-  { path: '/admin/agent-audit', icon: DocumentChecked, title: 'Agent 审计' },
-  { path: '/admin/test', icon: Checked, title: '测试管理' },
-  { path: '/admin/test-history', icon: Timer, title: '测试历史' },
   { path: '/admin/traces', icon: View, title: 'Agent 追踪' },
+  { path: '/admin/evaluation', icon: DataAnalysis, title: 'Agent 评测' },
+  { path: '/admin/agent-audit', icon: DocumentChecked, title: 'Agent 审计' },
   { path: '/admin/prompts', icon: Document, title: 'Prompt 管理' },
-  { path: '/admin/evaluation', icon: DataAnalysis, title: 'Agent 评测' }
+  // 测试体系
+  { path: '/admin/test', icon: Checked, title: '测试管理' },
+  { path: '/admin/test-history', icon: Timer, title: '测试历史' }
 ]
 
 // 面包屑导航

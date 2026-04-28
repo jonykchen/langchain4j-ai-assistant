@@ -141,12 +141,34 @@ public class AgentTraceSpan {
 
     /** 创建思考 Span */
     public static AgentTraceSpan thought(String traceId, String thought) {
+        LocalDateTime now = LocalDateTime.now();
         return AgentTraceSpan.builder()
                 .traceId(traceId)
                 .type(SpanType.THOUGHT)
                 .name("Thought")
                 .input(thought)
-                .startTime(LocalDateTime.now())
+                .startTime(now)
+                .endTime(now)
+                .durationMs(0L)
+                .success(true)
+                .build();
+    }
+
+    /** 创建思考 Span（带时间信息） */
+    public static AgentTraceSpan thought(
+            String traceId,
+            String thought,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            long durationMs) {
+        return AgentTraceSpan.builder()
+                .traceId(traceId)
+                .type(SpanType.THOUGHT)
+                .name("Thought")
+                .input(thought)
+                .startTime(startTime)
+                .endTime(endTime)
+                .durationMs(durationMs)
                 .success(true)
                 .build();
     }
