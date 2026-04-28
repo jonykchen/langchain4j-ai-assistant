@@ -429,8 +429,22 @@ public abstract class AbstractAgent implements Agent {
         // 调用 LLM
         LLMResponse response = executor.invoke(input);
 
-        // 记录思考过程
+        // 记录 LLM 调用追踪
+        if (traceService != null && traceContext.hasActiveTrace()) {
+            traceService.recordLLMCall(
+                    traceId,
+                    response.rawPrompt(),
+                    response.rawResponse(),
+                    response.promptTokens() != null ? response.promptTokens() : 0L,
+                    response.completionTokens() != null ? response.completionTokens() : 0L,
+                    response.durationMs() != null ? response.durationMs() : 0L);
+        }
+
+        // 记录思考过程追踪
         if (response.hasThought()) {
+            if (traceService != null && traceContext.hasActiveTrace()) {
+                traceService.recordThought(traceId, response.thought());
+            }
             emit(
                     sink,
                     AgentEvent.thought(
