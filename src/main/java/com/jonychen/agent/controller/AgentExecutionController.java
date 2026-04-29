@@ -24,6 +24,7 @@ import com.jonychen.agent.core.AgentMetadata;
 import com.jonychen.agent.core.AgentOrchestrator;
 import com.jonychen.agent.core.AgentRequest;
 import com.jonychen.agent.core.AgentRequestOptions;
+import com.jonychen.util.IpUtils;
 
 import reactor.core.publisher.Flux;
 
@@ -73,7 +74,7 @@ public class AgentExecutionController {
                 truncate(request.userInput(), 100));
 
         // 从 HttpServletRequest 提取客户端信息
-        String clientIp = extractClientIp(httpRequest);
+        String clientIp = IpUtils.getClientIp(httpRequest);
         String userAgent = extractUserAgent(httpRequest);
 
         // 构建 AgentRequest
@@ -134,17 +135,6 @@ public class AgentExecutionController {
     }
 
     // ===== 辅助方法 =====
-
-    private String extractClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty()) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty()) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
-    }
 
     private String extractUserAgent(HttpServletRequest request) {
         return request.getHeader("User-Agent");

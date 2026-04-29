@@ -18,6 +18,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.jonychen.config.RateLimitProperties;
 import com.jonychen.exception.BusinessException;
 import com.jonychen.model.ErrorCode;
+import com.jonychen.util.IpUtils;
 
 /**
  * 分布式限流切面
@@ -54,7 +55,7 @@ public class DistributedRateLimitAspect {
         }
 
         String limiterName = rateLimiterAnnotation.name();
-        String identifier = getClientIp();
+        String identifier = IpUtils.getClientIp(getCurrentRequest());
         String key = DistributedRateLimiter.buildKey(limiterName, identifier);
 
         // 从 Nacos 配置获取动态限流参数
@@ -95,28 +96,9 @@ public class DistributedRateLimitAspect {
         };
     }
 
-    /** 获取客户端 IP */
-    private String getClientIp() {
+    private HttpServletRequest getCurrentRequest() {
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-
-        if (attributes == null) {
-            return "unknown";
-        }
-
-        HttpServletRequest request = attributes.getRequest();
-        String ip = request.getHeader("X-Forwarded-For");
-
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-
-        return ip != null ? ip : "unknown";
+        return attributes != null ? attributes.getRequest() : null;
     }
 }

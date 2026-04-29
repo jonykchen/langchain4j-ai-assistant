@@ -115,6 +115,34 @@
         <appender-ref ref="ASYNC_AUDIT"/>
     </logger>
 
+    <!-- ==================== 请求追踪日志 ==================== -->
+    <appender name="FILE_TRACE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}-trace.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%X{traceId}] %-5level - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${APP_NAME}-trace.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>20MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 追踪日志异步输出 -->
+    <appender name="ASYNC_TRACE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>512</queueSize>
+        <appender-ref ref="FILE_TRACE"/>
+    </appender>
+
+    <!-- 请求追踪 Logger（统一追踪整个请求链路） -->
+    <logger name="REQUEST_TRACE" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_TRACE"/>
+    </logger>
+
     <!-- ==================== 开发环境配置 ==================== -->
     <springProfile name="dev">
         <!-- 应用日志：DEBUG -->
