@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.jonychen.admin.service.TokenUsageService;
 import com.jonychen.exception.BusinessException;
@@ -18,6 +20,8 @@ import com.jonychen.metrics.BusinessMetricsService;
 import com.jonychen.model.ErrorCode;
 import com.jonychen.model.LoadBalancedChatModel;
 import com.jonychen.model.LoadBalancedStreamingChatModel;
+import com.jonychen.observability.trace.RequestTraceService;
+import com.jonychen.util.IpUtils;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -45,6 +49,7 @@ public class AiService {
     private final LoadBalancedStreamingChatModel streamingChatModel;
     private final TokenUsageService tokenUsageService;
     private final BusinessMetricsService businessMetricsService;
+    private final RequestTraceService requestTraceService;
 
     /** 会话记忆存储（按用户隔离，避免线程安全问题） */
     private final Map<String, ChatMemory> userChatMemories = new ConcurrentHashMap<>();
@@ -66,17 +71,25 @@ public class AiService {
             - 使用 Markdown 格式，代码块指定语言
             - 分点阐述，条理清晰
             - 提供可运行的代码示例
+
+            ## 代码格式要求（非常重要）
+            - 代码块中的所有空格必须完整保留，包括：关键字之间的空格（如 "public class" 不是 "publicclass"）
+            - 运算符两侧的空格（如 "int a = 5" 不是 "inta=5"）
+            - 方法参数中的空格（如 "main(String[] args)" 不是 "main(String[]args)"）
+            - 缩进空格必须使用空格字符，不要省略
             """;
 
     public AiService(
             LoadBalancedChatModel chatModel,
             LoadBalancedStreamingChatModel streamingChatModel,
             TokenUsageService tokenUsageService,
-            BusinessMetricsService businessMetricsService) {
+            BusinessMetricsService businessMetricsService,
+            RequestTraceService requestTraceService) {
         this.chatModel = chatModel;
         this.streamingChatModel = streamingChatModel;
         this.tokenUsageService = tokenUsageService;
         this.businessMetricsService = businessMetricsService;
+        this.requestTraceService = requestTraceService;
     }
 
     /**
@@ -87,11 +100,13 @@ public class AiService {
      */
     public String chat(String message) {
         String userId = getCurrentUserId();
+        String clientIp = getClientIp();
         long startTime = System.currentTimeMillis();
 
-        try {
-            LOG.trace("收到聊天请求: {}", truncateForLog(message));
+        // 记录请求开始
+        requestTraceService.logRequestStart(userId, clientIp, message);
 
+        try {
             // 记录用户消息
             businessMetricsService.recordUserMessage(userId);
 
@@ -100,6 +115,10 @@ public class AiService {
 
             // 构建消息列表
             List<ChatMessage> messages = buildMessages(message, chatMemory);
+
+            // 记录提示词构建
+            requestTraceService.logPromptBuild(
+                    SYSTEM_PROMPT.length(), chatMemory.messages().size(), messages.size());
 
             // 调用模型
             ChatRequest request = ChatRequest.builder().messages(messages).build();
@@ -119,11 +138,14 @@ public class AiService {
             // 记录 AI 响应
             businessMetricsService.recordAiResponse(getModelName(response));
 
-            LOG.trace("聊天完成, 回复长度: {}", reply != null ? reply.length() : 0);
+            // 记录请求结束
+            requestTraceService.logRequestEnd(reply != null ? reply.length() : 0, true);
+
             return reply;
 
         } catch (Exception e) {
             LOG.error("聊天请求失败", e);
+            requestTraceService.logRequestEnd(0, false);
             throw handleAiException(e);
         }
     }
@@ -135,16 +157,22 @@ public class AiService {
      * @return 响应式流，逐个 token 返回
      */
     public Flux<String> chatFlux(String message) {
-        LOG.trace("收到流式聊天请求: {}", truncateForLog(message));
-
-        // 获取用户 ID
+        // 获取用户 ID 和客户端 IP
         String userId = getCurrentUserId();
+        String clientIp = getClientIp();
+
+        // 记录请求开始
+        requestTraceService.logRequestStart(userId, clientIp, message);
 
         // 获取用户专属的对话记忆
         ChatMemory chatMemory = getOrCreateChatMemory(userId);
 
         // 构建消息列表
         List<ChatMessage> messages = buildMessages(message, chatMemory);
+
+        // 记录提示词构建
+        requestTraceService.logPromptBuild(
+                SYSTEM_PROMPT.length(), chatMemory.messages().size(), messages.size());
 
         // 生成会话 ID
         String sessionId = UUID.randomUUID().toString();
@@ -214,6 +242,10 @@ public class AiService {
                                             businessMetricsService.recordAiResponse(modelName);
                                             businessMetricsService.streamingRequestCompleted();
 
+                                            // 记录请求结束
+                                            requestTraceService.logRequestEnd(
+                                                    fullResponse.length(), true);
+
                                             emitter.complete();
                                         }
 
@@ -222,6 +254,7 @@ public class AiService {
                                             LOG.error("流式聊天失败", error);
                                             businessMetricsService.streamingRequestError(
                                                     error.getClass().getSimpleName());
+                                            requestTraceService.logRequestEnd(0, false);
                                             emitter.error(handleAiException(error));
                                         }
                                     });
@@ -280,6 +313,16 @@ public class AiService {
             return auth.getName();
         }
         return "anonymous";
+    }
+
+    /** 获取客户端 IP */
+    private String getClientIp() {
+        ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return "unknown";
+        }
+        return IpUtils.getClientIp(attributes.getRequest());
     }
 
     /** 从响应中获取模型名称 */

@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jonychen.exception.AllModelsUnavailableException;
+import com.jonychen.observability.trace.RequestTraceService;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -41,6 +42,7 @@ public class LoadBalancedChatModel implements ChatModel {
     private final Map<String, CircuitBreaker> circuitBreakers;
     private final Map<String, ModelHealthStatus> healthStatuses;
     private final Counter failoverCounter;
+    private final RequestTraceService traceService;
 
     /** 运行时禁用的模型名称集合（P0: 内存态，重启后恢复） */
     private final java.util.Set<String> disabledModels = ConcurrentHashMap.newKeySet();
@@ -48,10 +50,12 @@ public class LoadBalancedChatModel implements ChatModel {
     public LoadBalancedChatModel(
             List<ModelProvider> providers,
             CircuitBreakerRegistry registry,
-            MeterRegistry meterRegistry) {
+            MeterRegistry meterRegistry,
+            RequestTraceService traceService) {
         this.models = new ArrayList<>();
         this.circuitBreakers = new ConcurrentHashMap<>();
         this.healthStatuses = new ConcurrentHashMap<>();
+        this.traceService = traceService;
 
         for (ModelProvider provider : providers) {
             if (!provider.isValid()) {
@@ -128,19 +132,49 @@ public class LoadBalancedChatModel implements ChatModel {
         ModelInstance selected = selectByWeight(availableModels);
         String selectedName = selected.provider.name();
 
-        LOG.trace("选择模型: {}", selectedName);
+        // 记录模型选择
+        if (traceService != null) {
+            List<String> candidates = availableModels.stream().map(m -> m.provider.name()).toList();
+            traceService.logModelSelect(
+                    candidates, selectedName, selected.provider.weight(), "weight-random");
+            traceService.logApiCallStart(
+                    selectedName, selected.provider.baseUrl(), estimateTokens(request));
+        }
 
         try {
+            long startTime = System.currentTimeMillis();
             ChatResponse response = executeWithCircuitBreaker(selected, request);
+            long duration = System.currentTimeMillis() - startTime;
+
             markSuccess(selectedName);
+
+            // 记录 API 调用成功
+            if (traceService != null) {
+                traceService.logApiCallEnd(selectedName, true, null);
+                traceService.logTokenUsage(
+                        selectedName,
+                        response.tokenUsage() != null ? response.tokenUsage().inputTokenCount() : 0,
+                        response.tokenUsage() != null
+                                ? response.tokenUsage().outputTokenCount()
+                                : 0,
+                        0.0 // 成本在 TokenUsageService 中计算
+                        );
+            }
+
             return response;
         } catch (CallNotPermittedException e) {
             LOG.warn("模型 {} 熔断器打开，切换到备用模型", selectedName);
+            if (traceService != null) {
+                traceService.logApiCallEnd(selectedName, false, "circuit-breaker-open");
+            }
             recordFailover();
             return fallbackChat(request, selectedName);
         } catch (Exception e) {
             LOG.warn("模型 {} 调用失败: {}, 切换到备用模型", selectedName, e.getMessage());
             markFailure(selectedName);
+            if (traceService != null) {
+                traceService.logApiCallEnd(selectedName, false, e.getMessage());
+            }
             recordFailover();
             return fallbackChat(request, selectedName);
         }
@@ -158,16 +192,34 @@ public class LoadBalancedChatModel implements ChatModel {
             String modelName = model.provider.name();
             LOG.info("故障转移: 尝试模型 {}", modelName);
 
+            // 记录故障转移
+            if (traceService != null) {
+                traceService.logFailover(failedModel, modelName, "circuit-breaker-or-error");
+                traceService.logApiCallStart(
+                        modelName, model.provider.baseUrl(), estimateTokens(request));
+            }
+
             try {
                 ChatResponse response = executeWithCircuitBreaker(model, request);
                 markSuccess(modelName);
                 LOG.info("故障转移成功: 模型 {}", modelName);
+
+                if (traceService != null) {
+                    traceService.logApiCallEnd(modelName, true, null);
+                }
+
                 return response;
             } catch (CallNotPermittedException e) {
                 LOG.warn("模型 {} 熔断器打开，继续尝试下一个", modelName);
+                if (traceService != null) {
+                    traceService.logApiCallEnd(modelName, false, "circuit-breaker-open");
+                }
             } catch (Exception e) {
                 LOG.warn("模型 {} 调用失败: {}", modelName, e.getMessage());
                 markFailure(modelName);
+                if (traceService != null) {
+                    traceService.logApiCallEnd(modelName, false, e.getMessage());
+                }
             }
         }
 
@@ -328,6 +380,15 @@ public class LoadBalancedChatModel implements ChatModel {
         cb.reset();
         LOG.info("已重置模型 {} 的熔断器", modelName);
         return true;
+    }
+
+    /** 估算请求 Token 数量（粗略估算） */
+    private int estimateTokens(ChatRequest request) {
+        if (request == null || request.messages() == null) {
+            return 0;
+        }
+        // 简单估算：每条消息平均约 100 个 token
+        return request.messages().size() * 100;
     }
 
     private static class ModelInstance {
