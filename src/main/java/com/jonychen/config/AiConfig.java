@@ -10,6 +10,7 @@ import org.springframework.context.event.EventListener;
 import com.jonychen.assistant.ChatAssistant;
 import com.jonychen.model.LoadBalancedChatModel;
 import com.jonychen.model.LoadBalancedStreamingChatModel;
+import com.jonychen.observability.trace.RequestTraceService;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.service.AiServices;
@@ -34,6 +35,7 @@ public class AiConfig {
     private final ModelProperties modelProperties;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final MeterRegistry meterRegistry;
+    private final RequestTraceService requestTraceService;
 
     private volatile LoadBalancedChatModel loadBalancedChatModel;
     private volatile LoadBalancedStreamingChatModel loadBalancedStreamingChatModel;
@@ -42,10 +44,12 @@ public class AiConfig {
     public AiConfig(
             ModelProperties modelProperties,
             CircuitBreakerRegistry circuitBreakerRegistry,
-            MeterRegistry meterRegistry) {
+            MeterRegistry meterRegistry,
+            RequestTraceService requestTraceService) {
         this.modelProperties = modelProperties;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.meterRegistry = meterRegistry;
+        this.requestTraceService = requestTraceService;
         initModels();
     }
 
@@ -60,10 +64,11 @@ public class AiConfig {
             LOG.info("  - {} (优先级={}, 权重={})", p.name(), p.priority(), p.weight());
         }
         this.loadBalancedChatModel =
-                new LoadBalancedChatModel(providers, circuitBreakerRegistry, meterRegistry);
+                new LoadBalancedChatModel(
+                        providers, circuitBreakerRegistry, meterRegistry, requestTraceService);
         this.loadBalancedStreamingChatModel =
                 new LoadBalancedStreamingChatModel(
-                        providers, circuitBreakerRegistry, meterRegistry);
+                        providers, circuitBreakerRegistry, meterRegistry, requestTraceService);
         this.chatAssistant =
                 AiServices.builder(ChatAssistant.class)
                         .chatModel(loadBalancedChatModel)

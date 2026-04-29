@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jonychen.exception.AllModelsUnavailableException;
+import com.jonychen.observability.trace.RequestTraceService;
 
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -37,14 +38,17 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
     private final Map<String, CircuitBreaker> circuitBreakers;
     private final Map<String, ModelHealthStatus> healthStatuses;
     private final Counter failoverCounter;
+    private final RequestTraceService traceService;
 
     public LoadBalancedStreamingChatModel(
             List<ModelProvider> providers,
             CircuitBreakerRegistry registry,
-            MeterRegistry meterRegistry) {
+            MeterRegistry meterRegistry,
+            RequestTraceService traceService) {
         this.models = new ArrayList<>();
         this.circuitBreakers = new ConcurrentHashMap<>();
         this.healthStatuses = new ConcurrentHashMap<>();
+        this.traceService = traceService;
 
         for (ModelProvider provider : providers) {
             if (!provider.isValid()) {
@@ -100,7 +104,14 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
         StreamingModelInstance selected = selectByWeight(availableModels);
         String selectedName = selected.provider.name();
 
-        LOG.trace("选择流式模型: {}", selectedName);
+        // 记录模型选择
+        if (traceService != null) {
+            List<String> candidates = availableModels.stream().map(m -> m.provider.name()).toList();
+            traceService.logModelSelect(
+                    candidates, selectedName, selected.provider.weight(), "weight-random");
+            traceService.logApiCallStart(
+                    selectedName, selected.provider.baseUrl(), estimateTokens(request));
+        }
 
         try {
             CircuitBreaker cb = circuitBreakers.get(selectedName);
@@ -109,6 +120,9 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
         } catch (Exception e) {
             LOG.warn("流式模型 {} 启动失败: {}", selectedName, e.getMessage());
             markFailure(selectedName);
+            if (traceService != null) {
+                traceService.logApiCallEnd(selectedName, false, e.getMessage());
+            }
             handleFailover(request, handler, selectedName);
         }
     }
@@ -128,6 +142,13 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
             String modelName = model.provider.name();
             LOG.info("流式故障转移: 尝试模型 {}", modelName);
 
+            // 记录故障转移
+            if (traceService != null) {
+                traceService.logFailover(failedModel, modelName, "startup-failed");
+                traceService.logApiCallStart(
+                        modelName, model.provider.baseUrl(), estimateTokens(request));
+            }
+
             try {
                 CircuitBreaker cb = circuitBreakers.get(modelName);
                 model.streamingModel.chat(
@@ -136,6 +157,9 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
             } catch (Exception e) {
                 LOG.warn("流式模型 {} 启动失败: {}", modelName, e.getMessage());
                 markFailure(modelName);
+                if (traceService != null) {
+                    traceService.logApiCallEnd(modelName, false, e.getMessage());
+                }
             }
         }
 
@@ -199,6 +223,15 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
         }
     }
 
+    /** 估算请求 Token 数量（粗略估算） */
+    private int estimateTokens(ChatRequest request) {
+        if (request == null || request.messages() == null) {
+            return 0;
+        }
+        // 简单估算：每条消息平均约 100 个 token
+        return request.messages().size() * 100;
+    }
+
     private static class StreamingModelInstance {
         final ModelProvider provider;
         final OpenAiStreamingChatModel streamingModel;
@@ -242,6 +275,12 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
                             System.nanoTime() - startTimeNanos);
             circuitBreaker.onSuccess(durationMs, java.util.concurrent.TimeUnit.MILLISECONDS);
             markSuccess(modelName);
+
+            // 记录 API 调用成功
+            if (traceService != null) {
+                traceService.logApiCallEnd(modelName, true, null);
+            }
+
             delegate.onCompleteResponse(completeResponse);
         }
 
@@ -255,6 +294,12 @@ public class LoadBalancedStreamingChatModel implements StreamingChatModel {
                         durationMs, java.util.concurrent.TimeUnit.MILLISECONDS, error);
                 markFailure(modelName);
                 LOG.warn("流式模型 {} 失败: {}", modelName, error.getMessage());
+
+                // 记录 API 调用失败
+                if (traceService != null) {
+                    traceService.logApiCallEnd(modelName, false, error.getMessage());
+                }
+
                 handleFailover(request, delegate, modelName);
             }
         }
