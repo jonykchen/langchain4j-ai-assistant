@@ -1,0 +1,21 @@
+# Security Insights Configuration
+# https://docs.github.com/en/code-security/security-overview/customizing-your-security-overview
+
+security:
+  # Enable security alerts
+  alerts:
+    enabled: true
+  
+  # Dependency scanning
+  dependency_scanning:
+    enabled: true
+    
+  # Secret scanning
+  secret_scanning:
+    enabled: true
+    push_protection: true
+    
+  # Code scanning
+  code_scanning:
+    enabled: true
+    schedule: "weekly"

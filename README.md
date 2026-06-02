@@ -4,14 +4,18 @@
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-green.svg)](https://spring.io/)
 [![Vue](https://img.shields.io/badge/Vue-3-brightgreen.svg)](https://vuejs.org/)
+[![GitHub Stars](https://img.shields.io/github/stars/jonykchen/langchain4j-ai-assistant?style=social)](https://github.com/jonykchen/langchain4j-ai-assistant/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/jonykchen/langchain4j-ai-assistant)](https://github.com/jonykchen/langchain4j-ai-assistant/issues)
+[![GitHub Forks](https://img.shields.io/github/forks/jonykchen/langchain4j-ai-assistant?style=social)](https://github.com/jonykchen/langchain4j-ai-assistant/network/members)
 
 一个生产级 AI 助手平台，基于 LangChain4j + Spring Boot + Vue 3 构建。支持多模型负载均衡、故障自动转移、完整可观测性链路。
+
+[English](#english) | [简体中文](#简体中文)
 
 > 📖 **[快速开始指南](./docs/QUICK_START.md)** - 完整的启动文档和服务访问地址
 
 ## 项目截图
 
-<!-- 添加项目截图 -->
 | 聊天界面 | 管理后台 |
 |:---:|:---:|
 | ![聊天界面](docs/screenshots/chat.png) | ![管理后台](docs/screenshots/admin.png) |
@@ -19,6 +23,8 @@
 | 模型监控 | Agent 追踪 |
 |:---:|:---:|
 | ![模型监控](docs/screenshots/monitoring.png) | ![Agent追踪](docs/screenshots/tracing.png) |
+
+> 📸 截图即将更新
 
 ## 核心特性
 
@@ -213,14 +219,82 @@ cd frontend && npm run dev
 欢迎贡献代码、报告问题或提出建议！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解详情。
 
 ### 如何贡献
-- Fork 项目并创建 PR
-- 报告 Bug 或建议新功能
-- 改进文档
+- 🍴 Fork 项目并创建 PR
+- 🐛 [报告 Bug](https://github.com/jonykchen/langchain4j-ai-assistant/issues/new?template=bug_report.md)
+- 💡 [建议新功能](https://github.com/jonykchen/langchain4j-ai-assistant/issues/new?template=feature_request.md)
+- 📖 改进文档
 
-## 作者
+## 🗺️ 路线图
 
-**Jony Chen** - [GitHub](https://github.com/jonykchen) - [Email](mailto:jony.k.chen@gmail.com)
+### v1.1 (计划中)
+- [ ] 多租户支持
+- [ ] 更多 AI 模型接入（Claude, GPT-4）
+- [ ] Agent 工作流可视化编辑器
+- [ ] 移动端适配
 
-## 许可证
+### v1.0 (当前版本)
+- [x] 多模型负载均衡
+- [x] Agent 可观测性
+- [x] RAG 文档检索
+- [x] 完整测试体系
 
-本项目采用 [MIT License](LICENSE) 开源协议。您可以自由使用、修改和分发本软件。
+## 🤝 贡献者
+
+感谢所有为项目做出贡献的开发者！
+
+[![Contributors](https://contrib.rocks/image?repo=jonykchen/langchain4j-ai-assistant)](https://github.com/jonykchen/langchain4j-ai-assistant/graphs/contributors)
+
+## 📊 项目统计
+
+![Repo Size](https://img.shields.io/github/repo-size/jonykchen/langchain4j-ai-assistant)
+![Commit Activity](https://img.shields.io/github/commit-activity/m/jonykchen/langchain4j-ai-assistant)
+![Last Commit](https://img.shields.io/github/last-commit/jonykchen/langchain4j-ai-assistant)
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE) 开源协议。
+
+## 🙏 致谢
+
+- [LangChain4j](https://github.com/langchain4j/langchain4j) - Java AI 开发框架
+- [Spring Boot](https://spring.io/projects/spring-boot) - 后端框架
+- [Vue.js](https://vuejs.org/) - 前端框架
+- [Element Plus](https://element-plus.org/) - UI 组件库
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/jonykchen">Jony Chen</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/jonykchen/langchain4j-ai-assistant">⬆️ 返回顶部</a>
+</p>
+
+---
+
+## English
+
+A production-ready AI assistant platform built with LangChain4j + Spring Boot + Vue 3. Features multi-model load balancing, automatic failover, and complete observability.
+
+### Key Features
+- **Multi-model Load Balancing** - Weight-based distribution with automatic failover
+- **Streaming Response** - SSE real-time output
+- **Agent Observability** - Execution tracing, prompt management, evaluation
+- **RAG Support** - Document chunking + vector search with pgvector
+- **High Availability** - Circuit breaker + rate limiting + retry
+
+### Quick Start
+```bash
+git clone https://github.com/jonykchen/langchain4j-ai-assistant.git
+cd langchain4j-ai-assistant
+cp .env.example .env
+# Edit .env and add your API key
+./dev.sh start  # Linux/macOS
+mvn spring-boot:run
+```
+
+See [Quick Start Guide](./docs/QUICK_START.md) for detailed instructions.
+
+### License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
