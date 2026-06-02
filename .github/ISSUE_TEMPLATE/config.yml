@@ -1,0 +1,14 @@
+# Issue template configuration
+# https://docs.github.com/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/jonykchen/langchain4j-ai-assistant#readme
+    about: Check the README and documentation first
+  - name: 💬 Discussions
+    url: https://github.com/jonykchen/langchain4j-ai-assistant/discussions
+    about: Ask questions and discuss with the community
+  - name: 🔒 Security Issue
+    url: https://github.com/jonykchen/langchain4j-ai-assistant/security/policy
+    about: Report security vulnerabilities privately
