@@ -38,7 +38,12 @@ build/
 !**/src/test/**/build/
 
 ### VS Code ###
-.vscode/
+# 保留项目推荐的配置，忽略个人设置
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 
 ### Node.js / 前端 ###
 frontend/node_modules/

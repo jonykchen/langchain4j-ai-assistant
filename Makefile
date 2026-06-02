@@ -1,168 +1,106 @@
-# ==================== LangChain4j Agent 工程开发 Makefile ====================
-#
-# 使用方式：
-#   make [命令]
-#
-# 快速开始：
-#   make init    - 初始化开发环境
-#   make dev     - 启动 Docker 基础设施 + 本地应用
+# LangChain4j AI Assistant - Makefile
+# 便捷命令集合
 
-.PHONY: help init dev dev-docker dev-local stop restart status logs reset clean test build run db-backup db-restore db-sync
+.PHONY: help install build run test clean docker-up docker-down docker-logs docker-clean dev
 
 # 默认目标
-help:
-	@echo "==================== LangChain4j Agent 开发命令 ===================="
+.DEFAULT_GOAL := help
+
+# ==================== 帮助信息 ====================
+help: ## 显示帮助信息
+	@echo "LangChain4j AI Assistant - 可用命令:"
 	@echo ""
-	@echo "环境管理:"
-	@echo "  make init         初始化开发环境（创建 .env 和 data 目录）"
-	@echo "  make dev          启动完整开发环境（Docker + 后端）"
-	@echo "  make dev-docker   仅启动 Docker 基础设施"
-	@echo "  make dev-local    仅启动本地应用（需 Docker 已运行）"
-	@echo "  make stop         停止所有 Docker 服务"
-	@echo "  make restart      重启 Docker 服务"
-	@echo "  make status       查看服务状态"
-	@echo "  make logs         查看所有日志"
-	@echo "  make reset        重置环境（清除所有数据）"
-	@echo ""
-	@echo "构建与测试:"
-	@echo "  make build        构建项目"
-	@echo "  make test         运行测试"
-	@echo "  make clean        清理构建产物"
-	@echo ""
-	@echo "运行:"
-	@echo "  make run          启动后端应用（端口 8082）"
-	@echo "  make run-dev      以开发模式启动（启用热重载）"
-	@echo ""
-	@echo "可选服务:"
-	@echo "  make dev-ollama   启动基础服务 + Ollama (CPU)"
-	@echo "  make dev-vector   启动基础服务 + Qdrant 向量数据库"
-	@echo "  make dev-mq       启动基础服务 + RabbitMQ"
-	@echo "  make dev-all      启动所有服务"
-	@echo ""
-	@echo "数据库:"
-	@echo "  make db-psql      连接 PostgreSQL"
-	@echo "  make db-redis     连接 Redis"
-	@echo "  make db-backup    备份 PG业务+Nacos配置为种子 (git 共享)"
-	@echo "  make db-restore   从种子恢复 PG+Nacos 数据"
-	@echo "  make db-sync      备份 + git 提交 (同步给团队)"
-	@echo ""
-	@echo "前端:"
-	@echo "  make frontend     启动前端开发服务器"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 
-# ==================== 环境管理 ====================
+# ==================== 开发命令 ====================
+install: ## 安装依赖
+	mvn install -DskipTests
+	cd frontend && npm install
 
-# 初始化环境
-init:
-	@echo "初始化开发环境..."
-	@if [ ! -f .env ]; then cp .env.example .env && echo "已创建 .env 文件"; else echo ".env 已存在"; fi
-	@mkdir -p data/{postgres,redis,nacos,nacos-db,prometheus,grafana,ollama,qdrant,etcd,minio,milvus,rabbitmq}
-	@echo "已创建 data 目录结构"
-	@echo "请编辑 .env 文件填入你的 API Keys"
+build: ## 构建项目
+	mvn clean package -DskipTests
+	cd frontend && npm run build
 
-# 启动 Docker 基础设施
-dev-docker:
+run: ## 启动后端服务
+	mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+run-frontend: ## 启动前端开发服务器
+	cd frontend && npm run dev
+
+dev: ## 启动开发环境（需要先启动 Docker）
+	@echo "启动后端..."
+	@mvn spring-boot:run -Dspring-boot.run.profiles=dev &
+
+test: ## 运行所有测试
+	mvn test
+
+test-unit: ## 运行单元测试
+	mvn test -Dtest="!*IntegrationTest,!*ContractTest,!*AIModelTest*"
+
+test-integration: ## 运行集成测试
+	mvn test -Dtest="*IntegrationTest"
+
+test-e2e: ## 运行 E2E 测试
+	cd frontend && npm run test:e2e
+
+test-performance: ## 运行性能测试
+	mvn gatling:test
+
+clean: ## 清理构建产物
+	mvn clean
+	cd frontend && rm -rf dist node_modules/.vite
+
+# ==================== Docker 命令 ====================
+docker-up: ## 启动所有 Docker 服务
+	docker compose -f docker-compose.dev.yml up -d
+
+docker-down: ## 停止所有 Docker 服务
+	docker compose -f docker-compose.dev.yml down
+
+docker-logs: ## 查看 Docker 日志
+	docker compose -f docker-compose.dev.yml logs -f --tail=100
+
+docker-clean: ## 清理 Docker 资源（包括数据）
+	docker compose -f docker-compose.dev.yml down -v --remove-orphans
+
+docker-ps: ## 查看 Docker 服务状态
+	docker compose -f docker-compose.dev.yml ps
+
+docker-restart: ## 重启所有 Docker 服务
+	docker compose -f docker-compose.dev.yml restart
+
+# ==================== 生产部署 ====================
+deploy-prod: ## 生产环境部署
+	docker compose --env-file .env.prod up -d --build
+
+deploy-down: ## 停止生产环境
+	docker compose down
+
+# ==================== 工具命令 ====================
+lint: ## 运行代码检查
+	mvn checkstyle:check
+	cd frontend && npm run lint:check
+
+format: ## 格式化代码
+	mvn spotless:apply
+	cd frontend && npm run format
+
+db-backup: ## 备份数据库
+	docker exec langchain4j-ai-assistant-postgres pg_dump -U langchain4j langchain4j > backup_$$(date +%Y%m%d_%H%M%S).sql
+
+health: ## 检查服务健康状态
+	@echo "后端健康状态:"
+	@curl -s http://localhost:8082/actuator/health | jq .
+	@echo "\n模型健康状态:"
+	@curl -s http://localhost:8082/api/health/models | jq .
+
+# ==================== 快速开发 ====================
+dev-docker: ## 启动开发 Docker 环境
 	@./dev.sh start
 
-# 启动本地应用
-dev-local:
-	@echo "启动后端应用..."
-	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn spring-boot:run
-
-# 启动完整开发环境
-dev: dev-docker
-	@sleep 10
-	@echo "等待服务就绪..."
-	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn spring-boot:run
-
-# 停止所有服务
-stop:
+dev-stop: ## 停止开发环境
 	@./dev.sh stop
 
-# 重启服务
-restart:
-	@./dev.sh restart
-
-# 查看状态
-status:
-	@./dev.sh status
-
-# 查看日志
-logs:
+dev-logs: ## 查看开发日志
 	@./dev.sh logs
-
-# 重置环境
-reset:
-	@./dev.sh reset
-
-# ==================== 可选服务 ====================
-
-dev-ollama:
-	@./dev.sh start --profile cpu
-
-dev-vector:
-	@./dev.sh start --profile vector
-
-dev-mq:
-	@./dev.sh start --profile mq
-
-dev-all:
-	@./dev.sh start --profile cpu --profile vector --profile mq
-
-# ==================== 构建与测试 ====================
-
-# 清理
-clean:
-	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn clean
-
-# 构建
-build:
-	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn clean package -DskipTests
-
-# 测试
-test:
-	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn test
-
-# ==================== 运行 ====================
-
-# 启动应用
-run:
-	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn spring-boot:run
-
-# 开发模式启动（热重载）
-run-dev:
-	@export JAVA_HOME=/usr/local/opt/openjdk@17 && mvn spring-boot:run -Dspring-boot.run.profiles=dev
-
-# ==================== 数据库 ====================
-
-# ==================== 数据库工具（跨环境数据共享） ====================
-
-# 备份当前数据为种子文件 → 提交 Git → 团队共享
-db-backup:
-	@./scripts/db/db-backup.sh --seed
-
-# 从种子文件恢复数据（新环境 pull 代码后执行）
-db-restore:
-	@./scripts/db/db-restore.sh
-
-# 一键同步：备份 + git commit + push
-db-sync: db-backup
-	@echo ""
-	@echo "==> 提交种子数据到 Git..."
-	@git add infra/postgres/init/02-seed-data.sql infra/nacos/init/03-nacos-config-seed.sql 2>/dev/null; \
-	(git diff --cached --quiet || \
-		git commit -m "sync: update database & nacos seed data $(shell date +%Y-%m-%d)")
-	@echo "OK! 请执行 git push 同步给团队"
-
-# 连接 PostgreSQL
-db-psql:
-	@docker exec -it langchain4j-postgres psql -U langchain4j -d langchain4j
-
-# 连接 Redis
-db-redis:
-	@docker exec -it langchain4j-redis redis-cli
-
-# ==================== 前端 ====================
-
-frontend:
-	@cd frontend && npm install && npm run dev
