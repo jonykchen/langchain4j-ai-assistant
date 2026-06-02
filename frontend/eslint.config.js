@@ -16,7 +16,11 @@ export default [
 
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
-  ...vueTsEslintConfig(),
+  ...vueTsEslintConfig({
+    supportedScriptLangs: {
+      ts: true,
+    },
+  }),
 
   {
     name: 'app/rules',
