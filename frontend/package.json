@@ -54,7 +54,7 @@
     "highlight.js": "^11.9.0",
     "markdown-it": "^14.0.0",
     "pinia": "^2.1.7",
-    "vue": "^3.4.0",
+    "vue": "^3.5.35",
     "vue-echarts": "^8.0.1",
     "vue-router": "^4.2.5"
   },
