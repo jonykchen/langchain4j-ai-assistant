@@ -1,0 +1,45 @@
+# PR 自动标签配置
+# https://github.com/actions/labeler
+
+# 后端相关
+backend:
+  - changed-files:
+    - any-glob-to-any-file: 'src/main/java/**'
+    - any-glob-to-any-file: 'pom.xml'
+    - any-glob-to-any-file: 'src/test/java/**'
+
+# 前端相关
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: 'frontend/**'
+    - any-glob-to-any-file: 'frontend/package.json'
+
+# 文档
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.md'
+    - any-glob-to-any-file: 'docs/**'
+
+# Docker
+docker:
+  - changed-files:
+    - any-glob-to-any-file: 'docker-compose*.yml'
+    - any-glob-to-any-file: '*.Dockerfile'
+    - any-glob-to-any-file: '.dockerignore'
+
+# CI/CD
+ci:
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**'
+
+# 配置
+config:
+  - changed-files:
+    - any-glob-to-any-file: 'infra/**'
+    - any-glob-to-any-file: 'src/main/resources/**'
+
+# 安全
+security:
+  - changed-files:
+    - any-glob-to-any-file: 'SECURITY.md'
+    - any-glob-to-any-file: '.env.example'

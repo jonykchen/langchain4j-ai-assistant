@@ -1,0 +1,95 @@
+# GitHub 标签定义
+# 使用 gh cli 导入: gh label create --filename .github/labels.yml
+
+# 类型标签
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+  
+- name: "enhancement"
+  color: "a2eeef"
+  description: "New feature or request"
+  
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+  
+- name: "question"
+  color: "d876e3"
+  description: "Further information is requested"
+
+# 优先级标签
+- name: "priority: critical"
+  color: "b60205"
+  description: "Critical priority - needs immediate attention"
+  
+- name: "priority: high"
+  color: "d93f0b"
+  description: "High priority"
+  
+- name: "priority: medium"
+  color: "fbca04"
+  description: "Medium priority"
+  
+- name: "priority: low"
+  color: "0e8a16"
+  description: "Low priority"
+
+# 状态标签
+- name: "status: blocked"
+  color: "000000"
+  description: "Blocked by other issue"
+  
+- name: "status: needs-review"
+  color: "fbca04"
+  description: "Needs code review"
+  
+- name: "status: work-in-progress"
+  color: "c2e0c6"
+  description: "Work in progress"
+
+# 技术标签
+- name: "backend"
+  color: "1d76db"
+  description: "Backend related changes"
+  
+- name: "frontend"
+  color: "5319e7"
+  description: "Frontend related changes"
+  
+- name: "docker"
+  color: "0e8a16"
+  description: "Docker related changes"
+  
+- name: "ci"
+  color: "bfd4f2"
+  description: "CI/CD related changes"
+  
+- name: "config"
+  color: "c5def5"
+  description: "Configuration changes"
+
+- name: "security"
+  color: "d73a4a"
+  description: "Security related changes"
+
+# 其他
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers"
+  
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed"
+  
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+  
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+  
+- name: "stale"
+  color: "eeeeee"
+  description: "No recent activity"

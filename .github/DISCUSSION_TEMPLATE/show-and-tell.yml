@@ -1,0 +1,34 @@
+title: "[Show & Tell] "
+labels: ["showcase"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 展示你的作品 🎉
+        
+        欢迎分享你使用本项目构建的作品！
+        
+  - type: textarea
+    id: description
+    attributes:
+      label: 项目描述
+      description: 简要介绍你的项目
+    validations:
+      required: true
+      
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图/演示
+      description: 分享截图或演示链接
+    validations:
+      required: false
+      
+  - type: input
+    id: link
+    attributes:
+      label: 项目链接
+      description: 项目网站或仓库地址
+      placeholder: "https://github.com/your-username/your-project"
+    validations:
+      required: false
