@@ -52,7 +52,7 @@
     "echarts": "^6.0.0",
     "element-plus": "^2.5.0",
     "highlight.js": "^11.9.0",
-    "markdown-it": "^14.0.0",
+    "markdown-it": "^14.2.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.0",
     "vue-echarts": "^8.0.1",
