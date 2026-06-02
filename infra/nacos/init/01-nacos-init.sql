@@ -320,7 +320,7 @@ VALUES (
 # Nacos 元数据仍使用 MySQL，与业务数据隔离
 spring.datasource.url=${DATABASE_URL:jdbc:postgresql://localhost:5432/langchain4j?currentSchema=public}
 spring.datasource.username=${DATABASE_USERNAME:langchain4j}
-spring.datasource.password=${DATABASE_PASSWORD:REDACTED_DB_PASSWORD}
+spring.datasource.password=${DATABASE_PASSWORD}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # Hikari 连接池配置
@@ -342,14 +342,14 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 spring.data.redis.database=0
 
 # ==================== 安全配置 ====================
-# Spring Security 基础用户（用于开发测试）
-spring.security.user.name=admin
-spring.security.user.password=admin
-spring.security.user.roles=ADMIN
+# Spring Security 基础用户（已移除默认凭据，请通过环境变量配置）
+# spring.security.user.name=${SECURITY_USER_NAME}
+# spring.security.user.password=${SECURITY_USER_PASSWORD}
+# spring.security.user.roles=ADMIN
 
 # ==================== JWT 认证配置 ====================
 # JWT 密钥（通过环境变量注入，要求至少 32 字符）
-jwt.secret=${JWT_SECRET:REDACTED_JWT_SECRET}
+jwt.secret=${JWT_SECRET}
 # 访问令牌过期时间（秒）- 默认 1 小时
 jwt.access-token-expiration=${JWT_ACCESS_TOKEN_EXPIRATION:3600}
 # 刷新令牌过期时间（秒）- 默认 7 天
