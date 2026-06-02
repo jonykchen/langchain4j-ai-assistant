@@ -1,0 +1,72 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bg)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="100" cy="100" r="200" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="1180" cy="540" r="150" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- Main content -->
+  <text x="640" y="180" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">🤖 LangChain4j AI Assistant</text>
+  
+  <text x="640" y="260" font-family="Arial, sans-serif" font-size="32" fill="rgba(255,255,255,0.9)" text-anchor="middle">A Production-Ready AI Assistant Platform</text>
+  
+  <!-- Features -->
+  <g transform="translate(200, 350)">
+    <rect x="0" y="0" width="250" height="80" rx="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="24" fill="white" text-anchor="middle">🔄 多模型负载均衡</text>
+    <text x="125" y="60" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.8)" text-anchor="middle">Load Balancing</text>
+  </g>
+  
+  <g transform="translate(515, 350)">
+    <rect x="0" y="0" width="250" height="80" rx="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="24" fill="white" text-anchor="middle">🛡️ 高可用架构</text>
+    <text x="125" y="60" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.8)" text-anchor="middle">High Availability</text>
+  </g>
+  
+  <g transform="translate(830, 350)">
+    <rect x="0" y="0" width="250" height="80" rx="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="24" fill="white" text-anchor="middle">📊 完整可观测性</text>
+    <text x="125" y="60" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.8)" text-anchor="middle">Observability</text>
+  </g>
+  
+  <!-- Tech badges -->
+  <g transform="translate(200, 500)">
+    <rect x="0" y="0" width="80" height="30" rx="5" fill="rgba(255,255,255,0.3)"/>
+    <text x="40" y="20" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">Java 17</text>
+  </g>
+  <g transform="translate(290, 500)">
+    <rect x="0" y="0" width="110" height="30" rx="5" fill="rgba(255,255,255,0.3)"/>
+    <text x="55" y="20" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">Spring Boot</text>
+  </g>
+  <g transform="translate(410, 500)">
+    <rect x="0" y="0" width="60" height="30" rx="5" fill="rgba(255,255,255,0.3)"/>
+    <text x="30" y="20" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">Vue 3</text>
+  </g>
+  <g transform="translate(480, 500)">
+    <rect x="0" y="0" width="100" height="30" rx="5" fill="rgba(255,255,255,0.3)"/>
+    <text x="50" y="20" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">LangChain4j</text>
+  </g>
+  <g transform="translate(590, 500)">
+    <rect x="0" y="0" width="70" height="30" rx="5" fill="rgba(255,255,255,0.3)"/>
+    <text x="35" y="20" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">Agent</text>
+  </g>
+  <g transform="translate(670, 500)">
+    <rect x="0" y="0" width="50" height="30" rx="5" fill="rgba(255,255,255,0.3)"/>
+    <text x="25" y="20" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">RAG</text>
+  </g>
+  
+  <!-- Footer -->
+  <text x="640" y="590" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.7)" text-anchor="middle">MIT License • Open Source • Production Ready</text>
+</svg>
