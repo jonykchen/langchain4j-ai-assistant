@@ -4,13 +4,32 @@
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-green.svg)](https://spring.io/)
 [![Vue](https://img.shields.io/badge/Vue-3-brightgreen.svg)](https://vuejs.org/)
+
 [![GitHub Stars](https://img.shields.io/github/stars/jonykchen/langchain4j-ai-assistant?style=social)](https://github.com/jonykchen/langchain4j-ai-assistant/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/jonykchen/langchain4j-ai-assistant)](https://github.com/jonykchen/langchain4j-ai-assistant/issues)
 [![GitHub Forks](https://img.shields.io/github/forks/jonykchen/langchain4j-ai-assistant?style=social)](https://github.com/jonykchen/langchain4j-ai-assistant/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/jonykchen/langchain4j-ai-assistant)](https://github.com/jonykchen/langchain4j-ai-assistant/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/jonykchen/langchain4j-ai-assistant)](https://github.com/jonykchen/langchain4j-ai-assistant/commits/master)
+[![GitHub repo size](https://img.shields.io/github/repo-size/jonykchen/langchain4j-ai-assistant)](https://github.com/jonykchen/langchain4j-ai-assistant)
+
+[![CI](https://github.com/jonykchen/langchain4j-ai-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/jonykchen/langchain4j-ai-assistant/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jonykchen/langchain4j-ai-assistant/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jonykchen/langchain4j-ai-assistant/actions/workflows/codeql-analysis.yml)
+
+<h3 align="center">🤖 A Production-Ready AI Assistant Platform</h3>
+
+<p align="center">
+  Multi-model Load Balancing • Automatic Failover • Complete Observability
+</p>
+
+<p align="center">
+  <a href="#简体中文">简体中文</a> • 
+  <a href="#english">English</a> • 
+  <a href="https://github.com/jonykchen/langchain4j-ai-assistant/discussions">Discussions</a> • 
+  <a href="https://github.com/jonykchen/langchain4j-ai-assistant/issues">Issues</a>
+</p>
+
+---
 
 一个生产级 AI 助手平台，基于 LangChain4j + Spring Boot + Vue 3 构建。支持多模型负载均衡、故障自动转移、完整可观测性链路。
-
-[English](#english) | [简体中文](#简体中文)
 
 > 📖 **[快速开始指南](./docs/QUICK_START.md)** - 完整的启动文档和服务访问地址
 
