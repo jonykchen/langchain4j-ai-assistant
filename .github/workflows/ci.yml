@@ -27,12 +27,12 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Clean corrupted Maven cache
+      - name: Clean Maven cache to fix corrupted POMs
         run: |
-          # Remove corrupted POM files (HTML error pages cached by Maven)
-          find ~/.m2/repository -name "*.pom" -type f -exec grep -l "<!DOCTYPE\|<html" {} \; 2>/dev/null | xargs -r rm -f
-          # Also remove associated sha1 files
-          find ~/.m2/repository -name "*.pom.sha1" -type f 2>/dev/null | xargs -r rm -f
+          # GitHub Actions cache restores before this step runs
+          # Remove the entire m2 repository to force fresh download
+          rm -rf ~/.m2/repository
+          echo "Maven cache cleaned"
 
       - name: Build with Maven
         run: mvn clean compile -DskipTests -U
