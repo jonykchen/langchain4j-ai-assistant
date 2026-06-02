@@ -1,8 +1,37 @@
 {
-  "name": "langchain4j-chat-frontend",
-  "private": true,
+  "name": "langchain4j-ai-assistant-frontend",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
+  "description": "Frontend for LangChain4j AI Assistant - A production-ready AI assistant platform",
+  "author": {
+    "name": "Jony Chen",
+    "email": "jony.k.chen@gmail.com",
+    "url": "https://github.com/jonykchen"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonykchen/langchain4j-ai-assistant.git",
+    "directory": "frontend"
+  },
+  "bugs": {
+    "url": "https://github.com/jonykchen/langchain4j-ai-assistant/issues"
+  },
+  "homepage": "https://github.com/jonykchen/langchain4j-ai-assistant#readme",
+  "keywords": [
+    "vue3",
+    "typescript",
+    "element-plus",
+    "ai",
+    "chat",
+    "langchain4j",
+    "assistant"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",

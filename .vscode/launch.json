@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot App",
+      "request": "launch",
+      "mainClass": "com.jonychen.AiApplication",
+      "projectName": "langchain4j-ai-assistant",
+      "env": {
+        "SPRING_PROFILES_ACTIVE": "dev"
+      },
+      "vmArgs": "-Dspring.devtools.restart.enabled=true"
+    },
+    {
+      "type": "java",
+      "name": "Debug Spring Boot App",
+      "request": "launch",
+      "mainClass": "com.jonychen.AiApplication",
+      "projectName": "langchain4j-ai-assistant",
+      "env": {
+        "SPRING_PROFILES_ACTIVE": "dev"
+      }
+    },
+    {
+      "type": "java",
+      "name": "Run Unit Tests",
+      "request": "launch",
+      "mainClass": "org.apache.maven.surefire.booter.ForkedBooter",
+      "args": "-Dtest=*Test"
+    },
+    {
+      "type": "node",
+      "name": "Vue Dev Server",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "name": "Playwright E2E Tests",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "test:e2e"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal"
+    }
+  ]
+}
