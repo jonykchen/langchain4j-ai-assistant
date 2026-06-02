@@ -56,8 +56,8 @@ function loadFromStorage(): Conversation[] {
       updatedAt: new Date(conv.updatedAt),
       messages: conv.messages.map((msg: Message) => ({
         ...msg,
-        timestamp: new Date(msg.timestamp)
-      }))
+        timestamp: new Date(msg.timestamp),
+      })),
     }))
   }
   return []
@@ -110,9 +110,7 @@ export const useChatStore = defineStore('chat', () => {
 
   /** 按更新时间排序的对话列表（最新的在前） */
   const sortedConversations = computed(() => {
-    return [...conversations.value].sort((a, b) =>
-      b.updatedAt.getTime() - a.updatedAt.getTime()
-    )
+    return [...conversations.value].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
   })
 
   // ==================== Actions ====================

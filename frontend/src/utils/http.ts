@@ -11,15 +11,15 @@ const http: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
 /**
  * 请求拦截器：自动添加 Token
  */
 http.interceptors.request.use(
-  (config) => {
+  config => {
     // 从 localStorage 获取 Token
     const token = localStorage.getItem('access_token')
 
@@ -29,7 +29,7 @@ http.interceptors.request.use(
 
     return config
   },
-  (error) => {
+  error => {
     return Promise.reject(error)
   }
 )
@@ -38,7 +38,7 @@ http.interceptors.request.use(
  * 响应拦截器：处理错误和 Token 过期
  */
 http.interceptors.response.use(
-  (response) => {
+  response => {
     // 后端返回格式为 ApiResponse: {code, message, data}
     const apiResponse = response.data as ApiResponse<unknown>
 
@@ -58,7 +58,7 @@ http.interceptors.response.use(
     // 兼容非标准响应格式
     return response.data
   },
-  async (error) => {
+  async error => {
     const { response, config } = error
 
     // 401 未授权

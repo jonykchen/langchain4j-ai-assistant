@@ -8,15 +8,18 @@
  */
 import { ref, computed } from 'vue'
 
-const props = withDefaults(defineProps<{
-  placeholder?: string
-  disabled?: boolean
-  loading?: boolean
-}>(), {
-  placeholder: '输入您的指令，例如：查询上周 token 消耗',
-  disabled: false,
-  loading: false
-})
+const props = withDefaults(
+  defineProps<{
+    placeholder?: string
+    disabled?: boolean
+    loading?: boolean
+  }>(),
+  {
+    placeholder: '输入您的指令，例如：查询上周 token 消耗',
+    disabled: false,
+    loading: false,
+  }
+)
 
 const emit = defineEmits<{
   (e: 'submit', input: string): void
@@ -53,12 +56,7 @@ function handleKeydown(event: KeyboardEvent) {
       :disabled="disabled"
       @keydown="handleKeydown"
     />
-    <el-button
-      type="primary"
-      :disabled="!canSubmit"
-      :loading="loading"
-      @click="handleSubmit"
-    >
+    <el-button type="primary" :disabled="!canSubmit" :loading="loading" @click="handleSubmit">
       <el-icon v-if="!loading"><VideoPlay /></el-icon>
       <span>{{ loading ? '执行中...' : '开始执行' }}</span>
     </el-button>

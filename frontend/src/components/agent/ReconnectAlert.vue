@@ -7,19 +7,22 @@
  */
 import { computed } from 'vue'
 
-const props = withDefaults(defineProps<{
-  isReconnecting?: boolean
-  reconnectAttempts?: number
-  maxReconnectAttempts?: number
-  isConnected?: boolean
-  connectionState?: string
-}>(), {
-  isReconnecting: false,
-  reconnectAttempts: 0,
-  maxReconnectAttempts: 5,
-  isConnected: true,
-  connectionState: 'idle'
-})
+const props = withDefaults(
+  defineProps<{
+    isReconnecting?: boolean
+    reconnectAttempts?: number
+    maxReconnectAttempts?: number
+    isConnected?: boolean
+    connectionState?: string
+  }>(),
+  {
+    isReconnecting: false,
+    reconnectAttempts: 0,
+    maxReconnectAttempts: 5,
+    isConnected: true,
+    connectionState: 'idle',
+  }
+)
 
 const emit = defineEmits<{
   (e: 'reconnect'): void
@@ -66,19 +69,11 @@ function handleReconnect() {
           </div>
         </template>
         <template #action>
-          <el-button type="primary" size="small" @click="handleReconnect">
-            立即重连
-          </el-button>
+          <el-button type="primary" size="small" @click="handleReconnect">立即重连</el-button>
         </template>
       </el-alert>
 
-      <el-alert
-        v-else
-        type="info"
-        :title="statusText"
-        show-icon
-        :closable="false"
-      >
+      <el-alert v-else type="info" :title="statusText" show-icon :closable="false">
         <template #default>
           <div class="alert-content reconnecting">
             <span>正在尝试重新连接...</span>
@@ -88,9 +83,7 @@ function handleReconnect() {
               :stroke-width="4"
               class="reconnect-progress"
             />
-            <span class="attempt-info">
-              {{ reconnectAttempts }}/{{ maxReconnectAttempts }}
-            </span>
+            <span class="attempt-info">{{ reconnectAttempts }}/{{ maxReconnectAttempts }}</span>
           </div>
         </template>
       </el-alert>

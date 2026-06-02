@@ -42,7 +42,7 @@ export function recordReconnect(attempt: number, traceId?: string): void {
     type: 'reconnect',
     count: 1,
     traceId,
-    details: { attempt }
+    details: { attempt },
   })
   console.warn(`[FrontendReliability] SSE reconnect attempt ${attempt}, traceId=${traceId}`)
 }
@@ -59,7 +59,7 @@ export function recordEventGap(expected: number, actual: number, traceId?: strin
     type: 'event_gap',
     count: actual - expected,
     traceId,
-    details: { expected, actual, gap: actual - expected }
+    details: { expected, actual, gap: actual - expected },
   })
   console.warn(`[FrontendReliability] Event gap: expected ${expected}, got ${actual}`)
 }
@@ -75,9 +75,11 @@ export function recordStateRestoreFailure(sessionId: string, reason: string): vo
     type: 'state_restore_failure',
     count: 1,
     sessionId,
-    details: { reason }
+    details: { reason },
   })
-  console.error(`[FrontendReliability] State restore failed: sessionId=${sessionId}, reason=${reason}`)
+  console.error(
+    `[FrontendReliability] State restore failed: sessionId=${sessionId}, reason=${reason}`
+  )
 }
 
 /**
@@ -85,7 +87,7 @@ export function recordStateRestoreFailure(sessionId: string, reason: string): vo
  */
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('access_token')
-  return token ? { 'Authorization': `Bearer ${token}` } : {}
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 /**
@@ -105,9 +107,9 @@ async function flushMetrics(): Promise<void> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeaders()
+        ...getAuthHeaders(),
       },
-      body: JSON.stringify({ metrics })
+      body: JSON.stringify({ metrics }),
     })
 
     if (!response.ok) {
@@ -179,7 +181,7 @@ window.addEventListener('beforeunload', () => {
   // 使用 sendBeacon 确保上报成功
   if (metricsBuffer.length > 0) {
     const blob = new Blob([JSON.stringify({ metrics: metricsBuffer })], {
-      type: 'application/json'
+      type: 'application/json',
     })
     navigator.sendBeacon(METRICS_API, blob)
     metricsBuffer.length = 0

@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
   separator: 'path',
   maxItems: 4,
   expandable: true,
-  maxSegmentWidth: 100
+  maxSegmentWidth: 100,
 })
 
 const emit = defineEmits<{
@@ -38,10 +38,14 @@ const isExpanded = ref(false)
 const separatorChar = computed(() => {
   if (props.separatorChar) return props.separatorChar
   switch (props.separator) {
-    case 'path': return '/'
-    case 'uuid': return '-'
-    case 'dot': return '.'
-    default: return '/'
+    case 'path':
+      return '/'
+    case 'uuid':
+      return '-'
+    case 'dot':
+      return '.'
+    default:
+      return '/'
   }
 })
 
@@ -68,7 +72,7 @@ const displaySegments = computed(() => {
   return [
     ...segs.slice(0, start).map((s, i) => ({ text: s, index: i, collapsed: false })),
     { text: '...', index: -1, collapsed: true },
-    ...segs.slice(end).map((s, i) => ({ text: s, index: end + i, collapsed: false }))
+    ...segs.slice(end).map((s, i) => ({ text: s, index: end + i, collapsed: false })),
   ]
 })
 

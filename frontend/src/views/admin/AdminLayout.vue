@@ -4,8 +4,21 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessageBox } from 'element-plus'
 import {
-  Back, SwitchButton, Fold, Expand, ArrowDown,
-  DataBoard, User, Money, Aim, DocumentChecked, Checked, Timer, View, Document, DataAnalysis
+  Back,
+  SwitchButton,
+  Fold,
+  Expand,
+  ArrowDown,
+  DataBoard,
+  User,
+  Money,
+  Aim,
+  DocumentChecked,
+  Checked,
+  Timer,
+  View,
+  Document,
+  DataAnalysis,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -29,7 +42,7 @@ const menuItems = [
   { path: '/admin/prompts', icon: Document, title: 'Prompt 管理' },
   // 测试体系
   { path: '/admin/test', icon: Checked, title: '测试管理' },
-  { path: '/admin/test-history', icon: Timer, title: '测试历史' }
+  { path: '/admin/test-history', icon: Timer, title: '测试历史' },
 ]
 
 // 面包屑导航
@@ -56,7 +69,7 @@ const handleLogout = async () => {
     await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
     })
     await authStore.logout()
     router.push('/login')
@@ -139,7 +152,11 @@ onMounted(() => {
         <div class="breadcrumb-bar">
           <el-breadcrumb>
             <el-breadcrumb-item v-for="(crumb, index) in breadcrumbs" :key="crumb.path">
-              <router-link v-if="index < breadcrumbs.length - 1" :to="crumb.path" class="breadcrumb-link">
+              <router-link
+                v-if="index < breadcrumbs.length - 1"
+                :to="crumb.path"
+                class="breadcrumb-link"
+              >
                 {{ crumb.title }}
               </router-link>
               <span v-else class="breadcrumb-current">{{ crumb.title }}</span>

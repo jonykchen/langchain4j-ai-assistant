@@ -14,7 +14,7 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   title: '暂无数据',
   description: '这里还没有任何内容',
-  icon: 'Document'
+  icon: 'Document',
 })
 
 const emit = defineEmits<{

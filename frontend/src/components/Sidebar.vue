@@ -63,7 +63,12 @@ function closeRename() {
     <aside class="sidebar" data-testid="sidebar">
       <div class="sidebar-header">
         <h2 class="sidebar-title">AI Chat</h2>
-        <ElButton type="primary" :icon="Plus" data-testid="new-conversation" @click="$emit('newChat')">
+        <ElButton
+          type="primary"
+          :icon="Plus"
+          data-testid="new-conversation"
+          @click="$emit('newChat')"
+        >
           新对话
         </ElButton>
       </div>
@@ -89,7 +94,19 @@ function closeRename() {
         >
           <span class="conversation-title">{{ conv.title }}</span>
           <button class="rename-btn" title="重命名" @click.stop="startEdit(conv)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+              <path d="m15 5 4 4" />
+            </svg>
           </button>
           <ElButton
             text
@@ -142,7 +159,9 @@ function closeRename() {
         <template #footer>
           <span class="dialog-footer">
             <ElButton @click="closeRename">取消</ElButton>
-            <ElButton type="primary" :disabled="!renameTitle.trim()" @click="confirmRename">确定</ElButton>
+            <ElButton type="primary" :disabled="!renameTitle.trim()" @click="confirmRename">
+              确定
+            </ElButton>
           </span>
         </template>
       </ElDialog>

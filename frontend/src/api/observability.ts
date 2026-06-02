@@ -152,36 +152,57 @@ export const observabilityApi = {
   getActiveTraces: (userId?: string) =>
     http.get<AgentTrace[]>('/api/admin/observability/traces/active', { params: { userId } }),
 
-  getTraceStatistics: () =>
-    http.get<TraceStatistics>('/api/admin/observability/traces/statistics'),
+  getTraceStatistics: () => http.get<TraceStatistics>('/api/admin/observability/traces/statistics'),
 
   // Prompt 管理
-  getPrompts: () =>
-    http.get<PromptTemplate[]>('/api/admin/observability/prompts'),
+  getPrompts: () => http.get<PromptTemplate[]>('/api/admin/observability/prompts'),
 
-  getPromptNames: () =>
-    http.get<string[]>('/api/admin/observability/prompts/names'),
+  getPromptNames: () => http.get<string[]>('/api/admin/observability/prompts/names'),
 
   getPromptVersions: (name: string) =>
-    http.get<PromptTemplate[]>(`/api/admin/observability/prompts/${encodeURIComponent(name)}/versions`),
+    http.get<PromptTemplate[]>(
+      `/api/admin/observability/prompts/${encodeURIComponent(name)}/versions`
+    ),
 
-  createPrompt: (data: { name: string; version?: string; description?: string; content: string; tags?: string; createdBy?: string }) =>
-    http.post<PromptTemplate>('/api/admin/observability/prompts', data),
+  createPrompt: (data: {
+    name: string
+    version?: string
+    description?: string
+    content: string
+    tags?: string
+    createdBy?: string
+  }) => http.post<PromptTemplate>('/api/admin/observability/prompts', data),
 
   createVersion: (name: string, data: { content: string; description?: string }) =>
-    http.post<PromptTemplate>(`/api/admin/observability/prompts/${encodeURIComponent(name)}/versions`, data),
+    http.post<PromptTemplate>(
+      `/api/admin/observability/prompts/${encodeURIComponent(name)}/versions`,
+      data
+    ),
 
   activateVersion: (name: string, version: string) =>
-    http.post(`/api/admin/observability/prompts/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}/activate`),
+    http.post(
+      `/api/admin/observability/prompts/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}/activate`
+    ),
 
   promoteToProduction: (name: string, version: string) =>
-    http.post(`/api/admin/observability/prompts/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}/promote`),
+    http.post(
+      `/api/admin/observability/prompts/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}/promote`
+    ),
 
   rollbackVersion: (name: string, version: string) =>
-    http.post(`/api/admin/observability/prompts/${encodeURIComponent(name)}/rollback/${encodeURIComponent(version)}`),
+    http.post(
+      `/api/admin/observability/prompts/${encodeURIComponent(name)}/rollback/${encodeURIComponent(version)}`
+    ),
 
-  configureABTest: (name: string, config: { baselineVersion: string; variantVersion: string; variantName: string; trafficPercentage: number }) =>
-    http.post(`/api/admin/observability/prompts/${encodeURIComponent(name)}/ab-test`, config),
+  configureABTest: (
+    name: string,
+    config: {
+      baselineVersion: string
+      variantVersion: string
+      variantName: string
+      trafficPercentage: number
+    }
+  ) => http.post(`/api/admin/observability/prompts/${encodeURIComponent(name)}/ab-test`, config),
 
   stopABTest: (name: string) =>
     http.post(`/api/admin/observability/prompts/${encodeURIComponent(name)}/ab-test/stop`),
@@ -197,7 +218,9 @@ export const observabilityApi = {
     http.post<EvaluationReport>('/api/admin/observability/evaluation/report', traceIds),
 
   getEvaluators: () =>
-    http.get<{ name: string; description: string }[]>('/api/admin/observability/evaluation/evaluators'),
+    http.get<{ name: string; description: string }[]>(
+      '/api/admin/observability/evaluation/evaluators'
+    ),
 
   // 状态快照
   getSessionSnapshots: (sessionId: string) =>
@@ -209,6 +232,5 @@ export const observabilityApi = {
   getSnapshotStatistics: () =>
     http.get<SnapshotStatistics>('/api/admin/observability/snapshots/statistics'),
 
-  cleanupExpiredSnapshots: () =>
-    http.post<number>('/api/admin/observability/snapshots/cleanup')
+  cleanupExpiredSnapshots: () => http.post<number>('/api/admin/observability/snapshots/cleanup'),
 }

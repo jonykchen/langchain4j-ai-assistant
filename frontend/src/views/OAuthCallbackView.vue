@@ -31,7 +31,7 @@ onMounted(async () => {
   // 从 URL 路径解析 provider
   const path = route.path
   const providerMatch = path.match(/\/auth\/(github|gitlab)\/callback/)
-  const provider = providerMatch ? providerMatch[1] as 'github' | 'gitlab' : null
+  const provider = providerMatch ? (providerMatch[1] as 'github' | 'gitlab') : null
 
   if (!provider) {
     error.value = '无效的回调路径'
@@ -72,7 +72,6 @@ onMounted(async () => {
     setTimeout(() => {
       window.location.href = '/'
     }, 500)
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : '登录失败，请重试'
     statusText.value = '登录失败'
@@ -111,8 +110,12 @@ const goToLogin = () => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .callback-content h2 {

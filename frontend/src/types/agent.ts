@@ -186,7 +186,13 @@ export interface ExecutionStep {
 }
 
 /** 执行状态 */
-export type ExecutionStatus = 'idle' | 'running' | 'waiting_confirmation' | 'completed' | 'error' | 'cancelled'
+export type ExecutionStatus =
+  | 'idle'
+  | 'running'
+  | 'waiting_confirmation'
+  | 'completed'
+  | 'error'
+  | 'cancelled'
 
 /** 执行记录 */
 export interface ExecutionRecord {

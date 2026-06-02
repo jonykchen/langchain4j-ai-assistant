@@ -129,8 +129,13 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * 处理 OAuth 回调
    */
-  async function handleOAuthCallback(provider: 'github' | 'gitlab', code: string, state: string): Promise<void> {
-    const handleCallback = provider === 'github' ? authApi.handleGitHubCallback : authApi.handleGitLabCallback
+  async function handleOAuthCallback(
+    provider: 'github' | 'gitlab',
+    code: string,
+    state: string
+  ): Promise<void> {
+    const handleCallback =
+      provider === 'github' ? authApi.handleGitHubCallback : authApi.handleGitLabCallback
     const redirectUri = sessionStorage.getItem('oauth_redirect_uri') || undefined
 
     const data = await handleCallback(code, state, redirectUri)
@@ -220,8 +225,7 @@ export const useAuthStore = defineStore('auth', () => {
    * 生成随机 state
    */
   function generateRandomState(): string {
-    return Math.random().toString(36).substring(2, 15) +
-           Math.random().toString(36).substring(2, 15)
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   }
 
   return {
@@ -241,6 +245,6 @@ export const useAuthStore = defineStore('auth', () => {
     refreshAccessToken,
     logout,
     clearAuth,
-    fetchUser
+    fetchUser,
   }
 })

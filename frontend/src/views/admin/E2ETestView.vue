@@ -20,10 +20,10 @@ const formatDuration = (ms: number | undefined | null) => {
 
 const getStatusType = (status: string) => {
   const types: Record<string, '' | 'success' | 'warning' | 'info' | 'danger'> = {
-    'passed': 'success',
-    'failed': 'danger',
-    'running': 'warning',
-    'pending': 'info'
+    passed: 'success',
+    failed: 'danger',
+    running: 'warning',
+    pending: 'info',
   }
   return types[status] || ''
 }
@@ -73,9 +73,12 @@ const calculateStats = () => {
     failed: results.value.filter(r => r.status === 'failed').length,
     running: results.value.filter(r => r.status === 'running').length,
     totalTests: results.value.length,
-    avgResponseTime: results.value.length > 0
-      ? Math.round(results.value.reduce((sum, r) => sum + (r.duration ?? 0), 0) / results.value.length)
-      : 0
+    avgResponseTime:
+      results.value.length > 0
+        ? Math.round(
+            results.value.reduce((sum, r) => sum + (r.duration ?? 0), 0) / results.value.length
+          )
+        : 0,
   }
 }
 
@@ -95,9 +98,7 @@ onMounted(() => {
   <div class="e2e-test">
     <!-- 操作栏 -->
     <div class="mb-4 flex justify-between items-center">
-      <div class="text-gray-500">
-        E2E 测试需要前端开发服务器运行
-      </div>
+      <div class="text-gray-500">E2E 测试需要前端开发服务器运行</div>
       <div class="flex gap-2">
         <el-button v-if="reportUrl" @click="openReport">
           <el-icon><Document /></el-icon>
@@ -128,9 +129,7 @@ onMounted(() => {
       <el-table-column prop="assertions" label="断言">
         <template #default="{ row }">
           <div class="flex items-center gap-2" v-if="row.assertions">
-            <el-tag type="success" size="small">
-              {{ row.assertions.passed }} 通过
-            </el-tag>
+            <el-tag type="success" size="small">{{ row.assertions.passed }} 通过</el-tag>
             <el-tag v-if="row.assertions.failed > 0" type="danger" size="small">
               {{ row.assertions.failed }} 失败
             </el-tag>

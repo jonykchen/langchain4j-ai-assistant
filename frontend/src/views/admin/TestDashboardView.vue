@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { VideoPlay, TrendCharts, MagicStick, Finished, CircleCheck, CircleClose, Loading, Timer } from '@element-plus/icons-vue'
+import {
+  VideoPlay,
+  TrendCharts,
+  MagicStick,
+  Finished,
+  CircleCheck,
+  CircleClose,
+  Loading,
+  Timer,
+} from '@element-plus/icons-vue'
 import { testApi, type TestStatsSummary, type TestJobStatus } from '@/api/admin'
 import E2ETestView from './E2ETestView.vue'
 import PerformanceTestView from './PerformanceTestView.vue'
@@ -14,7 +23,7 @@ const stats = ref<TestStatsSummary>({
   failed: 0,
   running: 0,
   passRate: 0,
-  avgResponseTime: 0
+  avgResponseTime: 0,
 })
 
 const e2eLoading = ref(false)
@@ -39,29 +48,29 @@ const statsCards = computed(() => [
     value: stats.value.passed,
     icon: CircleCheck,
     color: 'text-green-500',
-    bgColor: 'bg-green-50'
+    bgColor: 'bg-green-50',
   },
   {
     label: '失败测试',
     value: stats.value.failed,
     icon: CircleClose,
     color: 'text-red-500',
-    bgColor: 'bg-red-50'
+    bgColor: 'bg-red-50',
   },
   {
     label: '运行中',
     value: stats.value.running,
     icon: Loading,
     color: 'text-blue-500',
-    bgColor: 'bg-blue-50'
+    bgColor: 'bg-blue-50',
   },
   {
     label: '平均耗时',
     value: `${stats.value.avgResponseTime}ms`,
     icon: Timer,
     color: 'text-yellow-500',
-    bgColor: 'bg-yellow-50'
-  }
+    bgColor: 'bg-yellow-50',
+  },
 ])
 
 // 加载统计数据
@@ -134,7 +143,7 @@ const runAllTests = async () => {
     await Promise.all([
       testApi.runE2ETests(),
       testApi.runPerformanceTest('ChatSimulation'),
-      testApi.runAIModelTests()
+      testApi.runAIModelTests(),
     ])
     ElMessage.success('全部测试已启动')
   } catch (error) {
@@ -260,7 +269,15 @@ onUnmounted(() => {
         <el-descriptions :column="4">
           <el-descriptions-item label="任务ID">{{ jobStatus.jobId }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="jobStatus.status === 'running' ? 'warning' : jobStatus.status === 'completed' ? 'success' : 'danger'">
+            <el-tag
+              :type="
+                jobStatus.status === 'running'
+                  ? 'warning'
+                  : jobStatus.status === 'completed'
+                    ? 'success'
+                    : 'danger'
+              "
+            >
               {{ jobStatus.status }}
             </el-tag>
           </el-descriptions-item>

@@ -2,8 +2,17 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search, Refresh, Delete, View, Timer, User, Monitor,
-  Check, Close, Warning, Loading
+  Search,
+  Refresh,
+  Delete,
+  View,
+  Timer,
+  User,
+  Monitor,
+  Check,
+  Close,
+  Warning,
+  Loading,
 } from '@element-plus/icons-vue'
 import {
   queryAuditLogs,
@@ -12,7 +21,7 @@ import {
   getExecutionDetail,
   type ExecutionHistoryVO,
   type ExecutionDetailVO,
-  type AuditStats
+  type AuditStats,
 } from '@/api/agent'
 import PathBreadcrumb from '@/components/PathBreadcrumb.vue'
 
@@ -46,7 +55,7 @@ const eventTypeOptions = [
   { label: '执行取消', value: 'EXECUTION_CANCEL' },
   { label: '工具调用', value: 'TOOL_CALL' },
   { label: '需要确认', value: 'CONFIRMATION_REQUIRED' },
-  { label: '路由决策', value: 'ROUTING_DECISION' }
+  { label: '路由决策', value: 'ROUTING_DECISION' },
 ]
 
 // Agent 名称选项
@@ -57,7 +66,7 @@ const agentNameOptions = [
   { label: 'DataAgent', value: 'data' },
   { label: 'PromptAgent', value: 'prompt' },
   { label: 'TestAgent', value: 'test' },
-  { label: 'ChatAgent', value: 'chat' }
+  { label: 'ChatAgent', value: 'chat' },
 ]
 
 // 状态颜色映射（添加默认值处理）
@@ -66,7 +75,7 @@ const getStatusColor = (status: string): string => {
     RUNNING: 'warning',
     SUCCESS: 'success',
     FAILED: 'danger',
-    CANCELLED: 'info'
+    CANCELLED: 'info',
   }
   return colors[status] || 'info'
 }
@@ -77,7 +86,7 @@ const getStatusIcon = (status: string): any => {
     RUNNING: Loading,
     SUCCESS: Check,
     FAILED: Close,
-    CANCELLED: Warning
+    CANCELLED: Warning,
   }
   return icons[status] || Warning // 默认使用 Warning 图标
 }
@@ -91,7 +100,7 @@ const loadLogs = async () => {
       size: pageSize.value,
       userId: searchQuery.value || undefined,
       agentName: agentNameFilter.value || undefined,
-      eventType: eventTypeFilter.value || undefined
+      eventType: eventTypeFilter.value || undefined,
     })
     logs.value = result.data
     total.value = result.total
@@ -144,7 +153,7 @@ const handleCleanup = async () => {
         cancelButtonText: '取消',
         inputPattern: /^[1-9]\d*$/,
         inputErrorMessage: '请输入正整数',
-        inputValue: '30'
+        inputValue: '30',
       }
     )
 
@@ -308,12 +317,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 日志表格 -->
-    <el-table
-      :data="logs"
-      v-loading="loading"
-      stripe
-      style="width: 100%"
-    >
+    <el-table :data="logs" v-loading="loading" stripe style="width: 100%">
       <el-table-column prop="timestamp" label="时间" width="180">
         <template #default="{ row }">
           {{ formatTime(row.timestamp) }}
@@ -358,12 +362,7 @@ onUnmounted(() => {
       <el-table-column prop="clientIp" label="IP" width="130" />
       <el-table-column label="操作" width="80" fixed="right">
         <template #default="{ row }">
-          <el-button
-            :icon="View"
-            circle
-            size="small"
-            @click="handleViewDetail(row.traceId)"
-          />
+          <el-button :icon="View" circle size="small" @click="handleViewDetail(row.traceId)" />
         </template>
       </el-table-column>
     </el-table>
@@ -382,12 +381,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 详情弹窗 -->
-    <el-dialog
-      v-model="detailVisible"
-      title="执行详情"
-      width="70%"
-      destroy-on-close
-    >
+    <el-dialog v-model="detailVisible" title="执行详情" width="70%" destroy-on-close>
       <div v-loading="detailLoading">
         <template v-if="detailData">
           <!-- 基本信息 -->
@@ -402,9 +396,15 @@ onUnmounted(() => {
                 {{ detailData.status }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="开始时间">{{ formatTime(detailData.startTime) }}</el-descriptions-item>
-            <el-descriptions-item label="结束时间">{{ formatTime(detailData.endTime) }}</el-descriptions-item>
-            <el-descriptions-item label="持续时间">{{ formatDuration(detailData.durationMs) }}</el-descriptions-item>
+            <el-descriptions-item label="开始时间">
+              {{ formatTime(detailData.startTime) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="结束时间">
+              {{ formatTime(detailData.endTime) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="持续时间">
+              {{ formatDuration(detailData.durationMs) }}
+            </el-descriptions-item>
             <el-descriptions-item label="步骤数">{{ detailData.totalSteps }}</el-descriptions-item>
           </el-descriptions>
 
@@ -424,7 +424,10 @@ onUnmounted(() => {
                     <span v-if="step.agentName" class="step-agent">{{ step.agentName }}</span>
                   </div>
                 </template>
-                <div v-if="step.details && Object.keys(step.details).length > 0" class="step-details">
+                <div
+                  v-if="step.details && Object.keys(step.details).length > 0"
+                  class="step-details"
+                >
                   <pre>{{ JSON.stringify(step.details, null, 2) }}</pre>
                 </div>
                 <div v-else class="step-empty">无详细信息</div>

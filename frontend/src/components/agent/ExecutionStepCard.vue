@@ -27,7 +27,7 @@ import {
   CircleCheck,
   CircleClose,
   CopyDocument,
-  CaretRight
+  CaretRight,
 } from '@element-plus/icons-vue'
 import type { ExecutionStep } from '@/types/agent'
 import JsonViewer from '@/components/JsonViewer.vue'
@@ -53,59 +53,68 @@ const isExpanded = ref(true)
 
 /** 步骤类型配置 */
 const stepTypeConfig = computed(() => {
-  const configs: Record<string, { icon: typeof Cpu; label: string; color: string; bgColor: string; description: string }> = {
+  const configs: Record<
+    string,
+    { icon: typeof Cpu; label: string; color: string; bgColor: string; description: string }
+  > = {
     THOUGHT: {
       icon: Cpu,
       label: '思考',
       color: '#60a5fa',
       bgColor: 'rgba(96, 165, 250, 0.12)',
-      description: 'Agent 正在分析问题并规划下一步'
+      description: 'Agent 正在分析问题并规划下一步',
     },
     TOOL_CALL: {
       icon: Connection,
       label: '工具调用',
       color: '#f472b6',
       bgColor: 'rgba(244, 114, 182, 0.12)',
-      description: '调用外部工具获取信息或执行操作'
+      description: '调用外部工具获取信息或执行操作',
     },
     TOOL_RESULT: {
       icon: Document,
       label: '工具结果',
       color: '#a78bfa',
       bgColor: 'rgba(167, 139, 250, 0.12)',
-      description: '工具执行返回的结果数据'
+      description: '工具执行返回的结果数据',
     },
     LLM_CALL: {
       icon: ChatDotRound,
       label: 'LLM 响应',
       color: '#34d399',
       bgColor: 'rgba(52, 211, 153, 0.12)',
-      description: '大语言模型生成的响应内容'
+      description: '大语言模型生成的响应内容',
     },
     AGENT_CALL: {
       icon: User,
       label: '子 Agent',
       color: '#fbbf24',
       bgColor: 'rgba(251, 191, 36, 0.12)',
-      description: '委托给专门的子 Agent 处理'
+      description: '委托给专门的子 Agent 处理',
+    },
+  }
+  return (
+    configs[props.step.type] || {
+      icon: Document,
+      label: props.step.type,
+      color: '#9ca3af',
+      bgColor: 'rgba(156, 163, 175, 0.12)',
+      description: '未知步骤类型',
     }
-  }
-  return configs[props.step.type] || {
-    icon: Document,
-    label: props.step.type,
-    color: '#9ca3af',
-    bgColor: 'rgba(156, 163, 175, 0.12)',
-    description: '未知步骤类型'
-  }
+  )
 })
 
 /** 状态图标 */
 const statusIcon = computed(() => {
   switch (props.step.status) {
-    case 'running': return Loading
-    case 'success': return CircleCheck
-    case 'error': return CircleClose
-    default: return null
+    case 'running':
+      return Loading
+    case 'success':
+      return CircleCheck
+    case 'error':
+      return CircleClose
+    default:
+      return null
   }
 })
 
@@ -153,7 +162,7 @@ async function copyToClipboard(text: string) {
         class="timeline-node"
         :style="{
           backgroundColor: stepTypeConfig.bgColor,
-          borderColor: stepTypeConfig.color
+          borderColor: stepTypeConfig.color,
         }"
       >
         <el-icon :size="16" :style="{ color: stepTypeConfig.color }">
@@ -181,7 +190,7 @@ async function copyToClipboard(text: string) {
                 class="type-tag"
                 :style="{
                   backgroundColor: stepTypeConfig.bgColor,
-                  color: stepTypeConfig.color
+                  color: stepTypeConfig.color,
                 }"
               >
                 {{ stepTypeConfig.label }}
@@ -198,7 +207,13 @@ async function copyToClipboard(text: string) {
           <div class="header-meta">
             <!-- 状态 -->
             <el-tag
-              :type="step.status === 'success' ? 'success' : step.status === 'error' ? 'danger' : 'primary'"
+              :type="
+                step.status === 'success'
+                  ? 'success'
+                  : step.status === 'error'
+                    ? 'danger'
+                    : 'primary'
+              "
               size="small"
               effect="light"
             >
@@ -244,7 +259,10 @@ async function copyToClipboard(text: string) {
             </div>
 
             <!-- 工具参数 -->
-            <div v-if="step.toolParams && Object.keys(step.toolParams).length > 0" class="detail-section">
+            <div
+              v-if="step.toolParams && Object.keys(step.toolParams).length > 0"
+              class="detail-section"
+            >
               <div class="section-header">
                 <span class="section-label">调用参数</span>
               </div>
@@ -277,11 +295,7 @@ async function copyToClipboard(text: string) {
 
             <!-- 错误信息 -->
             <div v-if="step.error" class="detail-section error-section">
-              <el-alert
-                type="error"
-                :closable="false"
-                show-icon
-              >
+              <el-alert type="error" :closable="false" show-icon>
                 <template #title>
                   <span class="error-title">执行失败</span>
                 </template>

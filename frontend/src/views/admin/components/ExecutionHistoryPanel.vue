@@ -3,13 +3,7 @@
     <template #header>
       <div class="flex justify-between items-center">
         <span>执行历史</span>
-        <el-button
-          v-if="history.length > 0"
-          type="danger"
-          size="small"
-          text
-          @click="handleClear"
-        >
+        <el-button v-if="history.length > 0" type="danger" size="small" text @click="handleClear">
           清空
         </el-button>
       </div>
@@ -69,7 +63,7 @@ const getStrategyLabel = (strategy: ExecutionHistoryItem['strategy']) => {
     auto: '自动',
     react: 'ReAct',
     'plan-execute': 'Plan-Exec',
-    predefined: '预定义'
+    predefined: '预定义',
   }
   return labels[strategy] || strategy
 }
@@ -79,7 +73,7 @@ const getStrategyTagType = (strategy: ExecutionHistoryItem['strategy']) => {
     auto: '',
     react: 'warning',
     'plan-execute': 'success',
-    predefined: 'info'
+    predefined: 'info',
   }
   return types[strategy] || ''
 }
@@ -91,10 +85,17 @@ const formatTime = (timestamp: string) => {
   const isToday = date.toDateString() === now.toDateString()
 
   if (isToday) {
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
   }
-  return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' +
+  return (
+    date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) +
+    ' ' +
     date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  )
 }
 
 const handleSelect = (item: ExecutionHistoryItem) => {
@@ -107,7 +108,7 @@ const handleClear = async () => {
     await ElMessageBox.confirm('确定清空所有执行历史？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
     })
     emit('clear')
     ElMessage.success('已清空')

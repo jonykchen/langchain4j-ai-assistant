@@ -1,14 +1,14 @@
-import { Page, Route } from '@playwright/test';
+import { Page, Route } from '@playwright/test'
 
 /**
  * 认证 API Mock
  * 返回格式与前端类型定义 OAuthCallbackResponse / TokenResponse 一致
  */
 export class AuthMock {
-  private page: Page;
+  private page: Page
 
   constructor(page: Page) {
-    this.page = page;
+    this.page = page
   }
 
   /**
@@ -34,14 +34,14 @@ export class AuthMock {
               id: 'test-user-id',
               username: 'testuser',
               role: 'USER',
-            }
-          }
-        })
-      });
-    });
+            },
+          },
+        }),
+      })
+    })
 
     // 同时 Mock /auth/me 接口（登录后前端可能立即调用）
-    await this.mockGetUserInfo({ username: 'testuser', role: 'USER' });
+    await this.mockGetUserInfo({ username: 'testuser', role: 'USER' })
   }
 
   /**
@@ -55,10 +55,10 @@ export class AuthMock {
         body: JSON.stringify({
           code: 40101,
           message,
-          data: null
-        })
-      });
-    });
+          data: null,
+        }),
+      })
+    })
   }
 
   /**
@@ -74,11 +74,11 @@ export class AuthMock {
           message: 'success',
           data: {
             userId: 'new-user-id',
-            message: '注册成功'
-          }
-        })
-      });
-    });
+            message: '注册成功',
+          },
+        }),
+      })
+    })
   }
 
   /**
@@ -92,10 +92,10 @@ export class AuthMock {
         body: JSON.stringify({
           code: 40901,
           message: '用户名已存在',
-          data: null
-        })
-      });
-    });
+          data: null,
+        }),
+      })
+    })
   }
 
   /**
@@ -115,10 +115,10 @@ export class AuthMock {
             refreshToken: 'new-refresh-token',
             tokenType: 'Bearer',
             expiresIn: 3600,
-          }
-        })
-      });
-    });
+          },
+        }),
+      })
+    })
   }
 
   /**
@@ -127,8 +127,8 @@ export class AuthMock {
    */
   async mockTokenExpired() {
     await this.page.route('**/api/**', async (route: Route) => {
-      const request = route.request();
-      const authHeader = request.headers()['authorization'];
+      const request = route.request()
+      const authHeader = request.headers()['authorization']
 
       if (authHeader?.includes('expired')) {
         await route.fulfill({
@@ -137,13 +137,13 @@ export class AuthMock {
           body: JSON.stringify({
             code: 40102,
             message: 'Token 已过期',
-            data: null
-          })
-        });
+            data: null,
+          }),
+        })
       } else {
-        await route.continue();
+        await route.continue()
       }
-    });
+    })
   }
 
   /**
@@ -169,11 +169,11 @@ export class AuthMock {
               username: 'githubuser',
               provider: 'GITHUB',
               role: 'USER',
-            }
-          }
-        })
-      });
-    });
+            },
+          },
+        }),
+      })
+    })
   }
 
   /**
@@ -199,11 +199,11 @@ export class AuthMock {
               username: 'gitlabuser',
               provider: 'GITLAB',
               role: 'USER',
-            }
-          }
-        })
-      });
-    });
+            },
+          },
+        }),
+      })
+    })
   }
 
   /**
@@ -222,46 +222,53 @@ export class AuthMock {
             username: user?.username || 'testuser',
             role: user?.role || 'USER',
             createdAt: new Date().toISOString(),
-          }
-        })
-      });
-    });
+          },
+        }),
+      })
+    })
   }
 
   /**
    * 设置认证状态
    */
   async setAuthState(token: string, user: any) {
-    await this.page.context().addCookies([{
-      name: 'auth_token',
-      value: token,
-      domain: 'localhost',
-      path: '/',
-    }]);
+    await this.page.context().addCookies([
+      {
+        name: 'auth_token',
+        value: token,
+        domain: 'localhost',
+        path: '/',
+      },
+    ])
 
-    await this.page.goto('/');
-    await this.page.evaluate((authData) => {
-      localStorage.setItem('access_token', authData.token);
-      localStorage.setItem('refresh_token', 'test-refresh-token');
-      localStorage.setItem('token_expiry', String(Date.now() + 3600000));
-      localStorage.setItem('user_info', JSON.stringify(authData.user));
-    }, { token, user });
+    await this.page.goto('/')
+    await this.page.evaluate(
+      authData => {
+        localStorage.setItem('access_token', authData.token)
+        localStorage.setItem('refresh_token', 'test-refresh-token')
+        localStorage.setItem('token_expiry', String(Date.now() + 3600000))
+        localStorage.setItem('user_info', JSON.stringify(authData.user))
+      },
+      { token, user }
+    )
   }
 
   /**
    * 清除认证状态
    */
   async clearAuthState() {
-    await this.page.context().clearCookies();
+    await this.page.context().clearCookies()
     // 只有在页面已加载时才清除 localStorage
-    const url = this.page.url();
+    const url = this.page.url()
     if (url && url !== 'about:blank') {
-      await this.page.evaluate(() => {
-        localStorage.clear();
-        sessionStorage.clear();
-      }).catch(() => {
-        // 页面可能未加载，忽略错误
-      });
+      await this.page
+        .evaluate(() => {
+          localStorage.clear()
+          sessionStorage.clear()
+        })
+        .catch(() => {
+          // 页面可能未加载，忽略错误
+        })
     }
   }
 }

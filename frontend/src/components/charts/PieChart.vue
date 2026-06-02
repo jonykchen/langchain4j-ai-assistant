@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   showLegend: true,
   radius: () => ['40%', '70%'],
   center: () => ['50%', '50%'],
-  loading: false
+  loading: false,
 })
 
 const chartRef = ref<HTMLElement>()
@@ -37,7 +37,14 @@ const themeStore = useThemeStore()
 const isDark = computed(() => themeStore.isDark)
 
 const colors = [
-  '#667eea', '#11998e', '#fc4a1a', '#ee0979', '#4facfe', '#43e97b', '#f093fb', '#fee140'
+  '#667eea',
+  '#11998e',
+  '#fc4a1a',
+  '#ee0979',
+  '#4facfe',
+  '#43e97b',
+  '#f093fb',
+  '#fee140',
 ]
 
 const getOption = (): echarts.EChartsOption => {
@@ -47,18 +54,20 @@ const getOption = (): echarts.EChartsOption => {
       backgroundColor: isDark.value ? 'rgba(30, 30, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)',
       borderColor: isDark.value ? '#434343' : '#e4e7ed',
       textStyle: {
-        color: isDark.value ? '#e0e0e0' : '#303133'
+        color: isDark.value ? '#e0e0e0' : '#303133',
       },
-      formatter: '{b}: {c} ({d}%)'
+      formatter: '{b}: {c} ({d}%)',
     },
-    legend: props.showLegend ? {
-      orient: 'vertical',
-      right: '5%',
-      top: 'center',
-      textStyle: {
-        color: isDark.value ? '#b0b0b0' : '#606266'
-      }
-    } : undefined,
+    legend: props.showLegend
+      ? {
+          orient: 'vertical',
+          right: '5%',
+          top: 'center',
+          textStyle: {
+            color: isDark.value ? '#b0b0b0' : '#606266',
+          },
+        }
+      : undefined,
     color: colors,
     series: [
       {
@@ -69,26 +78,26 @@ const getOption = (): echarts.EChartsOption => {
         itemStyle: {
           borderRadius: 6,
           borderColor: isDark.value ? '#1d1d1d' : '#fff',
-          borderWidth: 2
+          borderWidth: 2,
         },
         label: {
           show: false,
-          position: 'center'
+          position: 'center',
         },
         emphasis: {
           label: {
             show: true,
             fontSize: 16,
             fontWeight: 'bold',
-            color: isDark.value ? '#e0e0e0' : '#303133'
-          }
+            color: isDark.value ? '#e0e0e0' : '#303133',
+          },
         },
         labelLine: {
-          show: false
+          show: false,
         },
-        data: props.data
-      }
-    ]
+        data: props.data,
+      },
+    ],
   }
 }
 

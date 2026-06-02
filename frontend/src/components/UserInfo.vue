@@ -23,7 +23,7 @@ const handleCommand = async (command: string) => {
       await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
       })
       await authStore.logout()
       router.push('/login')

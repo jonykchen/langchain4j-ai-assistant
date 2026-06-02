@@ -20,7 +20,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   iconType: 'users',
   trend: 'flat',
-  loading: false
+  loading: false,
 })
 
 const formatValue = computed(() => {
@@ -36,9 +36,12 @@ const formatValue = computed(() => {
 
 const trendIcon = computed(() => {
   switch (props.trend) {
-    case 'up': return 'Top'
-    case 'down': return 'Bottom'
-    default: return 'Minus'
+    case 'up':
+      return 'Top'
+    case 'down':
+      return 'Bottom'
+    default:
+      return 'Minus'
   }
 })
 </script>
@@ -51,7 +54,8 @@ const trendIcon = computed(() => {
       </div>
       <div class="stats-card-info">
         <div class="stats-card-value">
-          {{ formatValue }}<span v-if="suffix" class="suffix">{{ suffix }}</span>
+          {{ formatValue }}
+          <span v-if="suffix" class="suffix">{{ suffix }}</span>
         </div>
         <div class="stats-card-label">{{ title }}</div>
       </div>
@@ -63,8 +67,8 @@ const trendIcon = computed(() => {
 
     <!-- Loading Skeleton -->
     <div v-if="loading" class="stats-card-skeleton">
-      <div class="skeleton skeleton-text" style="width: 60%; height: 28px;"></div>
-      <div class="skeleton skeleton-text" style="width: 40%; height: 16px;"></div>
+      <div class="skeleton skeleton-text" style="width: 60%; height: 28px"></div>
+      <div class="skeleton skeleton-text" style="width: 40%; height: 16px"></div>
     </div>
   </div>
 </template>
@@ -120,13 +124,27 @@ const trendIcon = computed(() => {
   box-shadow: var(--shadow-md);
 }
 
-.stats-card-icon.users { background: var(--gradient-stats-users); }
-.stats-card-icon.active { background: var(--gradient-stats-active); }
-.stats-card-icon.tokens { background: var(--gradient-stats-tokens); }
-.stats-card-icon.cost { background: var(--gradient-stats-cost); }
-.stats-card-icon.requests { background: var(--gradient-stats-requests); }
-.stats-card-icon.success { background: var(--gradient-stats-success); }
-.stats-card-icon.errors { background: var(--gradient-stats-errors); }
+.stats-card-icon.users {
+  background: var(--gradient-stats-users);
+}
+.stats-card-icon.active {
+  background: var(--gradient-stats-active);
+}
+.stats-card-icon.tokens {
+  background: var(--gradient-stats-tokens);
+}
+.stats-card-icon.cost {
+  background: var(--gradient-stats-cost);
+}
+.stats-card-icon.requests {
+  background: var(--gradient-stats-requests);
+}
+.stats-card-icon.success {
+  background: var(--gradient-stats-success);
+}
+.stats-card-icon.errors {
+  background: var(--gradient-stats-errors);
+}
 
 .stats-card-info {
   flex: 1;

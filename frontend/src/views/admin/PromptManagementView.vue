@@ -1,18 +1,12 @@
 <template>
   <div class="admin-page">
-
     <!-- 顶部操作栏 -->
     <div class="filter-bar">
       <el-button type="primary" @click="showCreateDialog">
         <el-icon><Plus /></el-icon>
         创建模板
       </el-button>
-      <el-input
-        v-model="searchName"
-        placeholder="搜索模板名称"
-        style="width: 300px"
-        clearable
-      >
+      <el-input v-model="searchName" placeholder="搜索模板名称" style="width: 300px" clearable>
         <template #prefix>
           <el-icon><Search /></el-icon>
         </template>
@@ -21,12 +15,7 @@
 
     <!-- 模板列表 -->
     <el-row :gutter="20">
-      <el-col
-        v-for="prompt in promptGroups"
-        :key="prompt.name"
-        :span="12"
-        class="card-col"
-      >
+      <el-col v-for="prompt in promptGroups" :key="prompt.name" :span="12" class="card-col">
         <el-card shadow="hover" class="prompt-card">
           <template #header>
             <div class="flex justify-between items-center">
@@ -47,8 +36,7 @@
           <div class="prompt-content">
             <p class="text-gray-600 mb-2">{{ prompt.description || '暂无描述' }}</p>
             <div class="text-sm text-gray-400">
-              版本数: {{ prompt.versions.length }} |
-              最后更新: {{ formatTime(prompt.updatedAt) }}
+              版本数: {{ prompt.versions.length }} | 最后更新: {{ formatTime(prompt.updatedAt) }}
             </div>
           </div>
 
@@ -136,15 +124,8 @@
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <el-button link type="primary" @click="viewVersionContent(row)">
-                查看
-              </el-button>
-              <el-button
-                link
-                type="success"
-                @click="activateVersion(row)"
-                :disabled="row.active"
-              >
+              <el-button link type="primary" @click="viewVersionContent(row)">查看</el-button>
+              <el-button link type="success" @click="activateVersion(row)" :disabled="row.active">
                 激活
               </el-button>
               <el-button
@@ -155,12 +136,7 @@
               >
                 推送生产
               </el-button>
-              <el-button
-                link
-                type="danger"
-                @click="rollbackVersion(row)"
-                :disabled="row.active"
-              >
+              <el-button link type="danger" @click="rollbackVersion(row)" :disabled="row.active">
                 回滚
               </el-button>
             </el-button-group>
@@ -170,12 +146,7 @@
     </el-dialog>
 
     <!-- A/B 测试配置对话框 -->
-    <el-dialog
-      v-model="abTestDialogVisible"
-      title="配置 A/B 测试"
-      width="50%"
-      destroy-on-close
-    >
+    <el-dialog v-model="abTestDialogVisible" title="配置 A/B 测试" width="50%" destroy-on-close>
       <el-form :model="abTestForm" label-width="120px">
         <el-form-item label="基线版本">
           <el-select v-model="abTestForm.baselineVersion" placeholder="选择基线版本">
@@ -233,25 +204,28 @@ const promptForm = reactive({
   version: '',
   description: '',
   content: '',
-  tags: ''
+  tags: '',
 })
 
 const abTestForm = reactive({
   baselineVersion: '',
   variantVersion: '',
   variantName: '',
-  trafficPercentage: 10
+  trafficPercentage: 10,
 })
 
 // 按名称分组模板
 const promptGroups = computed(() => {
-  const groups = new Map<string, {
-    name: string
-    description: string
-    activeVersion: string | null
-    versions: PromptTemplate[]
-    updatedAt: string
-  }>()
+  const groups = new Map<
+    string,
+    {
+      name: string
+      description: string
+      activeVersion: string | null
+      versions: PromptTemplate[]
+      updatedAt: string
+    }
+  >()
 
   for (const p of prompts.value) {
     if (!groups.has(p.name)) {
@@ -260,7 +234,7 @@ const promptGroups = computed(() => {
         description: p.description,
         activeVersion: p.active ? p.version : null,
         versions: [],
-        updatedAt: p.createdAt
+        updatedAt: p.createdAt,
       })
     }
 
@@ -275,8 +249,8 @@ const promptGroups = computed(() => {
     }
   }
 
-  return Array.from(groups.values()).filter(g =>
-    !searchName.value || g.name.toLowerCase().includes(searchName.value.toLowerCase())
+  return Array.from(groups.values()).filter(
+    g => !searchName.value || g.name.toLowerCase().includes(searchName.value.toLowerCase())
   )
 })
 
@@ -306,7 +280,7 @@ const showCreateDialog = () => {
     version: '1.0.0',
     description: '',
     content: '',
-    tags: ''
+    tags: '',
   })
   createDialogVisible.value = true
 }
@@ -319,7 +293,7 @@ const showEditDialog = (prompt: { name: string; versions: PromptTemplate[] }) =>
     version: '',
     description: '',
     content: latestVersion.content,
-    tags: latestVersion.tags
+    tags: latestVersion.tags,
   })
   createDialogVisible.value = true
 }
@@ -335,7 +309,7 @@ const savePrompt = async () => {
       // 创建新版本
       await observabilityApi.createVersion(promptForm.name, {
         content: promptForm.content,
-        description: promptForm.description
+        description: promptForm.description,
       })
     } else {
       // 创建新模板
@@ -344,7 +318,7 @@ const savePrompt = async () => {
         version: promptForm.version || '1.0.0',
         description: promptForm.description,
         content: promptForm.content,
-        tags: promptForm.tags
+        tags: promptForm.tags,
       })
     }
     ElMessage.success('保存成功')
@@ -367,11 +341,9 @@ const showVersions = async (name: string) => {
 
 const activateVersion = async (version: PromptTemplate) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要激活版本 ${version.version} 吗？`,
-      '确认激活',
-      { type: 'warning' }
-    )
+    await ElMessageBox.confirm(`确定要激活版本 ${version.version} 吗？`, '确认激活', {
+      type: 'warning',
+    })
     await observabilityApi.activateVersion(selectedPromptName.value, version.version)
     ElMessage.success('版本已激活')
     showVersions(selectedPromptName.value)
@@ -384,11 +356,9 @@ const activateVersion = async (version: PromptTemplate) => {
 
 const promoteToProduction = async (version: PromptTemplate) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要将版本 ${version.version} 推送到生产环境吗？`,
-      '确认推送',
-      { type: 'warning' }
-    )
+    await ElMessageBox.confirm(`确定要将版本 ${version.version} 推送到生产环境吗？`, '确认推送', {
+      type: 'warning',
+    })
     await observabilityApi.promoteToProduction(selectedPromptName.value, version.version)
     ElMessage.success('已推送生产')
     showVersions(selectedPromptName.value)
@@ -401,11 +371,9 @@ const promoteToProduction = async (version: PromptTemplate) => {
 
 const rollbackVersion = async (version: PromptTemplate) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要回滚到版本 ${version.version} 吗？`,
-      '确认回滚',
-      { type: 'warning' }
-    )
+    await ElMessageBox.confirm(`确定要回滚到版本 ${version.version} 吗？`, '确认回滚', {
+      type: 'warning',
+    })
     await observabilityApi.rollbackVersion(selectedPromptName.value, version.version)
     ElMessage.success('回滚成功')
     showVersions(selectedPromptName.value)
@@ -416,7 +384,11 @@ const rollbackVersion = async (version: PromptTemplate) => {
   }
 }
 
-const showABTestDialog = async (prompt: { name: string; activeVersion: string | null; versions: PromptTemplate[] }) => {
+const showABTestDialog = async (prompt: {
+  name: string
+  activeVersion: string | null
+  versions: PromptTemplate[]
+}) => {
   selectedPromptName.value = prompt.name
   try {
     versions.value = await observabilityApi.getPromptVersions(prompt.name)
@@ -440,7 +412,7 @@ const configureABTest = async () => {
       baselineVersion: abTestForm.baselineVersion,
       variantVersion: abTestForm.variantVersion,
       variantName: abTestForm.variantName,
-      trafficPercentage: abTestForm.trafficPercentage
+      trafficPercentage: abTestForm.trafficPercentage,
     })
     ElMessage.success('A/B 测试已配置')
     abTestDialogVisible.value = false

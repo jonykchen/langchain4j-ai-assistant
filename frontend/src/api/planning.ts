@@ -59,12 +59,10 @@ export type Strategy = 'auto' | 'react' | 'plan-execute' | 'predefined'
 
 export const planningApi = {
   /** 自动选择策略执行任务 */
-  execute: (request: TaskRequest) =>
-    http.post<TaskResultInfo>('/api/planning/execute', request),
+  execute: (request: TaskRequest) => http.post<TaskResultInfo>('/api/planning/execute', request),
 
   /** ReAct 模式执行（推理-行动循环） */
-  executeReAct: (request: TaskRequest) =>
-    http.post<TaskResultInfo>('/api/planning/react', request),
+  executeReAct: (request: TaskRequest) => http.post<TaskResultInfo>('/api/planning/react', request),
 
   /** Plan-Execute 模式执行（先规划后执行） */
   executePlanExecute: (request: TaskRequest) =>
@@ -72,5 +70,5 @@ export const planningApi = {
 
   /** 执行预定义任务 */
   executePredefinedTask: (request: PredefinedTaskRequest) =>
-    http.post<TaskResultInfo>('/api/planning/task', request)
+    http.post<TaskResultInfo>('/api/planning/task', request),
 }

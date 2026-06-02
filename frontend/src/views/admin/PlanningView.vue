@@ -1,6 +1,5 @@
 <template>
   <div class="admin-page">
-
     <!-- 统计卡片 -->
     <el-row :gutter="20" class="card-section">
       <el-col :span="6">
@@ -62,10 +61,7 @@
             </el-form-item>
 
             <el-form-item label="Session ID">
-              <el-input
-                v-model="formData.sessionId"
-                placeholder="可选，留空自动生成"
-              />
+              <el-input v-model="formData.sessionId" placeholder="可选，留空自动生成" />
             </el-form-item>
           </el-form>
 
@@ -114,7 +110,7 @@ import {
   type TaskResultInfo,
   type StepDef,
   type ExecutionHistoryItem,
-  type Strategy
+  type Strategy,
 } from '@/api/planning'
 import ExecutionResultPanel from './components/ExecutionResultPanel.vue'
 import ExecutionHistoryPanel from './components/ExecutionHistoryPanel.vue'
@@ -127,7 +123,7 @@ const strategy = ref<Strategy>('auto')
 const formData = ref({
   goal: '',
   sessionId: '',
-  steps: [] as StepDef[]
+  steps: [] as StepDef[],
 })
 
 // 执行状态
@@ -149,7 +145,8 @@ const failureRate = computed(() =>
 const avgExecutionTime = computed(() => {
   if (executionHistory.value.length === 0) return 0
   return Math.round(
-    executionHistory.value.reduce((sum, h) => sum + h.result.executionTimeMs, 0) / executionHistory.value.length
+    executionHistory.value.reduce((sum, h) => sum + h.result.executionTimeMs, 0) /
+      executionHistory.value.length
   )
 })
 
@@ -163,7 +160,7 @@ const inputPlaceholder = computed(() => {
     auto: '请输入任务目标，系统将自动选择最优执行策略...',
     react: '请输入需要推理的问题，系统将通过思考-行动循环逐步解决...',
     'plan-execute': '请输入复杂的任务目标，系统将先规划再执行...',
-    predefined: '请输入预定义任务的目标...'
+    predefined: '请输入预定义任务的目标...',
   }
   return placeholders[strategy.value]
 })
@@ -181,26 +178,26 @@ const execute = async () => {
       case 'auto':
         result = await planningApi.execute({
           goal: formData.value.goal,
-          sessionId
+          sessionId,
         })
         break
       case 'react':
         result = await planningApi.executeReAct({
           question: formData.value.goal,
-          sessionId
+          sessionId,
         })
         break
       case 'plan-execute':
         result = await planningApi.executePlanExecute({
           goal: formData.value.goal,
-          sessionId
+          sessionId,
         })
         break
       case 'predefined':
         result = await planningApi.executePredefinedTask({
           goal: formData.value.goal,
           sessionId,
-          steps: formData.value.steps
+          steps: formData.value.steps,
         })
         break
       default:
@@ -257,7 +254,7 @@ const addToHistory = (result: TaskResultInfo) => {
     timestamp: new Date().toISOString(),
     strategy: strategy.value,
     goal: formData.value.goal,
-    result
+    result,
   }
 
   executionHistory.value.unshift(item)
@@ -290,7 +287,7 @@ const reset = () => {
   formData.value = {
     goal: '',
     sessionId: '',
-    steps: []
+    steps: [],
   }
   currentResult.value = null
   selectedHistoryId.value = ''
@@ -313,8 +310,8 @@ const loadHistoryFromStorage = () => {
       const parsed = JSON.parse(stored) as ExecutionHistoryItem[]
       // 验证数据格式
       if (Array.isArray(parsed)) {
-        executionHistory.value = parsed.filter(item =>
-          item.id && item.timestamp && item.strategy && item.result
+        executionHistory.value = parsed.filter(
+          item => item.id && item.timestamp && item.strategy && item.result
         )
       }
     } catch (e) {
@@ -324,7 +321,7 @@ const loadHistoryFromStorage = () => {
 }
 
 // 监听策略变化，清空步骤（非预定义模式）
-watch(strategy, (newStrategy) => {
+watch(strategy, newStrategy => {
   if (newStrategy !== 'predefined') {
     formData.value.steps = []
   }

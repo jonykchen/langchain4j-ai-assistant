@@ -1,5 +1,10 @@
 <template>
-  <el-dialog :model-value="visible" @update:model-value="$emit('update:visible', $event)" title="导出测试结果" width="480px">
+  <el-dialog
+    :model-value="visible"
+    @update:model-value="$emit('update:visible', $event)"
+    title="导出测试结果"
+    width="480px"
+  >
     <el-form label-width="100px">
       <el-form-item label="测试类型">
         <el-select v-model="exportForm.type" style="width: 100%">
@@ -41,7 +46,7 @@ import { ref, reactive } from 'vue'
 defineProps<{ visible: boolean }>()
 const emit = defineEmits<{
   'update:visible': [value: boolean]
-  'export': [params: { type: string; format: string; from?: string; to?: string }]
+  export: [params: { type: string; format: string; from?: string; to?: string }]
 }>()
 
 const exporting = ref(false)
@@ -49,7 +54,7 @@ const dateRange = ref<string[]>([])
 
 const exportForm = reactive({
   type: 'ALL',
-  format: 'json'
+  format: 'json',
 })
 
 async function handleExport() {
@@ -57,7 +62,7 @@ async function handleExport() {
   try {
     const params: { type: string; format: string; from?: string; to?: string } = {
       type: exportForm.type,
-      format: exportForm.format
+      format: exportForm.format,
     }
     if (dateRange.value?.length === 2) {
       params.from = dateRange.value[0]

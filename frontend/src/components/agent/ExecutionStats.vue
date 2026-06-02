@@ -28,19 +28,15 @@ const props = defineProps<{
 const totalSteps = computed(() => props.execution.steps.length)
 
 /** 成功步骤数 */
-const successSteps = computed(() =>
-  props.execution.steps.filter(s => s.status === 'success').length
+const successSteps = computed(
+  () => props.execution.steps.filter(s => s.status === 'success').length
 )
 
 /** 失败步骤数 */
-const errorSteps = computed(() =>
-  props.execution.steps.filter(s => s.status === 'error').length
-)
+const errorSteps = computed(() => props.execution.steps.filter(s => s.status === 'error').length)
 
 /** 工具调用次数 */
-const toolCalls = computed(() =>
-  props.execution.steps.filter(s => s.type === 'TOOL_CALL').length
-)
+const toolCalls = computed(() => props.execution.steps.filter(s => s.type === 'TOOL_CALL').length)
 
 /** 执行耗时（毫秒） */
 const duration = computed(() => props.execution.durationMs || 0)
@@ -196,7 +192,7 @@ function formatNumber(n: number | undefined): string {
   color: #9b59b6;
 }
 
-[data-theme="dark"] .stat-icon.token {
+[data-theme='dark'] .stat-icon.token {
   background: rgba(155, 89, 182, 0.2);
 }
 
@@ -237,7 +233,7 @@ function formatNumber(n: number | undefined): string {
   color: #9b59b6;
 }
 
-[data-theme="dark"] .tokens .stat-value {
+[data-theme='dark'] .tokens .stat-value {
   color: #b37feb;
 }
 </style>

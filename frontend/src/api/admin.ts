@@ -89,9 +89,11 @@ export const adminApi = {
   // 仪表盘
   getMetrics: () => http.get<DashboardMetrics>('/api/admin/dashboard/metrics'),
 
-  getTrend: (params: { days: number }) => http.get<TrendData>('/api/admin/dashboard/trend', { params }),
+  getTrend: (params: { days: number }) =>
+    http.get<TrendData>('/api/admin/dashboard/trend', { params }),
 
-  getModelDistribution: () => http.get<ModelDistribution[]>('/api/admin/dashboard/model-distribution'),
+  getModelDistribution: () =>
+    http.get<ModelDistribution[]>('/api/admin/dashboard/model-distribution'),
 
   // 用户管理
   getUsers: (params: {
@@ -104,19 +106,24 @@ export const adminApi = {
 
   getUserDetail: (userId: string) => http.get<UserAdminVO>(`/api/admin/users/${userId}`),
 
-  getUserUsageStats: (userId: string) => http.get<{
-    todayTokens: number
-    todayCost: number
-    monthTokens: number
-    monthCost: number
-  }>(`/api/admin/users/${userId}/usage`),
+  getUserUsageStats: (userId: string) =>
+    http.get<{
+      todayTokens: number
+      todayCost: number
+      monthTokens: number
+      monthCost: number
+    }>(`/api/admin/users/${userId}/usage`),
 
-  updateUserRole: (userId: string, role: string) => http.put<void>(`/api/admin/users/${userId}/role`, { role }),
+  updateUserRole: (userId: string, role: string) =>
+    http.put<void>(`/api/admin/users/${userId}/role`, { role }),
 
-  updateUserQuota: (userId: string, quota: {
-    dailyTokenLimit: number
-    monthlyTokenLimit: number
-  }) => http.put<void>(`/api/admin/users/${userId}/quota`, quota),
+  updateUserQuota: (
+    userId: string,
+    quota: {
+      dailyTokenLimit: number
+      monthlyTokenLimit: number
+    }
+  ) => http.put<void>(`/api/admin/users/${userId}/quota`, quota),
 
   deleteUser: (userId: string) => http.delete<void>(`/api/admin/users/${userId}`),
 
@@ -125,9 +132,11 @@ export const adminApi = {
 
   getModelCostStatistics: () => http.get<CostStatistics[]>('/api/admin/cost/model-statistics'),
 
-  getTopUsers: (params: { limit: number }) => http.get<UserCostRanking[]>('/api/admin/cost/top-users', { params }),
+  getTopUsers: (params: { limit: number }) =>
+    http.get<UserCostRanking[]>('/api/admin/cost/top-users', { params }),
 
-  getCostTrend: (params: { days: number }) => http.get<TrendData>('/api/admin/cost/trend', { params })
+  getCostTrend: (params: { days: number }) =>
+    http.get<TrendData>('/api/admin/cost/trend', { params }),
 }
 
 // ==================== 测试管理 API ====================
@@ -286,14 +295,17 @@ export const testApi = {
   getE2EReport: () => http.get<string>('/api/admin/test/e2e/report'),
 
   // 性能测试
-  runPerformanceTest: (simulation: string) => http.post<{ jobId: string }>('/api/admin/test/performance/run', { simulation }),
+  runPerformanceTest: (simulation: string) =>
+    http.post<{ jobId: string }>('/api/admin/test/performance/run', { simulation }),
 
-  getPerformanceResults: () => http.get<PerformanceResultSummary[]>('/api/admin/test/performance/results'),
+  getPerformanceResults: () =>
+    http.get<PerformanceResultSummary[]>('/api/admin/test/performance/results'),
 
   getAvailableSimulations: () => http.get<string[]>('/api/admin/test/performance/simulations'),
 
   // AI 模型测试
-  runAIModelTests: (category?: string) => http.post<{ jobId: string }>('/api/admin/test/ai/run', { category }),
+  runAIModelTests: (category?: string) =>
+    http.post<{ jobId: string }>('/api/admin/test/ai/run', { category }),
 
   getAIModelResults: () => http.get<AIModelTestSummary[]>('/api/admin/test/ai/results'),
 
@@ -312,8 +324,7 @@ export const testApi = {
   getTestJobHistory: (params: TestResultHistoryQuery) =>
     http.get<PageResponse<TestJobHistory>>('/api/admin/test/jobs', { params }),
 
-  getTestJobDetail: (jobId: string) =>
-    http.get<TestJobHistory>(`/api/admin/test/jobs/${jobId}`),
+  getTestJobDetail: (jobId: string) => http.get<TestJobHistory>(`/api/admin/test/jobs/${jobId}`),
 
   getTestJobResults: (jobId: string) =>
     http.get<{
@@ -328,8 +339,13 @@ export const testApi = {
   getPerformanceHistory: (params: { jobId?: string; page?: number; size?: number }) =>
     http.get<PerformanceTestResultDetail[]>('/api/admin/test/results/performance', { params }),
 
-  getAIModelHistory: (params: { jobId?: string; category?: string; passed?: boolean; page?: number; size?: number }) =>
-    http.get<AIModelTestResultDetail[]>('/api/admin/test/results/ai', { params }),
+  getAIModelHistory: (params: {
+    jobId?: string
+    category?: string
+    passed?: boolean
+    page?: number
+    size?: number
+  }) => http.get<AIModelTestResultDetail[]>('/api/admin/test/results/ai', { params }),
 
   // ==================== 导出 ====================
 
@@ -344,7 +360,7 @@ export const testApi = {
   // ==================== 清理 ====================
 
   cleanupTestJobs: (retentionDays: number = 90) =>
-    http.delete<{ deleted: number }>('/api/admin/test/cleanup', { params: { retentionDays } })
+    http.delete<{ deleted: number }>('/api/admin/test/cleanup', { params: { retentionDays } }),
 }
 
 export default adminApi

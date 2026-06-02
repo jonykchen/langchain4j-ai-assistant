@@ -17,20 +17,23 @@ import { computed } from 'vue'
 import type { AgentMetadata } from '@/types/agent'
 
 /** Props 定义 */
-const props = withDefaults(defineProps<{
-  /** 可用 Agent 列表 */
-  agents: AgentMetadata[]
-  /** 当前选中的 Agent 名称 */
-  modelValue?: string
-  /** 当前用户角色 */
-  userRole?: string
-  /** 是否正在加载 */
-  loading?: boolean
-}>(), {
-  modelValue: undefined,
-  userRole: 'USER',
-  loading: false
-})
+const props = withDefaults(
+  defineProps<{
+    /** 可用 Agent 列表 */
+    agents: AgentMetadata[]
+    /** 当前选中的 Agent 名称 */
+    modelValue?: string
+    /** 当前用户角色 */
+    userRole?: string
+    /** 是否正在加载 */
+    loading?: boolean
+  }>(),
+  {
+    modelValue: undefined,
+    userRole: 'USER',
+    loading: false,
+  }
+)
 
 /** Events 定义 */
 const emit = defineEmits<{
@@ -42,14 +45,14 @@ const emit = defineEmits<{
 const agentTypeIcons: Record<string, string> = {
   OPS: 'Setting',
   DATA: 'DataAnalysis',
-  CHAT: 'ChatDotRound'
+  CHAT: 'ChatDotRound',
 }
 
 /** Agent 类型颜色映射 */
 const agentTypeColors: Record<string, string> = {
   OPS: '#e6a23c',
   DATA: '#409eff',
-  CHAT: '#67c23a'
+  CHAT: '#67c23a',
 }
 
 /**
@@ -60,15 +63,11 @@ const agentTypeColors: Record<string, string> = {
 const visibleAgents = computed(() => {
   if (props.userRole === 'ADMIN') return props.agents
 
-  return props.agents.filter(
-    agent => !agent.requiredPermissions.includes('ADMIN')
-  )
+  return props.agents.filter(agent => !agent.requiredPermissions.includes('ADMIN'))
 })
 
 /** 当前选中的 Agent 详情 */
-const selectedAgent = computed(() =>
-  props.agents.find(a => a.name === props.modelValue)
-)
+const selectedAgent = computed(() => props.agents.find(a => a.name === props.modelValue))
 
 /** 处理选择变化 */
 function handleChange(value: string | undefined) {
@@ -104,11 +103,7 @@ function handleChange(value: string | undefined) {
             <span class="agent-name">{{ agent.displayName }}</span>
           </div>
           <span class="agent-perms">
-            <el-tag
-              v-if="agent.requiredPermissions.includes('ADMIN')"
-              type="warning"
-              size="small"
-            >
+            <el-tag v-if="agent.requiredPermissions.includes('ADMIN')" type="warning" size="small">
               ADMIN
             </el-tag>
           </span>

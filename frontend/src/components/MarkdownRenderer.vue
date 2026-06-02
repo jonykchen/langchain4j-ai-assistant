@@ -39,14 +39,17 @@ hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('html', xml)
 
 /** Props 定义 */
-const props = withDefaults(defineProps<{
-  /** Markdown 内容 */
-  content: string
-  /** 是否启用代码高亮 */
-  highlight?: boolean
-}>(), {
-  highlight: true
-})
+const props = withDefaults(
+  defineProps<{
+    /** Markdown 内容 */
+    content: string
+    /** 是否启用代码高亮 */
+    highlight?: boolean
+  }>(),
+  {
+    highlight: true,
+  }
+)
 
 /** 初始化 markdown-it 实例（启用代码高亮） */
 const md = new MarkdownIt({
@@ -71,7 +74,7 @@ const md = new MarkdownIt({
     } catch {
       return ''
     }
-  }
+  },
 })
 
 /** 渲染后的 HTML */
@@ -97,14 +100,17 @@ function handleCopy(e: MouseEvent) {
   const codeEl = copyBtn.closest('.code-block-wrapper')?.querySelector('code')
   const code = codeEl?.textContent || ''
 
-  navigator.clipboard.writeText(code).then(() => {
-    copiedIndex.value = codeIndex
-    setTimeout(() => {
-      copiedIndex.value = null
-    }, 2000)
-  }).catch((e) => {
-    console.error('[MarkdownRenderer] 复制失败:', e)
-  })
+  navigator.clipboard
+    .writeText(code)
+    .then(() => {
+      copiedIndex.value = codeIndex
+      setTimeout(() => {
+        copiedIndex.value = null
+      }, 2000)
+    })
+    .catch(e => {
+      console.error('[MarkdownRenderer] 复制失败:', e)
+    })
 }
 </script>
 
@@ -195,9 +201,15 @@ function handleCopy(e: MouseEvent) {
   font-weight: 600;
 }
 
-.markdown-renderer .markdown-body h1 { font-size: 20px; }
-.markdown-renderer .markdown-body h2 { font-size: 18px; }
-.markdown-renderer .markdown-body h3 { font-size: 16px; }
+.markdown-renderer .markdown-body h1 {
+  font-size: 20px;
+}
+.markdown-renderer .markdown-body h2 {
+  font-size: 18px;
+}
+.markdown-renderer .markdown-body h3 {
+  font-size: 16px;
+}
 
 .markdown-renderer .markdown-body a {
   color: #409eff;

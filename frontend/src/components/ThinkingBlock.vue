@@ -27,11 +27,27 @@ function toggle() {
     <!-- 可点击的头部，展开/折叠思考过程 -->
     <div class="thinking-header" data-testid="thinking-toggle" @click="toggle">
       <span class="thinking-icon">
-        <svg v-if="modelValue" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 9l6 6 6-6"/>
+        <svg
+          v-if="modelValue"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M6 9l6 6 6-6" />
         </svg>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 18l6-6-6-6"/>
+        <svg
+          v-else
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M9 18l6-6-6-6" />
         </svg>
       </span>
       <span class="thinking-label">
@@ -102,12 +118,22 @@ function toggle() {
   animation: dotPulse 1.4s infinite ease-in-out both;
 }
 
-.thinking-loading .dot:nth-child(1) { animation-delay: -0.32s; }
-.thinking-loading .dot:nth-child(2) { animation-delay: -0.16s; }
+.thinking-loading .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.thinking-loading .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
 
 @keyframes dotPulse {
-  0%, 80%, 100% { opacity: 0.3; }
-  40% { opacity: 1; }
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
 }
 
 .thinking-body {

@@ -23,20 +23,23 @@ import json from 'highlight.js/lib/languages/json'
 hljs.registerLanguage('json', json)
 
 /** Props 定义 */
-const props = withDefaults(defineProps<{
-  /** JSON 数据（任意类型） */
-  data: unknown
-  /** 是否默认展开 */
-  defaultExpanded?: boolean
-  /** 最大展示深度 */
-  maxDepth?: number
-  /** 是否显示复制按钮 */
-  showCopy?: boolean
-}>(), {
-  defaultExpanded: true,
-  maxDepth: 5,
-  showCopy: true
-})
+const props = withDefaults(
+  defineProps<{
+    /** JSON 数据（任意类型） */
+    data: unknown
+    /** 是否默认展开 */
+    defaultExpanded?: boolean
+    /** 最大展示深度 */
+    maxDepth?: number
+    /** 是否显示复制按钮 */
+    showCopy?: boolean
+  }>(),
+  {
+    defaultExpanded: true,
+    maxDepth: 5,
+    showCopy: true,
+  }
+)
 
 /** 是否展开 */
 const isExpanded = ref(props.defaultExpanded)
@@ -104,11 +107,7 @@ function getDepth(obj: unknown, current = 0): number {
       <span class="json-label">JSON</span>
       <div class="json-actions">
         <!-- 深度警告 -->
-        <el-tooltip
-          v-if="isTooDeep"
-          content="数据层级较深，可能影响性能"
-          placement="top"
-        >
+        <el-tooltip v-if="isTooDeep" content="数据层级较深，可能影响性能" placement="top">
           <el-icon class="warning-icon"><Warning /></el-icon>
         </el-tooltip>
 

@@ -24,27 +24,30 @@ const metrics = ref<DashboardMetrics>({
     dailyPercent: 0,
     monthlyUsed: 0,
     monthlyTotal: 2000,
-    monthlyPercent: 0
-  }
+    monthlyPercent: 0,
+  },
 })
 
 // 图表数据
 const tokenTrendData = computed(() => [
-  { name: 'Token 使用趋势', data: [
-    { name: '00:00', value: 1200 },
-    { name: '04:00', value: 800 },
-    { name: '08:00', value: 2400 },
-    { name: '12:00', value: 3600 },
-    { name: '16:00', value: 2800 },
-    { name: '20:00', value: 1800 },
-    { name: '24:00', value: 1200 }
-  ]}
+  {
+    name: 'Token 使用趋势',
+    data: [
+      { name: '00:00', value: 1200 },
+      { name: '04:00', value: 800 },
+      { name: '08:00', value: 2400 },
+      { name: '12:00', value: 3600 },
+      { name: '16:00', value: 2800 },
+      { name: '20:00', value: 1800 },
+      { name: '24:00', value: 1200 },
+    ],
+  },
 ])
 
 const modelCostData = computed(() =>
   metrics.value.modelHealth.map(m => ({
     name: m.name,
-    value: m.avgLatency || 0
+    value: m.avgLatency || 0,
   }))
 )
 
@@ -172,7 +175,9 @@ onMounted(async () => {
             <div class="budget-header">
               <span class="budget-label">日预算</span>
               <span class="budget-amount">
-                ${{ (metrics.budget.dailyUsed ?? 0).toFixed(2) }} / ${{ metrics.budget.dailyTotal ?? 0 }}
+                ${{ (metrics.budget.dailyUsed ?? 0).toFixed(2) }} / ${{
+                  metrics.budget.dailyTotal ?? 0
+                }}
               </span>
             </div>
             <el-progress
@@ -186,7 +191,9 @@ onMounted(async () => {
             <div class="budget-header">
               <span class="budget-label">月预算</span>
               <span class="budget-amount">
-                ${{ (metrics.budget.monthlyUsed ?? 0).toFixed(2) }} / ${{ metrics.budget.monthlyTotal ?? 0 }}
+                ${{ (metrics.budget.monthlyUsed ?? 0).toFixed(2) }} / ${{
+                  metrics.budget.monthlyTotal ?? 0
+                }}
               </span>
             </div>
             <el-progress

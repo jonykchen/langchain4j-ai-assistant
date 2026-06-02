@@ -16,7 +16,18 @@
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, ArrowDown, Document, Menu, ChatDotRound, Cpu, Promotion, Timer, Warning, Loading } from '@element-plus/icons-vue'
+import {
+  ArrowLeft,
+  ArrowDown,
+  Document,
+  Menu,
+  ChatDotRound,
+  Cpu,
+  Promotion,
+  Timer,
+  Warning,
+  Loading,
+} from '@element-plus/icons-vue'
 import { useAgentStore } from '@/stores/agent'
 import { storeToRefs } from 'pinia'
 import type { RiskLevel } from '@/types/agent'
@@ -38,7 +49,7 @@ const {
   isLoadingAgents,
   connectionState,
   reconnectAttempt,
-  isExecuting
+  isExecuting,
 } = storeToRefs(agentStore)
 
 // 用户输入
@@ -72,7 +83,7 @@ const riskLevelColors: Record<RiskLevel, string> = {
   LOW: 'success',
   MEDIUM: 'warning',
   HIGH: 'danger',
-  CRITICAL: 'danger'
+  CRITICAL: 'danger',
 }
 
 // 风险等级中文
@@ -80,7 +91,7 @@ const riskLevelLabels: Record<RiskLevel, string> = {
   LOW: '低风险',
   MEDIUM: '中风险',
   HIGH: '高风险',
-  CRITICAL: '极高风险'
+  CRITICAL: '极高风险',
 }
 
 // Quick Actions
@@ -88,7 +99,7 @@ const quickActions = [
   '查询上周 token 消耗',
   '分析系统性能瓶颈',
   '生成数据报表',
-  '检查 Agent 执行状态'
+  '检查 Agent 执行状态',
 ]
 
 /** 执行 Agent */
@@ -175,7 +186,7 @@ function setupAutoScroll() {
 
   autoScrollObserver.observe(stepsContainer.value, {
     childList: true,
-    subtree: true
+    subtree: true,
   })
 }
 
@@ -236,7 +247,10 @@ onUnmounted(() => {
             @click="handleSelectExecution(exec.traceId)"
           >
             <div class="exec-header">
-              <el-tag size="small" :type="exec.status === 'waiting_confirmation' ? 'warning' : 'primary'">
+              <el-tag
+                size="small"
+                :type="exec.status === 'waiting_confirmation' ? 'warning' : 'primary'"
+              >
                 {{ exec.status === 'waiting_confirmation' ? '等待确认' : '运行中' }}
               </el-tag>
               <span class="exec-time">{{ formatTime(exec.startTime) }}</span>
@@ -258,10 +272,7 @@ onUnmounted(() => {
             @click="handleSelectExecution(exec.traceId)"
           >
             <div class="exec-header">
-              <el-tag
-                size="small"
-                :type="exec.status === 'completed' ? 'success' : 'danger'"
-              >
+              <el-tag size="small" :type="exec.status === 'completed' ? 'success' : 'danger'">
                 {{ exec.status === 'completed' ? '完成' : '失败' }}
               </el-tag>
               <span class="exec-time">{{ formatTime(exec.startTime) }}</span>
@@ -274,18 +285,17 @@ onUnmounted(() => {
         </div>
 
         <!-- 空侧边栏提示 -->
-        <div v-if="runningExecutions.length === 0 && historyExecutions.length === 0" class="sidebar-empty">
+        <div
+          v-if="runningExecutions.length === 0 && historyExecutions.length === 0"
+          class="sidebar-empty"
+        >
           <el-icon :size="32" color="var(--text-tertiary)"><Document /></el-icon>
           <p>暂无执行记录</p>
         </div>
       </aside>
 
       <!-- 移动端侧边栏遮罩 -->
-      <div
-        v-if="sidebarVisible"
-        class="sidebar-backdrop"
-        @click="sidebarVisible = false"
-      />
+      <div v-if="sidebarVisible" class="sidebar-backdrop" @click="sidebarVisible = false" />
 
       <!-- 右侧：执行详情 -->
       <main class="agent-main">
@@ -317,11 +327,15 @@ onUnmounted(() => {
               <div class="agent-header" @click="showAdvancedOptions = !showAdvancedOptions">
                 <div class="agent-status">
                   <el-icon class="status-icon" :class="{ active: !selectedAgent }"><Cpu /></el-icon>
-                  <span class="status-text">{{ selectedAgent ? selectedAgentName : '智能路由' }}</span>
+                  <span class="status-text">
+                    {{ selectedAgent ? selectedAgentName : '智能路由' }}
+                  </span>
                   <el-tag size="small" type="info" v-if="!selectedAgent">自动匹配</el-tag>
                   <el-tag size="small" type="success" v-else>已指定</el-tag>
                 </div>
-                <el-icon class="expand-icon" :class="{ expanded: showAdvancedOptions }"><ArrowDown /></el-icon>
+                <el-icon class="expand-icon" :class="{ expanded: showAdvancedOptions }">
+                  <ArrowDown />
+                </el-icon>
               </div>
               <el-collapse-transition>
                 <div v-show="showAdvancedOptions" class="agent-options">
@@ -354,12 +368,7 @@ onUnmounted(() => {
               <div class="input-actions">
                 <span class="char-count">{{ userInput.length }} / 4000</span>
                 <div class="action-buttons">
-                  <el-button
-                    :disabled="!userInput.trim()"
-                    @click="userInput = ''"
-                  >
-                    清空
-                  </el-button>
+                  <el-button :disabled="!userInput.trim()" @click="userInput = ''">清空</el-button>
                   <el-button
                     type="primary"
                     :disabled="!userInput.trim()"
@@ -403,7 +412,13 @@ onUnmounted(() => {
                 <el-tag size="small">{{ activeExecution.agentName || '路由中...' }}</el-tag>
                 <el-tag
                   size="small"
-                  :type="activeExecution.status === 'completed' ? 'success' : activeExecution.status === 'error' ? 'danger' : 'primary'"
+                  :type="
+                    activeExecution.status === 'completed'
+                      ? 'success'
+                      : activeExecution.status === 'error'
+                        ? 'danger'
+                        : 'primary'
+                  "
                 >
                   {{ activeExecution.status }}
                 </el-tag>
@@ -422,9 +437,7 @@ onUnmounted(() => {
               >
                 取消
               </el-button>
-              <el-button size="small" @click="handleNewTask">
-                新任务
-              </el-button>
+              <el-button size="small" @click="handleNewTask">新任务</el-button>
             </div>
           </header>
 
@@ -473,7 +486,12 @@ onUnmounted(() => {
             <el-tab-pane label="日志" name="logs">
               <div class="tab-scroll-content">
                 <div v-if="activeExecution.errorMessage" class="log-error">
-                  <el-alert type="error" :title="activeExecution.errorMessage" show-icon :closable="false" />
+                  <el-alert
+                    type="error"
+                    :title="activeExecution.errorMessage"
+                    show-icon
+                    :closable="false"
+                  />
                 </div>
                 <div v-else class="tab-empty">
                   <el-icon :size="24" color="var(--text-tertiary)"><Document /></el-icon>
@@ -489,7 +507,11 @@ onUnmounted(() => {
               <div class="confirmation-info">
                 <el-icon
                   :size="18"
-                  :color="riskLevelColors[activeExecution.pendingConfirmation.riskLevel] === 'danger' ? 'var(--color-danger)' : 'var(--color-warning)'"
+                  :color="
+                    riskLevelColors[activeExecution.pendingConfirmation.riskLevel] === 'danger'
+                      ? 'var(--color-danger)'
+                      : 'var(--color-warning)'
+                  "
                 >
                   <Warning />
                 </el-icon>
@@ -511,7 +533,9 @@ onUnmounted(() => {
               </div>
               <div class="confirmation-actions">
                 <el-button type="danger" size="small" @click="handleConfirm(false)">拒绝</el-button>
-                <el-button type="primary" size="small" @click="handleConfirm(true)">确认执行</el-button>
+                <el-button type="primary" size="small" @click="handleConfirm(true)">
+                  确认执行
+                </el-button>
               </div>
             </div>
           </div>
@@ -847,7 +871,9 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .task-input :deep(.el-textarea__inner:focus) {

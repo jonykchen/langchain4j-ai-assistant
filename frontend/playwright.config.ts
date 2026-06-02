@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test'
 
 /**
  * 根目录 Playwright 配置（用于 CI 运行所有前端测试）
@@ -13,7 +13,7 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report' }],
     ['junit', { outputFile: 'junit-results.xml' }],
     ['json', { outputFile: 'test-results/report.json' }],
-    ['list']
+    ['list'],
   ],
   use: {
     baseURL: 'http://localhost:5173',
@@ -48,4 +48,4 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
-});
+})

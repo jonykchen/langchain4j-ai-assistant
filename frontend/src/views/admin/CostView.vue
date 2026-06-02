@@ -12,7 +12,7 @@ const budget = ref<BudgetInfo>({
   dailyPercent: 0,
   monthlyUsed: 0,
   monthlyTotal: 2000,
-  monthlyPercent: 0
+  monthlyPercent: 0,
 })
 
 const modelCosts = ref<CostStatistics[]>([])
@@ -36,13 +36,11 @@ const modelCostChartData = computed(() => [
   {
     name: '费用',
     data: modelCosts.value.map(m => m.totalCost || 0),
-    color: '#667eea'
-  }
+    color: '#667eea',
+  },
 ])
 
-const chartXAxisData = computed(() =>
-  modelCosts.value.map(m => m.modelName || '')
-)
+const chartXAxisData = computed(() => modelCosts.value.map(m => m.modelName || ''))
 
 onMounted(async () => {
   loading.value = true
@@ -51,7 +49,7 @@ onMounted(async () => {
   const [budgetResult, costsResult, usersResult] = await Promise.allSettled([
     adminApi.getBudget(),
     adminApi.getModelCostStatistics(),
-    adminApi.getTopUsers({ limit: 10 })
+    adminApi.getTopUsers({ limit: 10 }),
   ])
 
   // 处理预算数据
@@ -76,9 +74,11 @@ onMounted(async () => {
   }
 
   // 如果全部失败，显示提示
-  if (budgetResult.status === 'rejected' &&
-      costsResult.status === 'rejected' &&
-      usersResult.status === 'rejected') {
+  if (
+    budgetResult.status === 'rejected' &&
+    costsResult.status === 'rejected' &&
+    usersResult.status === 'rejected'
+  ) {
     ElMessage.warning('暂无成本数据，请先使用 AI 对话功能')
   }
 
@@ -95,10 +95,22 @@ onMounted(async () => {
           <div class="budget-header">
             <h4 class="budget-title">日预算</h4>
             <el-tag
-              :type="budget.dailyPercent >= 100 ? 'danger' : budget.dailyPercent >= 80 ? 'warning' : 'success'"
+              :type="
+                budget.dailyPercent >= 100
+                  ? 'danger'
+                  : budget.dailyPercent >= 80
+                    ? 'warning'
+                    : 'success'
+              "
               size="small"
             >
-              {{ budget.dailyPercent >= 100 ? '已超支' : budget.dailyPercent >= 80 ? '接近上限' : '正常' }}
+              {{
+                budget.dailyPercent >= 100
+                  ? '已超支'
+                  : budget.dailyPercent >= 80
+                    ? '接近上限'
+                    : '正常'
+              }}
             </el-tag>
           </div>
           <div class="budget-amount">
@@ -119,10 +131,22 @@ onMounted(async () => {
           <div class="budget-header">
             <h4 class="budget-title">月预算</h4>
             <el-tag
-              :type="budget.monthlyPercent >= 100 ? 'danger' : budget.monthlyPercent >= 80 ? 'warning' : 'success'"
+              :type="
+                budget.monthlyPercent >= 100
+                  ? 'danger'
+                  : budget.monthlyPercent >= 80
+                    ? 'warning'
+                    : 'success'
+              "
               size="small"
             >
-              {{ budget.monthlyPercent >= 100 ? '已超支' : budget.monthlyPercent >= 80 ? '接近上限' : '正常' }}
+              {{
+                budget.monthlyPercent >= 100
+                  ? '已超支'
+                  : budget.monthlyPercent >= 80
+                    ? '接近上限'
+                    : '正常'
+              }}
             </el-tag>
           </div>
           <div class="budget-amount">
@@ -177,7 +201,12 @@ onMounted(async () => {
             <span class="value-money">${{ (row.totalCost ?? 0).toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="avgTokensPerRequest" label="平均 Token/请求" width="150" align="right">
+        <el-table-column
+          prop="avgTokensPerRequest"
+          label="平均 Token/请求"
+          width="150"
+          align="right"
+        >
           <template #default="{ row }">
             <span class="value-number">{{ (row.avgTokensPerRequest ?? 0).toFixed(0) }}</span>
           </template>

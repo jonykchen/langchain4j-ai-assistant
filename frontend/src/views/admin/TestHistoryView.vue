@@ -101,7 +101,9 @@
         <el-table-column prop="triggeredBy" label="触发者" width="100" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="viewJobResults(row.id)">查看结果</el-button>
+            <el-button type="primary" link size="small" @click="viewJobResults(row.id)">
+              查看结果
+            </el-button>
             <el-button type="danger" link size="small" @click="deleteJob(row.id)">删除</el-button>
           </template>
         </el-table-column>
@@ -122,10 +124,7 @@
     </el-card>
 
     <!-- 导出对话框 -->
-    <TestExportDialog
-      v-model:visible="showExportDialog"
-      @export="handleExport"
-    />
+    <TestExportDialog v-model:visible="showExportDialog" @export="handleExport" />
 
     <!-- 清理对话框 -->
     <el-dialog v-model="showCleanupDialog" title="清理历史记录" width="400px">
@@ -172,10 +171,22 @@
             <template #default="{ row }">
               <el-tag
                 v-if="row.changed"
-                :type="row.changeDirection === 'improved' ? 'success' : row.changeDirection === 'degraded' ? 'danger' : 'info'"
+                :type="
+                  row.changeDirection === 'improved'
+                    ? 'success'
+                    : row.changeDirection === 'degraded'
+                      ? 'danger'
+                      : 'info'
+                "
                 size="small"
               >
-                {{ row.changeDirection === 'improved' ? '改善' : row.changeDirection === 'degraded' ? '退化' : '不变' }}
+                {{
+                  row.changeDirection === 'improved'
+                    ? '改善'
+                    : row.changeDirection === 'degraded'
+                      ? '退化'
+                      : '不变'
+                }}
               </el-tag>
               <span v-else>-</span>
             </template>
@@ -209,9 +220,7 @@
               <el-table-column prop="simulation" label="场景" />
               <el-table-column prop="requests" label="请求数" width="80" />
               <el-table-column prop="successRate" label="成功率" width="80">
-                <template #default="{ row }">
-                  {{ row.successRate }}%
-                </template>
+                <template #default="{ row }">{{ row.successRate }}%</template>
               </el-table-column>
               <el-table-column prop="avgResponseTime" label="平均(ms)" width="90" />
               <el-table-column prop="p95ResponseTime" label="P95(ms)" width="90" />
@@ -227,9 +236,7 @@
                 </template>
               </el-table-column>
               <el-table-column prop="score" label="得分" width="80">
-                <template #default="{ row }">
-                  {{ (row.score * 100).toFixed(1) }}%
-                </template>
+                <template #default="{ row }">{{ (row.score * 100).toFixed(1) }}%</template>
               </el-table-column>
               <el-table-column prop="passed" label="通过" width="60">
                 <template #default="{ row }">
@@ -251,7 +258,15 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download, Delete } from '@element-plus/icons-vue'
-import { testApi, type TestJobHistory, type TestResultHistoryQuery, type TestComparisonResult, type E2ETestResultDetail, type PerformanceTestResultDetail, type AIModelTestResultDetail } from '@/api/admin'
+import {
+  testApi,
+  type TestJobHistory,
+  type TestResultHistoryQuery,
+  type TestComparisonResult,
+  type E2ETestResultDetail,
+  type PerformanceTestResultDetail,
+  type AIModelTestResultDetail,
+} from '@/api/admin'
 import TestExportDialog from '@/components/TestExportDialog.vue'
 
 interface JobResults {
@@ -269,7 +284,7 @@ const filters = reactive<TestResultHistoryQuery>({
   type: undefined,
   status: undefined,
   page: 1,
-  size: 20
+  size: 20,
 })
 
 // 对比
@@ -299,7 +314,7 @@ async function loadHistory() {
   try {
     const params: Record<string, unknown> = {
       page: (filters.page || 1) - 1,
-      size: filters.size || 20
+      size: filters.size || 20,
     }
     if (filters.type) params.type = filters.type
     if (filters.status) params.status = filters.status
@@ -373,7 +388,7 @@ async function viewJobResults(jobId: string) {
 async function deleteJob(jobId: string) {
   try {
     await ElMessageBox.confirm('确认删除该测试记录？删除后不可恢复。', '确认删除', {
-      type: 'warning'
+      type: 'warning',
     })
     await testApi.cancelJob(jobId)
     ElMessage.success('删除成功')
@@ -425,12 +440,24 @@ function getTypeTagType(type: string) {
 }
 
 function getStatusLabel(status: string) {
-  const map: Record<string, string> = { RUNNING: '运行中', COMPLETED: '已完成', FAILED: '失败', CANCELLED: '已取消', PENDING: '等待' }
+  const map: Record<string, string> = {
+    RUNNING: '运行中',
+    COMPLETED: '已完成',
+    FAILED: '失败',
+    CANCELLED: '已取消',
+    PENDING: '等待',
+  }
   return map[status] || status
 }
 
 function getStatusTagType(status: string) {
-  const map: Record<string, string> = { RUNNING: 'warning', COMPLETED: 'success', FAILED: 'danger', CANCELLED: 'info', PENDING: 'info' }
+  const map: Record<string, string> = {
+    RUNNING: 'warning',
+    COMPLETED: 'success',
+    FAILED: 'danger',
+    CANCELLED: 'info',
+    PENDING: 'info',
+  }
   return map[status] || ''
 }
 

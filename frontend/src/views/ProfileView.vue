@@ -21,13 +21,13 @@ const userInfo = ref<UserInfo | null>(null)
 
 const editForm = ref({
   nickname: '',
-  avatar: ''
+  avatar: '',
 })
 
 const providerLabels: Record<string, string> = {
   GITHUB: 'GitHub',
   GITLAB: 'GitLab',
-  CUSTOM: '密码登录'
+  CUSTOM: '密码登录',
 }
 
 const displayUser = computed(() => userInfo.value || authStore.user)
@@ -65,7 +65,7 @@ async function saveEdit() {
   try {
     const updated = await http.put<UserInfo>('/api/users/me', {
       nickname: editForm.value.nickname,
-      avatar: editForm.value.avatar
+      avatar: editForm.value.avatar,
     })
     userInfo.value = updated
     authStore.user = updated
@@ -116,11 +116,7 @@ function goBack() {
             <el-icon :size="40"><User /></el-icon>
           </el-avatar>
           <div v-if="editing" class="avatar-edit">
-            <el-input
-              v-model="editForm.avatar"
-              placeholder="头像 URL"
-              style="width: 300px"
-            />
+            <el-input v-model="editForm.avatar" placeholder="头像 URL" style="width: 300px" />
           </div>
         </div>
 

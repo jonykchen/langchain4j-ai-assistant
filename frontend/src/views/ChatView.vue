@@ -15,7 +15,8 @@ const chatStore = useChatStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
-const { conversations, currentConversation, currentConversationId, currentMessages, isLoading } = storeToRefs(chatStore)
+const { conversations, currentConversation, currentConversationId, currentMessages, isLoading } =
+  storeToRefs(chatStore)
 
 const isAdmin = computed(() => authStore.isAdmin)
 
@@ -65,11 +66,7 @@ onMounted(() => {
   <div class="chat-container">
     <!-- 移动端侧边栏遮罩 -->
     <transition name="fade">
-      <div
-        v-if="sidebarVisible"
-        class="sidebar-backdrop"
-        @click="sidebarVisible = false"
-      />
+      <div v-if="sidebarVisible" class="sidebar-backdrop" @click="sidebarVisible = false" />
     </transition>
 
     <Sidebar
@@ -86,11 +83,7 @@ onMounted(() => {
       <!-- 顶部导航栏 -->
       <header class="chat-header">
         <div class="header-left">
-          <el-button
-            text
-            class="menu-btn"
-            @click="sidebarVisible = !sidebarVisible"
-          >
+          <el-button text class="menu-btn" @click="sidebarVisible = !sidebarVisible">
             <el-icon><Menu /></el-icon>
           </el-button>
           <div class="header-title-wrapper">
@@ -102,20 +95,11 @@ onMounted(() => {
           </div>
         </div>
         <div class="header-actions">
-          <el-button
-            text
-            @click="router.push('/agent')"
-            class="nav-btn"
-          >
+          <el-button text @click="router.push('/agent')" class="nav-btn">
             <el-icon><Cpu /></el-icon>
             <span class="hide-on-mobile">Agent 执行</span>
           </el-button>
-          <el-button
-            v-if="isAdmin"
-            text
-            @click="router.push('/admin')"
-            class="nav-btn"
-          >
+          <el-button v-if="isAdmin" text @click="router.push('/admin')" class="nav-btn">
             <el-icon><Setting /></el-icon>
             <span class="hide-on-mobile">管理后台</span>
           </el-button>
@@ -132,10 +116,7 @@ onMounted(() => {
       />
 
       <!-- 输入区域 -->
-      <ChatInput
-        :disabled="isLoading"
-        @send="handleSend"
-      />
+      <ChatInput :disabled="isLoading" @send="handleSend" />
     </div>
   </div>
 </template>

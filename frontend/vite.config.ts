@@ -39,8 +39,8 @@ export default defineConfig({
    */
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
-    }
+      '@': resolve(__dirname, 'src'),
+    },
   },
 
   /**
@@ -80,15 +80,19 @@ export default defineConfig({
         target: 'http://localhost:8082',
         changeOrigin: true,
         // 浏览器导航（GitHub 重定向回来）交给 Vue Router，API 请求代理到后端
-        bypass: (req) => {
-          if (req.url && req.url.includes('/callback') &&
-              req.headers.accept && req.headers.accept.includes('text/html')) {
+        bypass: req => {
+          if (
+            req.url &&
+            req.url.includes('/callback') &&
+            req.headers.accept &&
+            req.headers.accept.includes('text/html')
+          ) {
             return req.url
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 
   /*
    * ==================== 更多配置选项 ====================

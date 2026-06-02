@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test'
 
 /**
  * Playwright E2E 测试配置
@@ -24,7 +24,7 @@ export default defineConfig({
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['junit', { outputFile: 'junit-results.xml' }],
-    ['list']
+    ['list'],
   ],
 
   // 全局配置
@@ -99,4 +99,4 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
-});
+})

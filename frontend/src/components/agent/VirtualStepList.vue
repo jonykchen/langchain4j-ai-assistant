@@ -12,21 +12,24 @@ import { useVirtualList } from '@vueuse/core'
 import type { ExecutionStep } from '@/types/agent'
 import ExecutionStepCard from './ExecutionStepCard.vue'
 
-const props = withDefaults(defineProps<{
-  steps: ExecutionStep[]
-  itemHeight?: number
-  overscan?: number
-}>(), {
-  itemHeight: 120,
-  overscan: 5
-})
+const props = withDefaults(
+  defineProps<{
+    steps: ExecutionStep[]
+    itemHeight?: number
+    overscan?: number
+  }>(),
+  {
+    itemHeight: 120,
+    overscan: 5,
+  }
+)
 
 // 虚拟滚动
 const { list, containerProps, wrapperProps } = useVirtualList(
   computed(() => props.steps),
   {
     itemHeight: props.itemHeight,
-    overscan: props.overscan
+    overscan: props.overscan,
   }
 )
 
@@ -45,10 +48,7 @@ const isLastStep = (index: number): boolean => {
         class="virtual-step-item"
         :style="{ height: `${itemHeight}px` }"
       >
-        <ExecutionStepCard
-          :step="step"
-          :is-last-step="isLastStep(index)"
-        />
+        <ExecutionStepCard :step="step" :is-last-step="isLastStep(index)" />
       </div>
     </div>
   </div>

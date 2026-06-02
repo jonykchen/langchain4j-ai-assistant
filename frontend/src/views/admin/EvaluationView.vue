@@ -1,6 +1,5 @@
 <template>
   <div class="admin-page">
-
     <!-- 评测统计 -->
     <el-row :gutter="20" class="card-section">
       <el-col :span="8">
@@ -39,9 +38,7 @@
           <el-button type="primary" @click="runEvaluation" :loading="evaluating">
             执行评测
           </el-button>
-          <el-button @click="generateReport" :disabled="results.length === 0">
-            生成报告
-          </el-button>
+          <el-button @click="generateReport" :disabled="results.length === 0">生成报告</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -100,21 +97,14 @@
         <el-table-column prop="recommendation" label="建议" show-overflow-tooltip />
         <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button link type="primary" @click="showDetail(row)">
-              详情
-            </el-button>
+            <el-button link type="primary" @click="showDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog
-      v-model="detailVisible"
-      title="评测详情"
-      width="70%"
-      destroy-on-close
-    >
+    <el-dialog v-model="detailVisible" title="评测详情" width="70%" destroy-on-close>
       <template v-if="selectedResult">
         <el-descriptions :column="2" border class="mb-4">
           <el-descriptions-item label="Trace ID">
@@ -152,7 +142,8 @@
                 </ul>
               </div>
               <div>
-                <strong>建议:</strong> {{ result.recommendation }}
+                <strong>建议:</strong>
+                {{ result.recommendation }}
               </div>
             </div>
           </el-collapse-item>
@@ -161,19 +152,20 @@
     </el-dialog>
 
     <!-- 报告对话框 -->
-    <el-dialog
-      v-model="reportVisible"
-      title="评测报告"
-      width="80%"
-      destroy-on-close
-    >
+    <el-dialog v-model="reportVisible" title="评测报告" width="80%" destroy-on-close>
       <template v-if="report">
         <el-descriptions :column="3" border class="mb-4">
           <el-descriptions-item label="报告 ID">{{ report.reportId }}</el-descriptions-item>
-          <el-descriptions-item label="生成时间">{{ formatTime(report.generatedAt) }}</el-descriptions-item>
+          <el-descriptions-item label="生成时间">
+            {{ formatTime(report.generatedAt) }}
+          </el-descriptions-item>
           <el-descriptions-item label="评测数量">{{ report.totalTraces }}</el-descriptions-item>
-          <el-descriptions-item label="平均得分">{{ (report.avgOverallScore * 100).toFixed(1) }}%</el-descriptions-item>
-          <el-descriptions-item label="通过率">{{ (report.passRate * 100).toFixed(1) }}%</el-descriptions-item>
+          <el-descriptions-item label="平均得分">
+            {{ (report.avgOverallScore * 100).toFixed(1) }}%
+          </el-descriptions-item>
+          <el-descriptions-item label="通过率">
+            {{ (report.passRate * 100).toFixed(1) }}%
+          </el-descriptions-item>
         </el-descriptions>
 
         <el-divider />
@@ -181,14 +173,10 @@
         <h4 class="mb-2">详细结果</h4>
         <el-table :data="report.results" stripe max-height="400">
           <el-table-column prop="traceId" label="Trace ID" width="180">
-            <template #default="{ row }">
-              {{ row.traceId?.slice(0, 8) }}...
-            </template>
+            <template #default="{ row }">{{ row.traceId?.slice(0, 8) }}...</template>
           </el-table-column>
           <el-table-column prop="overallScore" label="得分" width="100">
-            <template #default="{ row }">
-              {{ (row.overallScore * 100).toFixed(1) }}%
-            </template>
+            <template #default="{ row }">{{ (row.overallScore * 100).toFixed(1) }}%</template>
           </el-table-column>
           <el-table-column label="状态" width="80">
             <template #default="{ row }">

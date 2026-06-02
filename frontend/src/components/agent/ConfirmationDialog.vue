@@ -26,14 +26,14 @@ const riskLevelColors: Record<RiskLevel, string> = {
   LOW: 'success',
   MEDIUM: 'warning',
   HIGH: 'danger',
-  CRITICAL: 'danger'
+  CRITICAL: 'danger',
 }
 
 const riskLevelLabels: Record<RiskLevel, string> = {
   LOW: '低风险',
   MEDIUM: '中风险',
   HIGH: '高风险',
-  CRITICAL: '极高风险'
+  CRITICAL: '极高风险',
 }
 
 const riskColor = computed(() => riskLevelColors[props.riskLevel])
@@ -77,10 +77,7 @@ function handleReject() {
         <el-icon><Close /></el-icon>
         取消
       </el-button>
-      <el-button
-        :type="isCritical ? 'danger' : 'primary'"
-        @click="handleApprove"
-      >
+      <el-button :type="isCritical ? 'danger' : 'primary'" @click="handleApprove">
         <el-icon><Check /></el-icon>
         确认执行
       </el-button>

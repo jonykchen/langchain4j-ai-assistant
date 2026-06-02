@@ -99,9 +99,9 @@ function escapeAttr(str: string): string {
  * - 返回完整的 HTML 字符串（包含代码块头部工具栏）
  */
 const md = new MarkdownIt({
-  html: false,       // 安全：禁用原始 HTML 标签
-  breaks: true,      // GitHub 风格：单个换行符转为 <br>
-  linkify: true,     // 自动链接：识别 URL 并转为可点击链接
+  html: false, // 安全：禁用原始 HTML 标签
+  breaks: true, // GitHub 风格：单个换行符转为 <br>
+  linkify: true, // 自动链接：识别 URL 并转为可点击链接
   typographer: true, // 智能标点：-- → —，引号美化等
   highlight: (str: string, lang: string): string => {
     const language = lang || ''
@@ -194,7 +194,10 @@ function saveEditedCode() {
   // 重新进行语法高亮
   if (lang && lang !== 'text' && hljs.getLanguage(lang)) {
     try {
-      highlighted = hljs.highlight(editCodeContent.value, { language: lang, ignoreIllegals: true }).value
+      highlighted = hljs.highlight(editCodeContent.value, {
+        language: lang,
+        ignoreIllegals: true,
+      }).value
     } catch {
       highlighted = escapeHtml(editCodeContent.value)
     }
@@ -327,11 +330,14 @@ function handleCodeFold(wrapper: HTMLElement, btn: HTMLElement) {
 function handleCopyMessage() {
   // 移除 HTML 标签，获取纯文本
   const text = parsedContent.value.answerContent.replace(/<[^>]+>/g, '')
-  navigator.clipboard.writeText(text).then(() => {
-    ElMessage.success('已复制到剪贴板')
-  }).catch(() => {
-    ElMessage.error('复制失败')
-  })
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      ElMessage.success('已复制到剪贴板')
+    })
+    .catch(() => {
+      ElMessage.error('复制失败')
+    })
 }
 
 /** 用户反馈状态：点赞/点踩/无 */
@@ -375,7 +381,7 @@ const parsedContent = computed(() => {
       hasThinking: true,
       thinkingComplete: true,
       thinkingContent,
-      answerContent
+      answerContent,
     }
   } else if (thinkingStart !== -1 && thinkingEnd === -1) {
     // 思考过程正在输出（流式响应）
@@ -384,7 +390,7 @@ const parsedContent = computed(() => {
       hasThinking: true,
       thinkingComplete: false,
       thinkingContent,
-      answerContent: ''
+      answerContent: '',
     }
   }
 
@@ -393,7 +399,7 @@ const parsedContent = computed(() => {
     hasThinking: false,
     thinkingComplete: false,
     thinkingContent: '',
-    answerContent: content
+    answerContent: content,
   }
 })
 
@@ -401,11 +407,14 @@ const parsedContent = computed(() => {
  * 监听思考过程状态
  * 流式响应开始时自动展开思考区域
  */
-watch(() => parsedContent.value.hasThinking, (val) => {
-  if (val && props.message.isStreaming) {
-    thinkingExpanded.value = true
+watch(
+  () => parsedContent.value.hasThinking,
+  val => {
+    if (val && props.message.isStreaming) {
+      thinkingExpanded.value = true
+    }
   }
-})
+)
 
 // ==================== Markdown 渲染 ====================
 
@@ -636,5 +645,3 @@ const isUser = computed(() => props.message.role === 'user')
   gap: 8px;
 }
 </style>
-
-

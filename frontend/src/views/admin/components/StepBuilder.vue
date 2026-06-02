@@ -31,10 +31,7 @@
 
           <template v-if="stepModes[index] === 'action'">
             <el-form-item label="动作" required>
-              <el-input
-                v-model="step.action"
-                placeholder="具体执行动作，如：分析数据并生成报告"
-              />
+              <el-input v-model="step.action" placeholder="具体执行动作，如：分析数据并生成报告" />
             </el-form-item>
           </template>
 
@@ -82,16 +79,14 @@ const emit = defineEmits<{
 }>()
 
 const steps = ref<StepDef[]>([...props.steps])
-const stepModes = ref<('action' | 'tool')[]>(
-  props.steps.map(s => s.tool ? 'tool' : 'action')
-)
+const stepModes = ref<('action' | 'tool')[]>(props.steps.map(s => (s.tool ? 'tool' : 'action')))
 
 const addStep = () => {
   steps.value.push({
     description: '',
     action: '',
     tool: '',
-    params: {}
+    params: {},
   })
   stepModes.value.push('action')
   emit('update:steps', steps.value)
@@ -133,15 +128,23 @@ const updateParams = (step: StepDef, jsonStr: string) => {
   emit('update:steps', steps.value)
 }
 
-watch(steps, (newSteps) => {
-  emit('update:steps', newSteps)
-}, { deep: true })
+watch(
+  steps,
+  newSteps => {
+    emit('update:steps', newSteps)
+  },
+  { deep: true }
+)
 
 // Initialize
-watch(() => props.steps, (newSteps) => {
-  steps.value = [...newSteps]
-  stepModes.value = newSteps.map(s => s.tool ? 'tool' : 'action')
-}, { immediate: true })
+watch(
+  () => props.steps,
+  newSteps => {
+    steps.value = [...newSteps]
+    stepModes.value = newSteps.map(s => (s.tool ? 'tool' : 'action'))
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

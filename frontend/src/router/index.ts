@@ -10,37 +10,37 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'Login',
     component: () => import('@/views/LoginView.vue'),
-    meta: { requiresAuth: false, title: '登录' }
+    meta: { requiresAuth: false, title: '登录' },
   },
   {
     path: '/auth/github/callback',
     name: 'GitHubCallback',
     component: () => import('@/views/OAuthCallbackView.vue'),
-    meta: { requiresAuth: false, title: 'GitHub 登录' }
+    meta: { requiresAuth: false, title: 'GitHub 登录' },
   },
   {
     path: '/auth/gitlab/callback',
     name: 'GitLabCallback',
     component: () => import('@/views/OAuthCallbackView.vue'),
-    meta: { requiresAuth: false, title: 'GitLab 登录' }
+    meta: { requiresAuth: false, title: 'GitLab 登录' },
   },
   {
     path: '/',
     name: 'Chat',
     component: () => import('@/views/ChatView.vue'),
-    meta: { requiresAuth: true, title: 'AI 助手' }
+    meta: { requiresAuth: true, title: 'AI 助手' },
   },
   {
     path: '/agent',
     name: 'AgentExecution',
     component: () => import('@/views/AgentExecutionView.vue'),
-    meta: { requiresAuth: true, title: 'Agent 执行' }
+    meta: { requiresAuth: true, title: 'Agent 执行' },
   },
   {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/ProfileView.vue'),
-    meta: { requiresAuth: true, title: '个人中心' }
+    meta: { requiresAuth: true, title: '个人中心' },
   },
   {
     path: '/admin',
@@ -51,70 +51,70 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'AdminDashboard',
         component: () => import('@/views/admin/DashboardView.vue'),
-        meta: { title: '管理后台' }
+        meta: { title: '管理后台' },
       },
       {
         path: 'users',
         name: 'AdminUsers',
         component: () => import('@/views/admin/UsersView.vue'),
-        meta: { title: '用户管理' }
+        meta: { title: '用户管理' },
       },
       {
         path: 'cost',
         name: 'AdminCost',
         component: () => import('@/views/admin/CostView.vue'),
-        meta: { title: '成本监控' }
+        meta: { title: '成本监控' },
       },
       {
         path: 'planning',
         name: 'AdminPlanning',
         component: () => import('@/views/admin/PlanningView.vue'),
-        meta: { title: '任务规划' }
+        meta: { title: '任务规划' },
       },
       {
         path: 'agent-audit',
         name: 'AdminAgentAudit',
         component: () => import('@/views/admin/AgentAuditView.vue'),
-        meta: { title: 'Agent 审计' }
+        meta: { title: 'Agent 审计' },
       },
       {
         path: 'test',
         name: 'AdminTest',
         component: () => import('@/views/admin/TestDashboardView.vue'),
-        meta: { title: '测试管理' }
+        meta: { title: '测试管理' },
       },
       {
         path: 'traces',
         name: 'AdminTraces',
         component: () => import('@/views/admin/AgentTraceView.vue'),
-        meta: { title: 'Agent 追踪' }
+        meta: { title: 'Agent 追踪' },
       },
       {
         path: 'prompts',
         name: 'AdminPrompts',
         component: () => import('@/views/admin/PromptManagementView.vue'),
-        meta: { title: 'Prompt 管理' }
+        meta: { title: 'Prompt 管理' },
       },
       {
         path: 'evaluation',
         name: 'AdminEvaluation',
         component: () => import('@/views/admin/EvaluationView.vue'),
-        meta: { title: 'Agent 评测' }
+        meta: { title: 'Agent 评测' },
       },
       {
         path: 'test-history',
         name: 'AdminTestHistory',
         component: () => import('@/views/admin/TestHistoryView.vue'),
-        meta: { title: '测试历史' }
-      }
-    ]
-  }
+        meta: { title: '测试历史' },
+      },
+    ],
+  },
 ]
 
 // 创建路由实例
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 })
 
 /**
@@ -144,7 +144,7 @@ router.beforeEach(async (to, _from, next) => {
     // 未登录，跳转到登录页
     next({
       path: '/login',
-      query: { redirect: to.fullPath }
+      query: { redirect: to.fullPath },
     })
     return
   }
@@ -164,7 +164,7 @@ router.beforeEach(async (to, _from, next) => {
  * 全局后置守卫
  * 设置页面标题
  */
-router.afterEach((to) => {
+router.afterEach(to => {
   const title = to.meta.title as string
   document.title = title ? `${title} - AI Agent` : 'AI Agent'
 })

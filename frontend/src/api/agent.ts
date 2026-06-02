@@ -12,17 +12,8 @@
  * @author jonychen
  */
 
-import type {
-  AgentEvent,
-  AgentMetadata,
-  ExecuteRequest,
-  ConfirmRequest
-} from '@/types/agent'
-import {
-  recordReconnect,
-  recordEventGap,
-  startMetricsReporting
-} from '@/utils/frontendReliability'
+import type { AgentEvent, AgentMetadata, ExecuteRequest, ConfirmRequest } from '@/types/agent'
+import { recordReconnect, recordEventGap, startMetricsReporting } from '@/utils/frontendReliability'
 import http from '@/utils/http'
 import { useAuthStore } from '@/stores/auth'
 
@@ -86,10 +77,10 @@ export async function* executeAgent(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-          ...(currentToken ? { 'Authorization': `Bearer ${currentToken}` } : {}),
+          Accept: 'text/event-stream',
+          ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
       })
 
       // 认证错误：尝试刷新 Token 后重试一次
@@ -103,10 +94,10 @@ export async function* executeAgent(
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Accept': 'text/event-stream',
-              ...(newToken ? { 'Authorization': `Bearer ${newToken}` } : {}),
+              Accept: 'text/event-stream',
+              ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
             },
-            body: JSON.stringify(request)
+            body: JSON.stringify(request),
           })
           if (!retryResponse.ok) {
             const errorData = await retryResponse.json().catch(() => ({}))
@@ -209,7 +200,9 @@ export async function* executeAgent(
               currentEvent = line.slice(6).trim()
             } else if (line.startsWith('data:')) {
               const dataContent = line.slice(5)
-              currentData += (currentData ? '\n' : '') + (dataContent.startsWith(' ') ? dataContent.slice(1) : dataContent)
+              currentData +=
+                (currentData ? '\n' : '') +
+                (dataContent.startsWith(' ') ? dataContent.slice(1) : dataContent)
             } else if (line === '' && currentEvent && currentData) {
               // 空行表示事件结束
 
@@ -283,14 +276,18 @@ export async function* executeAgent(
 /**
  * 确认敏感操作
  */
-export async function confirmOperation(request: ConfirmRequest): Promise<{ success: boolean; message: string }> {
+export async function confirmOperation(
+  request: ConfirmRequest
+): Promise<{ success: boolean; message: string }> {
   return http.post(API_BASE + '/confirm', request)
 }
 
 /**
  * 取消执行
  */
-export async function cancelExecution(traceId: string): Promise<{ success: boolean; message: string }> {
+export async function cancelExecution(
+  traceId: string
+): Promise<{ success: boolean; message: string }> {
   return http.post(`${API_BASE}/cancel/${traceId}`)
 }
 

@@ -15,9 +15,14 @@ import {
   Check,
   Close,
   Minus,
-  Plus
+  Plus,
 } from '@element-plus/icons-vue'
-import { observabilityApi, type AgentTrace, type AgentSpan, type TraceStatistics } from '@/api/observability'
+import {
+  observabilityApi,
+  type AgentTrace,
+  type AgentSpan,
+  type TraceStatistics,
+} from '@/api/observability'
 import { PageContainer, StatsCard, EmptyState } from '@/components/layout'
 import PathBreadcrumb from '@/components/PathBreadcrumb.vue'
 
@@ -39,7 +44,7 @@ const timelineContainer = ref<HTMLElement | null>(null)
 const filters = reactive({
   status: '',
   agentType: '',
-  userId: ''
+  userId: '',
 })
 
 // 将 spans 按迭代分组
@@ -47,24 +52,33 @@ const groupedSpans = computed(() => {
   if (!spans.value.length) return []
 
   // 按 startTime 排序
-  const sortedSpans = [...spans.value].sort((a, b) =>
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  const sortedSpans = [...spans.value].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   )
 
   // 识别迭代边界（LLM_CALL 通常是一个迭代的开始）
-  const groups: { iteration: number; spans: AgentSpan[]; startTime: Date; endTime: Date; duration: number }[] = []
+  const groups: {
+    iteration: number
+    spans: AgentSpan[]
+    startTime: Date
+    endTime: Date
+    duration: number
+  }[] = []
   let currentIteration = -1
 
   for (const span of sortedSpans) {
     // LLM_CALL 或 THOUGHT 作为新迭代的开始
-    if (span.type === 'LLM_CALL' || (span.type === 'THOUGHT' && !groups.some(g => g.spans.some(s => s.type === 'LLM_CALL')))) {
+    if (
+      span.type === 'LLM_CALL' ||
+      (span.type === 'THOUGHT' && !groups.some(g => g.spans.some(s => s.type === 'LLM_CALL')))
+    ) {
       currentIteration++
       groups.push({
         iteration: currentIteration,
         spans: [],
         startTime: new Date(span.startTime),
         endTime: new Date(span.endTime),
-        duration: span.durationMs || 0
+        duration: span.durationMs || 0,
       })
     }
 
@@ -76,7 +90,7 @@ const groupedSpans = computed(() => {
         spans: [],
         startTime: new Date(span.startTime),
         endTime: new Date(span.endTime),
-        duration: span.durationMs || 0
+        duration: span.durationMs || 0,
       })
     }
 
@@ -103,8 +117,8 @@ const selectedSpan = computed(() => {
 // 计算时间轴的总时长
 const totalDuration = computed(() => {
   if (!spans.value.length) return 0
-  const sortedSpans = [...spans.value].sort((a, b) =>
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  const sortedSpans = [...spans.value].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   )
   const start = new Date(sortedSpans[0]?.startTime).getTime()
   const end = new Date(sortedSpans[sortedSpans.length - 1]?.endTime).getTime()
@@ -115,8 +129,8 @@ const totalDuration = computed(() => {
 const getSpanPosition = (span: AgentSpan) => {
   if (!spans.value.length || totalDuration.value === 0) return { left: 0, width: 0 }
 
-  const sortedSpans = [...spans.value].sort((a, b) =>
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  const sortedSpans = [...spans.value].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   )
   const baseTime = new Date(sortedSpans[0]?.startTime).getTime()
 
@@ -136,11 +150,15 @@ const loadTraces = async () => {
       status: filters.status,
       agentType: filters.agentType,
       userId: filters.userId,
-      limit: 50
+      limit: 50,
     })
     // 兼容后端返回分页对象 {data: [...], total, ...} 或直接返回数组的情况
     const resultData = result as unknown as { data?: AgentTrace[] }
-    traces.value = Array.isArray(result) ? result : Array.isArray(resultData?.data) ? resultData.data : []
+    traces.value = Array.isArray(result)
+      ? result
+      : Array.isArray(resultData?.data)
+        ? resultData.data
+        : []
   } catch (error) {
     ElMessage.error('加载追踪列表失败')
   } finally {
@@ -173,7 +191,11 @@ const showSpanView = async (trace: AgentTrace) => {
     const result = await observabilityApi.getTraceSpans(trace.traceId)
     // 兼容后端返回分页对象 {data: [...], total, ...} 或直接返回数组的情况
     const resultData = result as unknown as { data?: AgentSpan[] }
-    spans.value = Array.isArray(result) ? result : Array.isArray(resultData?.data) ? resultData.data : []
+    spans.value = Array.isArray(result)
+      ? result
+      : Array.isArray(resultData?.data)
+        ? resultData.data
+        : []
     spanViewVisible.value = true
 
     // 默认选中第一个 span
@@ -204,60 +226,71 @@ const resetFilters = () => {
 
 const getStatusType = (status: string) => {
   const types: Record<string, string> = {
-    'RUNNING': 'primary',
-    'COMPLETED': 'success',
-    'FAILED': 'danger',
-    'CANCELLED': 'info'
+    RUNNING: 'primary',
+    COMPLETED: 'success',
+    FAILED: 'danger',
+    CANCELLED: 'info',
   }
   return types[status] || 'info'
 }
 
 // 获取步骤类型配置（图标、颜色、标签）
 const getSpanTypeConfig = (type: string) => {
-  const configs: Record<string, { icon: typeof QuestionFilled; color: string; bgColor: string; label: string; description: string }> = {
-    'THOUGHT': {
+  const configs: Record<
+    string,
+    {
+      icon: typeof QuestionFilled
+      color: string
+      bgColor: string
+      label: string
+      description: string
+    }
+  > = {
+    THOUGHT: {
       icon: Document,
       color: '#60a5fa',
       bgColor: 'rgba(96, 165, 250, 0.1)',
       label: '思考',
-      description: 'Agent 推理思考过程'
+      description: 'Agent 推理思考过程',
     },
-    'LLM_CALL': {
+    LLM_CALL: {
       icon: Cpu,
       color: '#34d399',
       bgColor: 'rgba(52, 211, 153, 0.1)',
       label: 'LLM 调用',
-      description: '大语言模型响应生成'
+      description: '大语言模型响应生成',
     },
-    'ACTION': {
+    ACTION: {
       icon: Promotion,
       color: '#fbbf24',
       bgColor: 'rgba(251, 191, 36, 0.1)',
       label: '行动',
-      description: 'Agent 决定的下一步行动'
+      description: 'Agent 决定的下一步行动',
     },
-    'TOOL_EXECUTE': {
+    TOOL_EXECUTE: {
       icon: Tools,
       color: '#f472b6',
       bgColor: 'rgba(244, 114, 182, 0.1)',
       label: '工具执行',
-      description: '调用外部工具完成任务'
+      description: '调用外部工具完成任务',
     },
-    'OBSERVATION': {
+    OBSERVATION: {
       icon: View,
       color: '#a78bfa',
       bgColor: 'rgba(167, 139, 250, 0.1)',
       label: '观察',
-      description: '工具执行结果观察'
+      description: '工具执行结果观察',
+    },
+  }
+  return (
+    configs[type] || {
+      icon: Operation,
+      color: '#9ca3af',
+      bgColor: 'rgba(156, 163, 175, 0.1)',
+      label: type,
+      description: '未知步骤类型',
     }
-  }
-  return configs[type] || {
-    icon: Operation,
-    color: '#9ca3af',
-    bgColor: 'rgba(156, 163, 175, 0.1)',
-    label: type,
-    description: '未知步骤类型'
-  }
+  )
 }
 
 // 切换迭代展开/折叠
@@ -301,7 +334,11 @@ const formatTime = (time: string) => {
 
 const formatTimeShort = (time: string) => {
   if (!time) return '-'
-  return new Date(time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(time).toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 
 const formatPercent = (rate?: number) => {
@@ -407,7 +444,12 @@ onUnmounted(() => {
           <el-option label="失败" value="FAILED" />
           <el-option label="已取消" value="CANCELLED" />
         </el-select>
-        <el-select v-model="filters.agentType" placeholder="Agent 类型" clearable class="filter-select">
+        <el-select
+          v-model="filters.agentType"
+          placeholder="Agent 类型"
+          clearable
+          class="filter-select"
+        >
           <el-option label="全部" value="" />
           <el-option label="ReAct" value="REACT" />
           <el-option label="Plan-Execute" value="PLAN_EXECUTE" />
@@ -479,12 +521,8 @@ onUnmounted(() => {
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="showSpanView(row)">
-              追踪详情
-            </el-button>
-            <el-button link type="success" @click="evaluateTrace(row)">
-              评测
-            </el-button>
+            <el-button link type="primary" @click="showSpanView(row)">追踪详情</el-button>
+            <el-button link type="success" @click="evaluateTrace(row)">评测</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -505,7 +543,12 @@ onUnmounted(() => {
         <!-- 头部：状态 + 关键指标 -->
         <div class="trace-header">
           <div class="trace-id-section">
-            <PathBreadcrumb :value="selectedTrace.traceId" separator="uuid" :max-items="3" class="trace-id-breadcrumb" />
+            <PathBreadcrumb
+              :value="selectedTrace.traceId"
+              separator="uuid"
+              :max-items="3"
+              class="trace-id-breadcrumb"
+            />
             <el-tag :type="getStatusType(selectedTrace.status)" size="small" effect="dark">
               {{ selectedTrace.status }}
             </el-tag>
@@ -521,7 +564,9 @@ onUnmounted(() => {
               <span class="metric-label">耗时</span>
             </div>
             <div class="metric-item">
-              <span class="metric-value">{{ formatTokens(selectedTrace.tokenUsage?.totalTokens) }}</span>
+              <span class="metric-value">
+                {{ formatTokens(selectedTrace.tokenUsage?.totalTokens) }}
+              </span>
               <span class="metric-label">Tokens</span>
             </div>
           </div>
@@ -555,11 +600,21 @@ onUnmounted(() => {
             <div class="detail-grid">
               <div class="detail-item" style="grid-column: span 2">
                 <span class="detail-label">Trace ID</span>
-                <PathBreadcrumb :value="selectedTrace.traceId" separator="uuid" :max-items="8" :expandable="true" />
+                <PathBreadcrumb
+                  :value="selectedTrace.traceId"
+                  separator="uuid"
+                  :max-items="8"
+                  :expandable="true"
+                />
               </div>
               <div class="detail-item" style="grid-column: span 2">
                 <span class="detail-label">会话 ID</span>
-                <PathBreadcrumb :value="selectedTrace.sessionId" separator="uuid" :max-items="6" :expandable="true" />
+                <PathBreadcrumb
+                  :value="selectedTrace.sessionId"
+                  separator="uuid"
+                  :max-items="6"
+                  :expandable="true"
+                />
               </div>
               <div class="detail-item">
                 <span class="detail-label">用户</span>
@@ -576,8 +631,8 @@ onUnmounted(() => {
               <div class="detail-item">
                 <span class="detail-label">Token 明细</span>
                 <span class="detail-value">
-                  Prompt: {{ selectedTrace.tokenUsage?.promptTokens || 0 }} /
-                  Completion: {{ selectedTrace.tokenUsage?.completionTokens || 0 }}
+                  Prompt: {{ selectedTrace.tokenUsage?.promptTokens || 0 }} / Completion:
+                  {{ selectedTrace.tokenUsage?.completionTokens || 0 }}
                 </span>
               </div>
             </div>
@@ -636,7 +691,9 @@ onUnmounted(() => {
         <div class="timeline-overview">
           <div class="timeline-header">
             <span class="timeline-title">执行时间线</span>
-            <span class="timeline-total">总耗时: {{ formatDuration(totalDuration || selectedTrace?.executionTimeMs) }}</span>
+            <span class="timeline-total">
+              总耗时: {{ formatDuration(totalDuration || selectedTrace?.executionTimeMs) }}
+            </span>
           </div>
           <div class="timeline-bars">
             <div
@@ -654,7 +711,7 @@ onUnmounted(() => {
                   :style="{
                     left: getSpanPosition(span).left + '%',
                     width: getSpanPosition(span).width + '%',
-                    backgroundColor: getSpanTypeConfig(span.type).color
+                    backgroundColor: getSpanTypeConfig(span.type).color,
                   }"
                   :title="`${getSpanTypeConfig(span.type).label}: ${span.name}`"
                   @click.stop="selectSpan(span)"
@@ -663,7 +720,16 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="timeline-legend">
-            <span v-for="(config, type) in { THOUGHT: getSpanTypeConfig('THOUGHT'), LLM_CALL: getSpanTypeConfig('LLM_CALL'), TOOL_EXECUTE: getSpanTypeConfig('TOOL_EXECUTE'), OBSERVATION: getSpanTypeConfig('OBSERVATION') }" :key="type" class="legend-item">
+            <span
+              v-for="(config, type) in {
+                THOUGHT: getSpanTypeConfig('THOUGHT'),
+                LLM_CALL: getSpanTypeConfig('LLM_CALL'),
+                TOOL_EXECUTE: getSpanTypeConfig('TOOL_EXECUTE'),
+                OBSERVATION: getSpanTypeConfig('OBSERVATION'),
+              }"
+              :key="type"
+              class="legend-item"
+            >
               <span class="legend-dot" :style="{ backgroundColor: config.color }"></span>
               {{ config.label }}
             </span>
@@ -680,18 +746,17 @@ onUnmounted(() => {
             </div>
 
             <div class="step-groups">
-              <div
-                v-for="group in groupedSpans"
-                :key="group.iteration"
-                class="step-group"
-              >
+              <div v-for="group in groupedSpans" :key="group.iteration" class="step-group">
                 <!-- 迭代头部 -->
                 <div
                   class="group-header"
                   :class="{ active: expandedIterations.has(group.iteration) }"
                   @click="toggleIteration(group.iteration)"
                 >
-                  <el-icon class="expand-icon" :class="{ expanded: expandedIterations.has(group.iteration) }">
+                  <el-icon
+                    class="expand-icon"
+                    :class="{ expanded: expandedIterations.has(group.iteration) }"
+                  >
                     <CaretRight />
                   </el-icon>
                   <div class="group-info">
@@ -715,11 +780,17 @@ onUnmounted(() => {
                     >
                       <div class="step-connector">
                         <div class="connector-line"></div>
-                        <div class="connector-dot" :style="{ backgroundColor: getSpanTypeConfig(span.type).color }"></div>
+                        <div
+                          class="connector-dot"
+                          :style="{ backgroundColor: getSpanTypeConfig(span.type).color }"
+                        ></div>
                       </div>
                       <div class="step-content">
                         <div class="step-header">
-                          <span class="step-type" :style="{ color: getSpanTypeConfig(span.type).color }">
+                          <span
+                            class="step-type"
+                            :style="{ color: getSpanTypeConfig(span.type).color }"
+                          >
                             <el-icon><component :is="getSpanTypeConfig(span.type).icon" /></el-icon>
                             {{ getSpanTypeConfig(span.type).label }}
                           </span>
@@ -727,7 +798,9 @@ onUnmounted(() => {
                         </div>
                         <div class="step-name">{{ span.name }}</div>
                         <el-icon v-if="!span.success" class="step-error-icon"><Close /></el-icon>
-                        <el-icon v-else-if="selectedSpanId === span.spanId" class="step-check-icon"><Check /></el-icon>
+                        <el-icon v-else-if="selectedSpanId === span.spanId" class="step-check-icon">
+                          <Check />
+                        </el-icon>
                       </div>
                     </div>
                   </div>
@@ -741,7 +814,13 @@ onUnmounted(() => {
             <template v-if="selectedSpan">
               <div class="detail-header">
                 <div class="detail-title-row">
-                  <span class="detail-type-badge" :style="{ backgroundColor: getSpanTypeConfig(selectedSpan.type).bgColor, color: getSpanTypeConfig(selectedSpan.type).color }">
+                  <span
+                    class="detail-type-badge"
+                    :style="{
+                      backgroundColor: getSpanTypeConfig(selectedSpan.type).bgColor,
+                      color: getSpanTypeConfig(selectedSpan.type).color,
+                    }"
+                  >
                     <el-icon><component :is="getSpanTypeConfig(selectedSpan.type).icon" /></el-icon>
                     {{ getSpanTypeConfig(selectedSpan.type).label }}
                   </span>
@@ -750,7 +829,9 @@ onUnmounted(() => {
                   </el-tag>
                 </div>
                 <h3 class="detail-title">{{ selectedSpan.name }}</h3>
-                <p class="detail-description">{{ getSpanTypeConfig(selectedSpan.type).description }}</p>
+                <p class="detail-description">
+                  {{ getSpanTypeConfig(selectedSpan.type).description }}
+                </p>
               </div>
 
               <div class="detail-metrics">
@@ -783,9 +864,16 @@ onUnmounted(() => {
                           复制
                         </el-button>
                       </div>
-                      <pre class="code-content"><code>{{ formatJsonContent(selectedSpan.input) }}</code></pre>
+                      <pre
+                        class="code-content"
+                      ><code>{{ formatJsonContent(selectedSpan.input) }}</code></pre>
                     </div>
-                    <EmptyState v-else title="无输入参数" description="此步骤没有输入数据" size="small" />
+                    <EmptyState
+                      v-else
+                      title="无输入参数"
+                      description="此步骤没有输入数据"
+                      size="small"
+                    />
                   </el-tab-pane>
 
                   <el-tab-pane label="输出结果" name="output">
@@ -797,9 +885,16 @@ onUnmounted(() => {
                           复制
                         </el-button>
                       </div>
-                      <pre class="code-content"><code>{{ formatJsonContent(selectedSpan.output) }}</code></pre>
+                      <pre
+                        class="code-content"
+                      ><code>{{ formatJsonContent(selectedSpan.output) }}</code></pre>
                     </div>
-                    <EmptyState v-else title="无输出结果" description="此步骤没有产生输出数据" size="small" />
+                    <EmptyState
+                      v-else
+                      title="无输出结果"
+                      description="此步骤没有产生输出数据"
+                      size="small"
+                    />
                   </el-tab-pane>
 
                   <el-tab-pane v-if="selectedSpan.error" label="错误信息" name="error">
@@ -815,7 +910,11 @@ onUnmounted(() => {
 
                   <el-tab-pane v-if="selectedSpan.attributes" label="属性" name="attributes">
                     <div class="attributes-grid">
-                      <div v-for="(value, key) in selectedSpan.attributes" :key="key" class="attribute-item">
+                      <div
+                        v-for="(value, key) in selectedSpan.attributes"
+                        :key="key"
+                        class="attribute-item"
+                      >
                         <span class="attribute-key">{{ key }}</span>
                         <span class="attribute-value">{{ JSON.stringify(value) }}</span>
                       </div>
@@ -837,7 +936,11 @@ onUnmounted(() => {
 
       <template #footer>
         <el-button @click="spanViewVisible = false">关闭</el-button>
-        <el-button type="primary" @click="selectedTrace && evaluateTrace(selectedTrace)" :loading="false">
+        <el-button
+          type="primary"
+          @click="selectedTrace && evaluateTrace(selectedTrace)"
+          :loading="false"
+        >
           执行评测
         </el-button>
       </template>

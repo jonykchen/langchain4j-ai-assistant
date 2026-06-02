@@ -24,27 +24,17 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type {
-  AgentEvent,
-  AgentMetadata,
-  ExecutionRecord,
-  ExecutionStep
-} from '@/types/agent'
-import {
-  executeAgent,
-  confirmOperation,
-  cancelExecution,
-  listAgents
-} from '@/api/agent'
+import type { AgentEvent, AgentMetadata, ExecutionRecord, ExecutionStep } from '@/types/agent'
+import { executeAgent, confirmOperation, cancelExecution, listAgents } from '@/api/agent'
 import { recordStateRestoreFailure } from '@/utils/frontendReliability'
 
 /** 错误类型分级 */
 export type AgentErrorType =
-  | 'NETWORK_ERROR'      // 网络断开/超时，可自动重试
-  | 'SERVER_ERROR'       // HTTP 5xx
-  | 'SSE_PARSE_ERROR'    // 事件解析失败
-  | 'CONFIRM_CONFLICT'   // 确认操作冲突
-  | 'UNKNOWN_ERROR'     // 未知错误
+  | 'NETWORK_ERROR' // 网络断开/超时，可自动重试
+  | 'SERVER_ERROR' // HTTP 5xx
+  | 'SSE_PARSE_ERROR' // 事件解析失败
+  | 'CONFIRM_CONFLICT' // 确认操作冲突
+  | 'UNKNOWN_ERROR' // 未知错误
 
 /** 错误信息 */
 export interface AgentError {
@@ -116,7 +106,7 @@ export const useAgentStore = defineStore('agent', () => {
           JSON.stringify({
             traceId: activeTraceId.value,
             execution: activeExec,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           })
         )
       } catch (e) {
@@ -161,7 +151,7 @@ export const useAgentStore = defineStore('agent', () => {
           exec.steps = exec.steps.map((s: ExecutionStep) => ({
             ...s,
             startTime: new Date(s.startTime),
-            endTime: s.endTime ? new Date(s.endTime) : undefined
+            endTime: s.endTime ? new Date(s.endTime) : undefined,
           }))
         }
         executions.value = [exec]
@@ -212,8 +202,10 @@ export const useAgentStore = defineStore('agent', () => {
   )
 
   /** 是否正在执行 */
-  const isExecuting = computed(() =>
-    activeExecution.value?.status === 'running' || activeExecution.value?.status === 'waiting_confirmation'
+  const isExecuting = computed(
+    () =>
+      activeExecution.value?.status === 'running' ||
+      activeExecution.value?.status === 'waiting_confirmation'
   )
 
   // ==================== Actions ====================
@@ -254,7 +246,7 @@ export const useAgentStore = defineStore('agent', () => {
       agentName: '',
       userInput,
       steps: [],
-      startTime: new Date()
+      startTime: new Date(),
     }
     executions.value.unshift(record)
     activeTraceId.value = traceId
@@ -271,17 +263,20 @@ export const useAgentStore = defineStore('agent', () => {
     }
 
     try {
-      const eventStream = executeAgent({ userInput }, {
-        onReconnect: (attempt) => {
-          connectionState.value = 'reconnecting'
-          reconnectAttempt.value = attempt
-          console.warn('[AgentStore] SSE 重连中, 第', attempt, '次')
-        },
-        onConnected: () => {
-          connectionState.value = 'connected'
-          reconnectAttempt.value = 0
+      const eventStream = executeAgent(
+        { userInput },
+        {
+          onReconnect: attempt => {
+            connectionState.value = 'reconnecting'
+            reconnectAttempt.value = attempt
+            console.warn('[AgentStore] SSE 重连中, 第', attempt, '次')
+          },
+          onConnected: () => {
+            connectionState.value = 'connected'
+            reconnectAttempt.value = 0
+          },
         }
-      })
+      )
 
       for await (const event of eventStream) {
         // 检查执行是否已被取消
@@ -295,26 +290,29 @@ export const useAgentStore = defineStore('agent', () => {
 
       // 执行完成（正常结束），状态回到 idle
       connectionState.value = 'idle'
-
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
 
       // 区分错误类型
       let errType: AgentErrorType = 'UNKNOWN_ERROR'
-      if (errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('Failed to fetch')) {
+      if (
+        errMsg.includes('fetch') ||
+        errMsg.includes('network') ||
+        errMsg.includes('Failed to fetch')
+      ) {
         errType = 'NETWORK_ERROR'
       } else if (errMsg.includes('HTTP error') && errMsg.includes('5')) {
         errType = 'SERVER_ERROR'
       }
 
       error.value = { message: errMsg, type: errType }
-      
+
       // 异常断开，标记为 disconnected（非正常结束）
       connectionState.value = 'disconnected'
 
       updateExecution(traceId, {
         status: 'error',
-        errorMessage: errMsg
+        errorMessage: errMsg,
       })
 
       console.error('[AgentStore] 执行失败:', errMsg)
@@ -366,7 +364,7 @@ export const useAgentStore = defineStore('agent', () => {
             index: event.stepIndex,
             type: event.type,
             status: 'running',
-            startTime: new Date(event.timestamp)
+            startTime: new Date(event.timestamp),
           }
           addOrUpdateStep(record, step)
           break
@@ -379,7 +377,7 @@ export const useAgentStore = defineStore('agent', () => {
             type: 'THOUGHT',
             status: 'running',
             startTime: new Date(event.timestamp),
-            content: event.content
+            content: event.content,
           }
           addOrUpdateStep(record, step)
           break
@@ -393,7 +391,7 @@ export const useAgentStore = defineStore('agent', () => {
             status: 'running',
             startTime: new Date(event.timestamp),
             toolName: event.toolName,
-            toolParams: event.params
+            toolParams: event.params,
           }
           addOrUpdateStep(record, step)
           break
@@ -416,7 +414,7 @@ export const useAgentStore = defineStore('agent', () => {
               endTime: new Date(event.timestamp),
               toolName: event.toolName,
               toolResult: event.result,
-              error: event.error || undefined
+              error: event.error || undefined,
             }
             record.steps.push(newStep)
           }
@@ -440,7 +438,7 @@ export const useAgentStore = defineStore('agent', () => {
             type: 'AGENT_CALL',
             status: 'running',
             startTime: new Date(event.timestamp),
-            content: `委托 ${event.targetAgent}: ${event.input}`
+            content: `委托 ${event.targetAgent}: ${event.input}`,
           }
           record.steps.push(step)
           break
@@ -455,7 +453,7 @@ export const useAgentStore = defineStore('agent', () => {
             startTime: new Date(event.timestamp),
             endTime: new Date(event.timestamp),
             content: event.output,
-            toolName: event.agentName
+            toolName: event.agentName,
           }
           record.steps.push(step)
           break
@@ -467,7 +465,7 @@ export const useAgentStore = defineStore('agent', () => {
             confirmationId: event.confirmationId,
             operation: event.operation,
             description: event.description,
-            riskLevel: event.riskLevel
+            riskLevel: event.riskLevel,
           }
           console.warn('[AgentStore] 需要确认操作:', event.operation, '风险:', event.riskLevel)
           break
@@ -505,9 +503,7 @@ export const useAgentStore = defineStore('agent', () => {
 
   /** 添加或更新步骤（同 index 同 type 更新） */
   function addOrUpdateStep(record: ExecutionRecord, step: ExecutionStep) {
-    const existing = record.steps.findIndex(
-      s => s.index === step.index && s.type === step.type
-    )
+    const existing = record.steps.findIndex(s => s.index === step.index && s.type === step.type)
     if (existing >= 0) {
       record.steps[existing] = { ...record.steps[existing], ...step }
     } else {
@@ -524,7 +520,7 @@ export const useAgentStore = defineStore('agent', () => {
       const result = await confirmOperation({
         traceId,
         confirmationId: record.pendingConfirmation.confirmationId,
-        approved
+        approved,
       })
 
       if (result.success) {
@@ -535,7 +531,7 @@ export const useAgentStore = defineStore('agent', () => {
       console.error('[AgentStore] 确认操作失败:', e)
       error.value = {
         message: e instanceof Error ? e.message : String(e),
-        type: 'CONFIRM_CONFLICT'
+        type: 'CONFIRM_CONFLICT',
       }
     }
 
@@ -604,6 +600,6 @@ export const useAgentStore = defineStore('agent', () => {
     selectExecution,
     clearHistory,
     restoreState,
-    clearPersistedState
+    clearPersistedState,
   }
 })

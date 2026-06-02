@@ -34,7 +34,7 @@ export async function sendMessage(message: string): Promise<string> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     // 将消息封装为请求体
     body: JSON.stringify({ message } as ChatRequest),
@@ -94,7 +94,7 @@ export async function* streamMessage(message: string): AsyncGenerator<string> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ message } as ChatRequest),
   })
@@ -160,9 +160,7 @@ export async function* streamMessage(message: string): AsyncGenerator<string> {
           // data 行：事件数据
           // SSE 规范：data: 后可能有空格，需要去掉
           const dataContent = line.slice(5)
-          currentDataParts.push(
-            dataContent.startsWith(' ') ? dataContent.slice(1) : dataContent
-          )
+          currentDataParts.push(dataContent.startsWith(' ') ? dataContent.slice(1) : dataContent)
         } else if (line === '') {
           // 空行：事件结束，处理收集的数据
           if (currentDataParts.length > 0) {

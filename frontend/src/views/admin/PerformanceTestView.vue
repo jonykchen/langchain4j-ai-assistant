@@ -30,7 +30,7 @@ const summaryStats = computed(() => {
     avgResponseTime: latest.avgResponseTime ?? 0,
     p95ResponseTime: latest.p95ResponseTime ?? 0,
     p99ResponseTime: latest.p99ResponseTime ?? 0,
-    duration: endTime > 0 && startTime > 0 ? endTime - startTime : 0
+    duration: endTime > 0 && startTime > 0 ? endTime - startTime : 0,
   }
 })
 
@@ -75,9 +75,12 @@ const calculateStats = () => {
     failed: results.value.filter(r => r.successRate < 95).length,
     running: 0,
     totalTests: results.value.length,
-    avgResponseTime: results.value.length > 0
-      ? Math.round(results.value.reduce((sum, r) => sum + r.avgResponseTime, 0) / results.value.length)
-      : 0
+    avgResponseTime:
+      results.value.length > 0
+        ? Math.round(
+            results.value.reduce((sum, r) => sum + r.avgResponseTime, 0) / results.value.length
+          )
+        : 0,
   }
 }
 
@@ -92,12 +95,7 @@ onMounted(() => {
     <!-- 操作栏 -->
     <div class="mb-4 flex justify-between items-center">
       <el-select v-model="selectedSimulation" placeholder="选择模拟场景" style="width: 250px">
-        <el-option
-          v-for="sim in availableSimulations"
-          :key="sim"
-          :label="sim"
-          :value="sim"
-        />
+        <el-option v-for="sim in availableSimulations" :key="sim" :label="sim" :value="sim" />
       </el-select>
       <el-button type="success" @click="runTest" :loading="loading">
         <el-icon><TrendCharts /></el-icon>
@@ -116,7 +114,10 @@ onMounted(() => {
       <el-col :span="4">
         <el-card shadow="never" class="stat-card-small">
           <div class="text-sm text-gray-500">成功率</div>
-          <div class="text-lg font-bold" :class="summaryStats.successRate >= 95 ? 'text-green-600' : 'text-red-600'">
+          <div
+            class="text-lg font-bold"
+            :class="summaryStats.successRate >= 95 ? 'text-green-600' : 'text-red-600'"
+          >
             {{ summaryStats.successRate.toFixed(1) }}%
           </div>
         </el-card>
@@ -157,7 +158,9 @@ onMounted(() => {
       </el-table-column>
       <el-table-column prop="successRate" label="成功率" width="120">
         <template #default="{ row }">
-          <el-tag :type="row.successRate >= 95 ? 'success' : row.successRate >= 90 ? 'warning' : 'danger'">
+          <el-tag
+            :type="row.successRate >= 95 ? 'success' : row.successRate >= 90 ? 'warning' : 'danger'"
+          >
             {{ row.successRate.toFixed(1) }}%
           </el-tag>
         </template>
