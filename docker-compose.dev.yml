@@ -25,7 +25,7 @@ services:
   # PostgreSQL - 主数据库（带 pgvector 扩展）
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: langchain4j-postgres
+    container_name: langchain4j-ai-assistant-postgres
     deploy:
       resources:
         limits:
@@ -55,7 +55,7 @@ services:
   # Redis - 分布式限流与缓存
   redis:
     image: redis:7-alpine
-    container_name: langchain4j-redis
+    container_name: langchain4j-ai-assistant-redis
     ports:
       - "6379:6379"
     command: >
@@ -79,7 +79,7 @@ services:
   # Nacos - 配置中心
   nacos:
     image: nacos/nacos-server:v2.3.1
-    container_name: langchain4j-nacos
+    container_name: langchain4j-ai-assistant-nacos
     ports:
       - "8848:8848"
       - "9848:9848"
@@ -114,7 +114,7 @@ services:
   # Nacos 数据库（仅存储 Nacos 元数据，应用业务数据使用 PostgreSQL）
   nacos-db:
     image: mysql:8.0
-    container_name: langchain4j-nacos-db
+    container_name: langchain4j-ai-assistant-nacos-db
     deploy:
       resources:
         limits:
@@ -147,7 +147,7 @@ services:
   # Zipkin - 链路追踪
   zipkin:
     image: openzipkin/zipkin:latest
-    container_name: langchain4j-zipkin
+    container_name: langchain4j-ai-assistant-zipkin
     ports:
       - "9411:9411"
     environment:
@@ -160,7 +160,7 @@ services:
   # Prometheus - 指标收集
   prometheus:
     image: prom/prometheus:v2.48.0
-    container_name: langchain4j-prometheus
+    container_name: langchain4j-ai-assistant-prometheus
     deploy:
       resources:
         limits:
@@ -191,7 +191,7 @@ services:
   # Grafana - 可视化面板
   grafana:
     image: grafana/grafana:10.2.0
-    container_name: langchain4j-grafana
+    container_name: langchain4j-ai-assistant-grafana
     deploy:
       resources:
         limits:
@@ -219,7 +219,7 @@ services:
   # Redis Exporter - Redis 指标导出
   redis-exporter:
     image: oliver006/redis_exporter:v1.55.0
-    container_name: langchain4j-redis-exporter
+    container_name: langchain4j-ai-assistant-redis-exporter
     ports:
       - "9121:9121"
     environment:
@@ -233,7 +233,7 @@ services:
   # Postgres Exporter - PostgreSQL 指标导出
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.12.1
-    container_name: langchain4j-postgres-exporter
+    container_name: langchain4j-ai-assistant-postgres-exporter
     ports:
       - "9187:9187"
     environment:
@@ -249,7 +249,7 @@ services:
   # Ollama - 本地大模型
   ollama:
     image: ollama/ollama:latest
-    container_name: langchain4j-ollama
+    container_name: langchain4j-ai-assistant-ollama
     ports:
       - "11434:11434"
     environment:
@@ -272,7 +272,7 @@ services:
   # Ollama CPU 版本（无 GPU 时的备选）
   ollama-cpu:
     image: ollama/ollama:latest
-    container_name: langchain4j-ollama-cpu
+    container_name: langchain4j-ai-assistant-ollama-cpu
     ports:
       - "11434:11434"
     environment:
@@ -290,7 +290,7 @@ services:
   # Qdrant - 高性能向量数据库
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: langchain4j-qdrant
+    container_name: langchain4j-ai-assistant-qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
@@ -307,7 +307,7 @@ services:
   # Milvus - 分布式向量数据库
   etcd:
     image: quay.io/coreos/etcd:v3.5.5
-    container_name: langchain4j-etcd
+    container_name: langchain4j-ai-assistant-etcd
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
@@ -329,7 +329,7 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2023-03-20T20-16-18Z
-    container_name: langchain4j-minio
+    container_name: langchain4j-ai-assistant-minio
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -352,7 +352,7 @@ services:
 
   milvus:
     image: milvusdb/milvus:v2.3.3
-    container_name: langchain4j-milvus
+    container_name: langchain4j-ai-assistant-milvus
     command: ["milvus", "run", "standalone"]
     security_opt:
       - seccomp:unconfined
@@ -384,7 +384,7 @@ services:
   # RabbitMQ - 消息队列
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
-    container_name: langchain4j-rabbitmq
+    container_name: langchain4j-ai-assistant-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -410,7 +410,7 @@ services:
   # Adminer - 数据库管理工具
   adminer:
     image: adminer:latest
-    container_name: langchain4j-adminer
+    container_name: langchain4j-ai-assistant-adminer
     ports:
       - "8080:8080"
     environment:
@@ -425,7 +425,7 @@ services:
   # Redis Commander - Redis 管理工具
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: langchain4j-redis-commander
+    container_name: langchain4j-ai-assistant-redis-commander
     ports:
       - "8081:8081"
     environment:
