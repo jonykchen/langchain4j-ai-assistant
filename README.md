@@ -1,8 +1,24 @@
-# LangChain4j Agent 工程
+# LangChain4j AI Assistant
 
-一个生产级 AI Agent 开发工程，基于 LangChain4j + Spring Boot + Vue 3 构建。支持多模型负载均衡、故障自动转移、完整可观测性链路。
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-green.svg)](https://spring.io/)
+[![Vue](https://img.shields.io/badge/Vue-3-brightgreen.svg)](https://vuejs.org/)
+
+一个生产级 AI 助手平台，基于 LangChain4j + Spring Boot + Vue 3 构建。支持多模型负载均衡、故障自动转移、完整可观测性链路。
 
 > 📖 **[快速开始指南](./docs/QUICK_START.md)** - 完整的启动文档和服务访问地址
+
+## 项目截图
+
+<!-- 添加项目截图 -->
+| 聊天界面 | 管理后台 |
+|:---:|:---:|
+| ![聊天界面](docs/screenshots/chat.png) | ![管理后台](docs/screenshots/admin.png) |
+
+| 模型监控 | Agent 追踪 |
+|:---:|:---:|
+| ![模型监控](docs/screenshots/monitoring.png) | ![Agent追踪](docs/screenshots/tracing.png) |
 
 ## 核心特性
 
@@ -75,7 +91,7 @@
 ## 项目结构
 
 ```
-langchain4j-demo/
+langchain4j-ai-assistant/
 ├── src/main/java/com/jonychen/    # 后端代码
 │   ├── assistant/                 # AI 助手接口
 │   ├── config/                    # 配置类
@@ -113,8 +129,8 @@ langchain4j-demo/
 
 ```bash
 # 克隆项目
-git clone <repository-url>
-cd langchain4j-demo
+git clone https://github.com/jonykchen/langchain4j-ai-assistant.git
+cd langchain4j-ai-assistant
 
 # 配置环境变量
 cp .env.example .env
@@ -192,6 +208,19 @@ cd frontend && npm run dev
 | PostgreSQL | `infra/postgres/init/01-init.sql` |
 | MySQL (Nacos) | `infra/nacos/init/01-nacos-init.sql` |
 
+## 贡献指南
+
+欢迎贡献代码、报告问题或提出建议！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解详情。
+
+### 如何贡献
+- Fork 项目并创建 PR
+- 报告 Bug 或建议新功能
+- 改进文档
+
+## 作者
+
+**Jony Chen** - [GitHub](https://github.com/jonykchen) - [Email](mailto:jony.k.chen@gmail.com)
+
 ## 许可证
 
-MIT License
+本项目采用 [MIT License](LICENSE) 开源协议。您可以自由使用、修改和分发本软件。
