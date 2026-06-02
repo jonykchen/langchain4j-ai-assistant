@@ -114,4 +114,5 @@ data/
 #backup/
 
 ### Claude Code ###
-#.claude/settings.local.json
+# 本地 Claude Code 设置文件可能包含敏感信息（API Key、权限等）
+.claude/settings.local.json
