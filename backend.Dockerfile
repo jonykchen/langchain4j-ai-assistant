@@ -15,7 +15,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # ==================== 运行阶段 ====================
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 # 安全: 使用非 root 用户
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
