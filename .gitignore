@@ -71,9 +71,11 @@ Thumbs.db
 Desktop.ini
 
 ### 环境配置文件 ###
-# 注意：个人私有项目，.env 包含敏感配置但需要提交到仓库
-# 如需开源，请先移除 .env 中的敏感信息并取消下行注释
-#.env
+# 敏感配置文件，禁止提交到仓库
+.env
+.env.local
+.env.*.local
+!.env.example
 
 ### 打包文件 ###
 *.jar
