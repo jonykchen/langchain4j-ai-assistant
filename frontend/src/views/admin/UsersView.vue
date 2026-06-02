@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { adminApi, type UserAdminVO } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Download, Plus } from '@element-plus/icons-vue'
+import { Refresh, Download } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -19,7 +19,7 @@ const quotaLoading = ref(false)
 
 const quotaForm = reactive({
   dailyTokenLimit: 0,
-  monthlyTokenLimit: 0
+  monthlyTokenLimit: 0,
 })
 
 // 防抖定时器
@@ -28,10 +28,10 @@ let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 const providerLabels: Record<string, string> = {
   GITHUB: 'GitHub',
   GITLAB: 'GitLab',
-  CUSTOM: '密码'
+  CUSTOM: '密码',
 }
 
-const formatDate = (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '从未登录'
+const formatDate = (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '从未登录')
 const formatNumber = (num: number | undefined | null) => {
   if (num === undefined || num === null) return '0'
   return num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num.toString()
@@ -45,7 +45,7 @@ const loadUsers = async () => {
       size: pageSize.value,
       search: searchQuery.value || undefined,
       role: roleFilter.value || undefined,
-      provider: providerFilter.value || undefined
+      provider: providerFilter.value || undefined,
     })
     users.value = res.data
     total.value = res.total
@@ -100,7 +100,7 @@ const saveQuota = async () => {
   try {
     await adminApi.updateUserQuota(selectedUser.value.id, {
       dailyTokenLimit: quotaForm.dailyTokenLimit,
-      monthlyTokenLimit: quotaForm.monthlyTokenLimit
+      monthlyTokenLimit: quotaForm.monthlyTokenLimit,
     })
     ElMessage.success('配额更新成功')
     // 更新本地数据
@@ -155,7 +155,12 @@ onMounted(loadUsers)
             <el-option label="普通用户" value="USER" />
             <el-option label="管理员" value="ADMIN" />
           </el-select>
-          <el-select v-model="providerFilter" placeholder="登录方式" clearable class="filter-select">
+          <el-select
+            v-model="providerFilter"
+            placeholder="登录方式"
+            clearable
+            class="filter-select"
+          >
             <el-option label="GitHub" value="GITHUB" />
             <el-option label="GitLab" value="GITLAB" />
             <el-option label="密码" value="CUSTOM" />
@@ -252,8 +257,12 @@ onMounted(loadUsers)
           <el-descriptions-item label="邮箱">{{ selectedUser.email }}</el-descriptions-item>
           <el-descriptions-item label="昵称">{{ selectedUser.nickname }}</el-descriptions-item>
           <el-descriptions-item label="角色">{{ selectedUser.role }}</el-descriptions-item>
-          <el-descriptions-item label="登录方式">{{ providerLabels[selectedUser.provider] }}</el-descriptions-item>
-          <el-descriptions-item label="注册时间">{{ formatDate(selectedUser.createdAt) }}</el-descriptions-item>
+          <el-descriptions-item label="登录方式">
+            {{ providerLabels[selectedUser.provider] }}
+          </el-descriptions-item>
+          <el-descriptions-item label="注册时间">
+            {{ formatDate(selectedUser.createdAt) }}
+          </el-descriptions-item>
         </el-descriptions>
 
         <h4 class="section-title">使用统计</h4>
@@ -284,7 +293,9 @@ onMounted(loadUsers)
               :step="1000"
               style="width: 100%"
             />
-            <div class="form-tip">当前限制: {{ formatLimit(selectedUser.dailyTokenLimit) }}，0 表示无限制</div>
+            <div class="form-tip">
+              当前限制: {{ formatLimit(selectedUser.dailyTokenLimit) }}，0 表示无限制
+            </div>
           </el-form-item>
           <el-form-item label="每月 Token 限制">
             <el-input-number
@@ -294,10 +305,14 @@ onMounted(loadUsers)
               :step="10000"
               style="width: 100%"
             />
-            <div class="form-tip">当前限制: {{ formatLimit(selectedUser.monthlyTokenLimit) }}，0 表示无限制</div>
+            <div class="form-tip">
+              当前限制: {{ formatLimit(selectedUser.monthlyTokenLimit) }}，0 表示无限制
+            </div>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :loading="quotaLoading" @click="saveQuota">保存配额</el-button>
+            <el-button type="primary" :loading="quotaLoading" @click="saveQuota">
+              保存配额
+            </el-button>
           </el-form-item>
         </el-form>
       </template>

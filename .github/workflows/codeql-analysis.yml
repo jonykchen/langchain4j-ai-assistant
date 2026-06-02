@@ -42,7 +42,7 @@ jobs:
 
       - name: Build with Maven (Java)
         if: matrix.language == 'java'
-        run: mvn clean compile -DskipTests -B
+        run: mvn clean compile -DskipTests -B -U
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

@@ -1,4 +1,4 @@
-import { test as setup, expect } from '@playwright/test';
+import { test as setup } from '@playwright/test'
 
 /**
  * 认证设置测试
@@ -8,11 +8,11 @@ import { test as setup, expect } from '@playwright/test';
  * 策略：直接通过 Mock 方式创建认证状态，不依赖后端服务
  */
 
-const authFile = 'playwright/.auth/user.json';
+const authFile = 'playwright/.auth/user.json'
 
 setup('authenticate', async ({ page }) => {
   // Mock 所有认证相关 API，避免依赖后端服务
-  await page.route('**/auth/me', async (route) => {
+  await page.route('**/auth/me', async route => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -24,12 +24,12 @@ setup('authenticate', async ({ page }) => {
           username: 'testuser',
           role: 'ADMIN',
           createdAt: new Date().toISOString(),
-        }
-      })
-    });
-  });
+        },
+      }),
+    })
+  })
 
-  await page.route('**/auth/login', async (route) => {
+  await page.route('**/auth/login', async route => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -47,13 +47,13 @@ setup('authenticate', async ({ page }) => {
             id: 'test-user-id',
             username: 'testuser',
             role: 'ADMIN',
-          }
-        }
-      })
-    });
-  });
+          },
+        },
+      }),
+    })
+  })
 
-  await page.route('**/auth/refresh', async (route) => {
+  await page.route('**/auth/refresh', async route => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -65,34 +65,39 @@ setup('authenticate', async ({ page }) => {
           refreshToken: 'new-refresh-token',
           tokenType: 'Bearer',
           expiresIn: 3600,
-        }
-      })
-    });
-  });
+        },
+      }),
+    })
+  })
 
   // 导航到首页
-  await page.goto('/');
+  await page.goto('/')
 
   // 直接设置认证状态（不依赖后端登录）
   await page.evaluate(() => {
-    localStorage.setItem('access_token', 'test-jwt-token');
-    localStorage.setItem('refresh_token', 'test-refresh-token');
-    localStorage.setItem('token_expiry', String(Date.now() + 3600000));
-    localStorage.setItem('user_info', JSON.stringify({
-      id: 'test-user-id',
-      username: 'testuser',
-      role: 'ADMIN',
-    }));
-  });
+    localStorage.setItem('access_token', 'test-jwt-token')
+    localStorage.setItem('refresh_token', 'test-refresh-token')
+    localStorage.setItem('token_expiry', String(Date.now() + 3600000))
+    localStorage.setItem(
+      'user_info',
+      JSON.stringify({
+        id: 'test-user-id',
+        username: 'testuser',
+        role: 'ADMIN',
+      })
+    )
+  })
 
   // 设置 cookie
-  await page.context().addCookies([{
-    name: 'auth_token',
-    value: 'test-jwt-token',
-    domain: 'localhost',
-    path: '/',
-  }]);
+  await page.context().addCookies([
+    {
+      name: 'auth_token',
+      value: 'test-jwt-token',
+      domain: 'localhost',
+      path: '/',
+    },
+  ])
 
   // 保存认证状态
-  await page.context().storageState({ path: authFile });
-});
+  await page.context().storageState({ path: authFile })
+})

@@ -23,7 +23,9 @@
               {{ result.success ? '成功' : '失败' }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="执行时长">{{ result.executionTimeMs }}ms</el-descriptions-item>
+          <el-descriptions-item label="执行时长">
+            {{ result.executionTimeMs }}ms
+          </el-descriptions-item>
           <el-descriptions-item label="迭代次数">{{ result.iterations }}</el-descriptions-item>
         </el-descriptions>
 
@@ -61,7 +63,7 @@
             >
               <template #dot>
                 <el-icon :size="16">
-                  <component :is="step.success ? 'CircleCheck' : 'CircleClose'" />
+                  <component :is="step.success ? CircleCheck : CircleClose" />
                 </el-icon>
               </template>
               <el-card shadow="never" class="step-card">
@@ -103,7 +105,6 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-// @ts-expect-error Vue template uses these icons as dynamic components
 import { CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import type { TaskResultInfo } from '@/api/planning'
 

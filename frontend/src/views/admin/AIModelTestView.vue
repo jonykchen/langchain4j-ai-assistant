@@ -17,7 +17,7 @@ const categories = [
   { label: '基础问答', value: 'basic' },
   { label: '代码生成', value: 'code-generation' },
   { label: '知识问答', value: 'knowledge' },
-  { label: '多轮对话', value: 'conversation' }
+  { label: '多轮对话', value: 'conversation' },
 ]
 
 const filteredResults = computed(() => {
@@ -71,28 +71,27 @@ const calculateStats = () => {
     failed: count - passed,
     running: 0,
     totalTests: count,
-    avgResponseTime: count > 0
-      ? Math.round(results.value.reduce((sum, r) => sum + r.responseTime, 0) / count)
-      : 0
+    avgResponseTime:
+      count > 0 ? Math.round(results.value.reduce((sum, r) => sum + r.responseTime, 0) / count) : 0,
   }
 }
 
 const getCategoryType = (category: string) => {
   const types: Record<string, '' | 'success' | 'warning' | 'info' | 'danger'> = {
-    'basic': '',
+    basic: '',
     'code-generation': 'warning',
-    'knowledge': 'success',
-    'conversation': 'info'
+    knowledge: 'success',
+    conversation: 'info',
   }
   return types[category] || ''
 }
 
 const getCategoryLabel = (category: string) => {
   const labels: Record<string, string> = {
-    'basic': '基础问答',
+    basic: '基础问答',
     'code-generation': '代码生成',
-    'knowledge': '知识问答',
-    'conversation': '多轮对话'
+    knowledge: '知识问答',
+    conversation: '多轮对话',
   }
   return labels[category] || category
 }
@@ -114,9 +113,7 @@ onMounted(() => {
           :value="cat.value"
         />
       </el-select>
-      <el-button type="primary" @click="runTests" :loading="loading">
-        运行测试
-      </el-button>
+      <el-button type="primary" @click="runTests" :loading="loading">运行测试</el-button>
     </div>
 
     <!-- 分类统计 -->
@@ -127,7 +124,7 @@ onMounted(() => {
           <div class="text-lg font-bold">
             {{ stat.passed }}/{{ stat.total }}
             <span class="text-sm font-normal text-gray-400">
-              ({{ stat.total > 0 ? Math.round(stat.passed / stat.total * 100) : 0 }}%)
+              ({{ stat.total > 0 ? Math.round((stat.passed / stat.total) * 100) : 0 }}%)
             </span>
           </div>
         </el-card>
@@ -148,15 +145,19 @@ onMounted(() => {
         <template #default="{ row }">
           <el-progress
             :percentage="Math.round((row.score ?? 0) * 100)"
-            :status="(row.score ?? 0) >= 0.8 ? 'success' : (row.score ?? 0) >= 0.5 ? 'warning' : 'exception'"
-            :format="(val: number) => val + '%'"
+            :status="
+              (row.score ?? 0) >= 0.8
+                ? 'success'
+                : (row.score ?? 0) >= 0.5
+                  ? 'warning'
+                  : 'exception'
+            "
+            :format="val => val + '%'"
           />
         </template>
       </el-table-column>
       <el-table-column prop="responseTime" label="耗时" width="100">
-        <template #default="{ row }">
-          {{ row.responseTime ?? 0 }}ms
-        </template>
+        <template #default="{ row }">{{ row.responseTime ?? 0 }}ms</template>
       </el-table-column>
       <el-table-column prop="passed" label="状态" width="100">
         <template #default="{ row }">
@@ -176,7 +177,10 @@ onMounted(() => {
               <el-icon v-if="detail.passed"><CircleCheck /></el-icon>
               <el-icon v-else><CircleClose /></el-icon>
               <span>{{ detail.assertion }}</span>
-              <el-tooltip v-if="!detail.passed" :content="`期望: ${detail.expected}, 实际: ${detail.actual}`">
+              <el-tooltip
+                v-if="!detail.passed"
+                :content="`期望: ${detail.expected}, 实际: ${detail.actual}`"
+              >
                 <el-icon><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
