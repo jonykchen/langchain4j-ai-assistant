@@ -1,10 +1,23 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Environment-dependent path to Maven home directory
-/mavenHomeManager.xml
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
+# IDE 文件 - 但保留部分共享配置
+# 以下文件会被忽略：
+
+# 个人设置
+workspace.xml
+tasks.xml
+usage.statistics.xml
+dictionaries/
+shelf/
+
+# 本地配置
+encodings.xml (可能)
+misc.xml (可能)
+
+# 编译缓存
+compiler.xml
+jarRepositories.xml
+*.iml
+
+# 以下配置应该提交（已在主 .gitignore 中配置）
+# - .gitignore (IDEA 部分)
+# - .editorconfig (根目录)
+# - runConfigurations/ (运行配置)

@@ -1,0 +1,31 @@
+title: "[Q&A] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 提问前请确认
+        
+        - [ ] 已阅读 [README](https://github.com/jonykchen/langchain4j-ai-assistant#readme)
+        - [ ] 已搜索现有 Issues 和 Discussions
+        
+  - type: textarea
+    id: question
+    attributes:
+      label: 你的问题
+      description: 请详细描述你的问题
+      placeholder: "例如：如何配置多模型负载均衡？"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: context
+    attributes:
+      label: 环境信息
+      description: 请提供相关环境信息
+      value: |
+        - OS: 
+        - Java 版本: 
+        - Node.js 版本: 
+    validations:
+      required: false

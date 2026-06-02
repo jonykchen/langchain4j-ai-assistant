@@ -1,0 +1,39 @@
+title: "[Idea] "
+labels: ["enhancement", "idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 分享你的想法 💡
+        
+        欢迎分享你对项目的改进想法！
+        
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你的想法
+      description: 详细描述你的想法
+      placeholder: "我希望项目能够..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: solution
+    attributes:
+      label: 可能的实现方案
+      description: 如果你有实现建议，请描述
+    validations:
+      required: false
+      
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响领域
+      multiple: true
+      options:
+        - 后端 API
+        - 前端界面
+        - AI 功能
+        - 文档
+        - 性能
+        - 其他
