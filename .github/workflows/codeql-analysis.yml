@@ -40,6 +40,13 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Clean corrupted Maven cache
+        if: matrix.language == 'java'
+        run: |
+          # Remove corrupted POM files (HTML error pages cached by Maven)
+          find ~/.m2/repository -name "*.pom" -type f -exec grep -l "<!DOCTYPE\|<html" {} \; 2>/dev/null | xargs -r rm -f
+          find ~/.m2/repository -name "*.pom.sha1" -type f 2>/dev/null | xargs -r rm -f
+
       - name: Build with Maven (Java)
         if: matrix.language == 'java'
         run: mvn clean compile -DskipTests -B -U
