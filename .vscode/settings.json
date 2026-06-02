@@ -1,0 +1,59 @@
+{
+  // Editor settings
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  
+  // Java settings
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.format.enabled": true,
+  "java.saveActions.organizeImports": true,
+  
+  // Spring Boot
+  "spring-boot.ls.problem.application-properties.enabled": true,
+  "spring-boot.ls.problem.application-yaml.enabled": true,
+  
+  // TypeScript/Vue
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "vue.inlayHints.missingProps": true,
+  "vue.inlayHints.inlineHandlerLeading": true,
+  
+  // ESLint
+  "eslint.workingDirectories": ["frontend"],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "vue"
+  ],
+  
+  // Prettier
+  "prettier.requireConfig": true,
+  
+  // Files
+  "files.exclude": {
+    "**/.git": true,
+    "**/.idea": true,
+    "**/target": true,
+    "**/node_modules": true,
+    "**/dist": true
+  },
+  
+  // Search exclude
+  "search.exclude": {
+    "**/target": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.git": true
+  },
+  
+  // Emmet
+  "emmet.includeLanguages": {
+    "vue": "html"
+  }
+}
