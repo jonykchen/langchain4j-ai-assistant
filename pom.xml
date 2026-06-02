@@ -626,7 +626,7 @@
             <plugin>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-contract-maven-plugin</artifactId>
-                <version>4.0.4</version>
+                <version>4.3.3</version>
                 <extensions>true</extensions>
                 <configuration>
                     <baseClassForTests>com.jonychen.contract.ContractTestBase</baseClassForTests>
