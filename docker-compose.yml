@@ -4,7 +4,7 @@ services:
   # PostgreSQL with pgvector - 主数据库
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: langchain4j-postgres
+    container_name: langchain4j-ai-assistant-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-langchain4j}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
@@ -21,7 +21,7 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
   # ==================== 应用服务 ====================
@@ -31,7 +31,7 @@ services:
     build:
       context: .
       dockerfile: backend.Dockerfile
-    container_name: langchain4j-backend
+    container_name: langchain4j-ai-assistant-backend
     ports:
       - "8082:8082"
     environment:
@@ -67,7 +67,7 @@ services:
       zipkin:
         condition: service_started
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 30s
@@ -87,13 +87,13 @@ services:
     build:
       context: .
       dockerfile: frontend.Dockerfile
-    container_name: langchain4j-frontend
+    container_name: langchain4j-ai-assistant-frontend
     ports:
       - "80:80"
     depends_on:
       - backend
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
   # ==================== 基础设施服务 ====================
@@ -101,7 +101,7 @@ services:
   # Redis - 分布式限流与缓存
   redis:
     image: docker.1ms.run/redis:7-alpine
-    container_name: langchain4j-redis
+    container_name: langchain4j-ai-assistant-redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -113,13 +113,13 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
   # Nacos 数据库（MySQL）
   nacos-db:
     image: docker.1ms.run/mysql:8.0
-    container_name: langchain4j-nacos-db
+    container_name: langchain4j-ai-assistant-nacos-db
     ports:
       - "3308:3306"
     environment:
@@ -138,13 +138,13 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
   # Nacos 配置中心
   nacos:
     image: docker.1ms.run/nacos/nacos-server:v2.3.1
-    container_name: langchain4j-nacos
+    container_name: langchain4j-ai-assistant-nacos
     ports:
       - "8848:8848"
       - "9848:9848"
@@ -172,13 +172,13 @@ services:
       nacos-db:
         condition: service_healthy
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
   # Nacos 配置初始化容器
   nacos-config-init:
     image: docker.1ms.run/curlimages/curl:8.5.0
-    container_name: langchain4j-nacos-config-init
+    container_name: langchain4j-ai-assistant-nacos-config-init
     volumes:
       - ./infra/nacos/init/init-nacos-config.sh:/init.sh:ro
       - ./infra/nacos/config:/config:ro
@@ -191,19 +191,19 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: "no"
 
   # Zipkin 链路追踪
   zipkin:
     image: docker.1ms.run/openzipkin/zipkin:latest
-    container_name: langchain4j-zipkin
+    container_name: langchain4j-ai-assistant-zipkin
     environment:
       - JAVA_OPTS=-Xms128m -Xmx256m
     ports:
       - "9411:9411"
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
   # ==================== 监控服务 ====================
@@ -211,7 +211,7 @@ services:
   # Prometheus - 指标收集
   prometheus:
     image: docker.1ms.run/prom/prometheus:v2.48.0
-    container_name: langchain4j-prometheus
+    container_name: langchain4j-ai-assistant-prometheus
     deploy:
       resources:
         limits:
@@ -231,13 +231,13 @@ services:
     depends_on:
       - backend
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
   # Grafana - 可视化面板
   grafana:
     image: docker.1ms.run/grafana/grafana:10.2.0
-    container_name: langchain4j-grafana
+    container_name: langchain4j-ai-assistant-grafana
     deploy:
       resources:
         limits:
@@ -259,7 +259,7 @@ services:
     depends_on:
       - prometheus
     networks:
-      - langchain4j-network
+      - langchain4j-ai-assistant-network
     restart: unless-stopped
 
 # ==================== 数据卷 ====================
@@ -273,5 +273,5 @@ volumes:
 
 # ==================== 网络 ====================
 networks:
-  langchain4j-network:
+  langchain4j-ai-assistant-network:
     driver: bridge

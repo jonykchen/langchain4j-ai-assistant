@@ -8271,7 +8271,7 @@ networks:
 ```bash
 # 克隆代码
 git clone <repository-url>
-cd langchain4j-demo
+cd langchain4j-ai-assistant
 
 # 复制环境变量模板
 cp .env.example .env

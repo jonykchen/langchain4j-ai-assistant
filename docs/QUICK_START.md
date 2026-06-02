@@ -1,4 +1,4 @@
-# LangChain4j Agent 工程 - 快速开始指南
+# LangChain4j AI Assistant - 快速开始指南
 
 本文档提供完整的开发环境启动指南，帮助你在任何电脑上一键启动项目。
 
@@ -31,8 +31,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone <repository-url>
-cd langchain4j-demo
+git clone https://github.com/jonykchen/langchain4j-ai-assistant.git
+cd langchain4j-ai-assistant
 ```
 
 ### 2. 配置环境变量
@@ -699,7 +699,7 @@ Nacos 依赖 MySQL，需要等待 MySQL 启动完成后才会开始初始化。�
 ### 项目结构
 
 ```
-langchain4j-demo/
+langchain4j-ai-assistant/
 ├── data/                      # Docker 数据卷（本地持久化）
 │   ├── postgres/              # PostgreSQL 数据（业务数据）
 │   ├── redis/                 # Redis 数据
