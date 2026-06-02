@@ -2,7 +2,7 @@
 # syntax=docker/dockerfile:1
 
 # ==================== 构建阶段 ====================
-FROM maven:3.9-eclipse-temurin-17-alpine AS builder
+FROM maven:3-eclipse-temurin-26-alpine AS builder
 
 WORKDIR /build
 
