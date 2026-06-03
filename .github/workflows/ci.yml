@@ -270,7 +270,7 @@ jobs:
 
       - name: Build and push backend image
         if: steps.check-docker.outputs.has_creds == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend.Dockerfile
@@ -281,7 +281,7 @@ jobs:
 
       - name: Build and push frontend image
         if: steps.check-docker.outputs.has_creds == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: frontend.Dockerfile
