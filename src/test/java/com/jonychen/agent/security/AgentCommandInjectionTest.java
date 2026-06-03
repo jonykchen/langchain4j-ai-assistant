@@ -221,8 +221,11 @@ class AgentCommandInjectionTest {
         if (path.contains("..") || path.contains("~")) {
             return false;
         }
-        // 不能是绝对路径
-        if (path.startsWith("/") || path.startsWith("\\")) {
+        // 不能是绝对路径（Unix、Windows 盘符或 file:// URI）
+        if (path.startsWith("/")
+                || path.startsWith("\\")
+                || path.matches("^([A-Za-z]:).*")
+                || path.toLowerCase().startsWith("file:")) {
             return false;
         }
         return !containsDangerousCharacters(path);
@@ -258,6 +261,8 @@ class AgentCommandInjectionTest {
                 || lower.contains("||")
                 || lower.contains("|")
                 || lower.contains("`")
-                || lower.contains("$(");
+                || lower.contains("$(")
+                // 检测单个 & 命令分隔符（Windows）
+                || lower.matches(".*\\s&\\s.*");
     }
 }

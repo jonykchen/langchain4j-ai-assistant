@@ -58,7 +58,7 @@ class AgentAuthorizationTest {
     @DisplayName("CRITICAL 级别工具需要确认")
     void testCriticalToolRequiresConfirmation() {
         ToolDefinition criticalTool = mock(ToolDefinition.class);
-        when(criticalTool.riskLevel()).thenReturn(RiskLevel.CRITICAL);
+        lenient().when(criticalTool.riskLevel()).thenReturn(RiskLevel.CRITICAL);
         when(criticalTool.requiresConfirmation()).thenReturn(true);
 
         assertTrue(permissionService.requiresConfirmation(criticalTool, true));
@@ -69,7 +69,7 @@ class AgentAuthorizationTest {
     @DisplayName("HIGH 级别工具需要确认")
     void testHighToolRequiresConfirmation() {
         ToolDefinition highTool = mock(ToolDefinition.class);
-        when(highTool.riskLevel()).thenReturn(RiskLevel.HIGH);
+        lenient().when(highTool.riskLevel()).thenReturn(RiskLevel.HIGH);
         when(highTool.requiresConfirmation()).thenReturn(true);
 
         assertTrue(permissionService.requiresConfirmation(highTool, true));

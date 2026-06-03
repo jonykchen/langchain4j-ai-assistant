@@ -67,7 +67,7 @@ class AgentDelegationServiceTest {
         @DisplayName("应正确委托到目标 Agent")
         void shouldDelegateToTargetAgent() {
             when(agentRegistry.getAgent("data")).thenReturn(java.util.Optional.of(dataAgent));
-            when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
+            lenient().when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
 
             AgentResult mockResult =
                     AgentResult.success("data-agent-trace", "查询结果", Collections.emptyList());
@@ -105,7 +105,7 @@ class AgentDelegationServiceTest {
         @DisplayName("不能委托给自己")
         void shouldNotDelegateToSelf() {
             when(agentRegistry.getAgent("data")).thenReturn(java.util.Optional.of(dataAgent));
-            when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
+            lenient().when(dataAgent.getMetadata()).thenReturn(AgentMetadata.data());
 
             AgentContext context = createContext();
             context.setVariable("sourceAgentName", "data");

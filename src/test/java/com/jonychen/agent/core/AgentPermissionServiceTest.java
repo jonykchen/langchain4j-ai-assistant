@@ -104,7 +104,7 @@ class AgentPermissionServiceTest {
         @Test
         @DisplayName("CRITICAL 级别工具必须确认")
         void criticalToolRequiresConfirmation() {
-            when(tool.riskLevel()).thenReturn(RiskLevel.CRITICAL);
+            lenient().when(tool.riskLevel()).thenReturn(RiskLevel.CRITICAL);
             when(tool.requiresConfirmation()).thenReturn(true);
 
             assertTrue(permissionService.requiresConfirmation(tool, true));
@@ -113,7 +113,7 @@ class AgentPermissionServiceTest {
         @Test
         @DisplayName("HIGH 级别工具需要确认")
         void highToolRequiresConfirmation() {
-            when(tool.riskLevel()).thenReturn(RiskLevel.HIGH);
+            lenient().when(tool.riskLevel()).thenReturn(RiskLevel.HIGH);
             when(tool.requiresConfirmation()).thenReturn(true);
 
             assertTrue(permissionService.requiresConfirmation(tool, true));
@@ -131,8 +131,8 @@ class AgentPermissionServiceTest {
         @Test
         @DisplayName("执行选项不需要确认时不确认")
         void noConfirmationWhenOptionDisabled() {
-            when(tool.riskLevel()).thenReturn(RiskLevel.CRITICAL);
-            when(tool.requiresConfirmation()).thenReturn(true);
+            lenient().when(tool.riskLevel()).thenReturn(RiskLevel.CRITICAL);
+            lenient().when(tool.requiresConfirmation()).thenReturn(true);
 
             assertFalse(permissionService.requiresConfirmation(tool, false));
         }
