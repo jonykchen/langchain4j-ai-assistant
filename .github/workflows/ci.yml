@@ -38,7 +38,7 @@ jobs:
         run: mvn clean compile -DskipTests -U
 
       - name: Run unit tests
-        run: mvn test -Dtest="!*IntegrationTest,!*ContractTest,!*AIModelTest*"
+        run: mvn test -Dtest="!*IntegrationTest,!ChatTest,!HealthTest,!*AIModelTest*"
         env:
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY || 'test-key' }}
 

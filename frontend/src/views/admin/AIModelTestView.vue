@@ -152,7 +152,7 @@ onMounted(() => {
                   ? 'warning'
                   : 'exception'
             "
-            :format="(val: number) => val + '%'"
+            :format="val => val + '%'"
           />
         </template>
       </el-table-column>

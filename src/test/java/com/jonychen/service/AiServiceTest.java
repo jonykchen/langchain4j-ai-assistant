@@ -17,6 +17,7 @@ import com.jonychen.metrics.BusinessMetricsService;
 import com.jonychen.model.ErrorCode;
 import com.jonychen.model.LoadBalancedChatModel;
 import com.jonychen.model.LoadBalancedStreamingChatModel;
+import com.jonychen.observability.trace.RequestTraceService;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -34,13 +35,19 @@ class AiServiceTest {
 
     @Mock private BusinessMetricsService businessMetricsService;
 
+    @Mock private RequestTraceService requestTraceService;
+
     private AiService aiService;
 
     @BeforeEach
     void setUp() {
         aiService =
                 new AiService(
-                        chatModel, streamingChatModel, tokenUsageService, businessMetricsService);
+                        chatModel,
+                        streamingChatModel,
+                        tokenUsageService,
+                        businessMetricsService,
+                        requestTraceService);
     }
 
     @Test
