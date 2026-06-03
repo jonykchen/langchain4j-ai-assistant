@@ -96,6 +96,8 @@ const getCategoryLabel = (category: string) => {
   return labels[category] || category
 }
 
+const formatPercent = (val: number): string => val + '%'
+
 onMounted(() => {
   loadResults()
 })
@@ -152,7 +154,7 @@ onMounted(() => {
                   ? 'warning'
                   : 'exception'
             "
-            :format="val => val + '%'"
+            :format="formatPercent"
           />
         </template>
       </el-table-column>
