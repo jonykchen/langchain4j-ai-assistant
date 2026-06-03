@@ -25,11 +25,7 @@ public class AdminInitializer {
     private static final String ADMIN_USERNAME = "admin";
     private static final String ADMIN_EMAIL = "admin@example.com";
 
-    /**
-     * 管理员密码配置
-     * 生产环境必须通过环境变量 ADMIN_PASSWORD 设置
-     * 开发环境如未设置，将生成随机密码并输出到日志
-     */
+    /** 管理员密码配置 生产环境必须通过环境变量 ADMIN_PASSWORD 设置 开发环境如未设置，将生成随机密码并输出到日志 */
     @Value("${ADMIN_PASSWORD:}")
     private String adminPassword;
 
@@ -62,10 +58,7 @@ public class AdminInitializer {
         }
     }
 
-    /**
-     * 确定管理员密码
-     * 优先级：环境变量 > 随机生成
-     */
+    /** 确定管理员密码 优先级：环境变量 > 随机生成 */
     private String determinePassword() {
         if (StringUtils.hasText(adminPassword)) {
             log.info("使用环境变量 ADMIN_PASSWORD");
