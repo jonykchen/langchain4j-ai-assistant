@@ -161,6 +161,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Clean Maven cache to fix corrupted POMs
+        run: |
+          rm -rf ~/.m2/repository
+          echo "Maven cache cleaned"
+
       - name: Run Gatling tests
         run: mvn gatling:test
 
@@ -189,6 +194,11 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: maven
+
+      - name: Clean Maven cache to fix corrupted POMs
+        run: |
+          rm -rf ~/.m2/repository
+          echo "Maven cache cleaned"
 
       - name: Run AI model tests
         run: mvn test -Dtest="*AIModelTest*"
